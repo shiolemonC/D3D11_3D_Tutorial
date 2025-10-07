@@ -27,6 +27,7 @@
 #include "meshfield.h"
 #include "light.h"
 #include "ModelStatic.h"
+#include "ModelSkinned.h"
 #pragma comment(lib, "xinput.lib")
 
 using namespace DirectX;
@@ -85,6 +86,20 @@ int APIENTRY WinMain(
 
 	// 加载
 	ModelStatic_LoadDefault();
+
+	ModelSkinned_Initialize(Direct3D_GetDevice(), Direct3D_GetContext());
+
+	ModelSkinnedDesc d;
+	d.meshPath = L"D:/AssetCooker/resources/Cooked/idle.mesh";
+	d.skelPath = L"D:/AssetCooker/resources/Cooked/idle.skel";
+	d.animPath = L"D:/AssetCooker/resources/Cooked/idle.anim";   // 没有可以留空
+	d.matPath = L"D:/AssetCooker/resources/Cooked/idle.mat";    // 不写则默认同名 .mat
+	d.baseColorTexOverride = L"D:/AssetCooker/resources/test/ninja_T.fbm/Ch24_1001_Diffuse.png";
+
+	ModelSkinned_Load(d);
+
+	ModelSkinned_SetLoop(true);
+	ModelSkinned_SetPlaybackRate(1.0f);
 
 
 

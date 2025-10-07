@@ -17,6 +17,7 @@
 #include "sampler.h"
 #include "meshfield.h"
 #include "ModelStatic.h"
+#include "ModelSkinned.h"
 using namespace DirectX;
 
 static float g_x = 0.0f;
@@ -45,6 +46,9 @@ void Game_Update(double elapsed_time)
     g_AccumulatedTime += elapsed_time;
     Camera_Update(elapsed_time);
     Cube_Update(elapsed_time);
+
+    ModelSkinned_Update(elapsed_time);
+
     g_angle = g_AccumulatedTime * 3.0f;
 
     if (KeyLogger_IsTrigger(KK_F))
@@ -58,6 +62,8 @@ void Game_Update(double elapsed_time)
     cube_position += XMLoadFloat3(&g_CubeVelocity) * elapsed_time;
 
     XMStoreFloat3(&g_CubePosition, cube_position);
+
+
 }
 
 void Game_Draw()
@@ -90,7 +96,7 @@ void Game_Draw()
 
     XMMATRIX W = XMMatrixIdentity();
     // 如果尺度不合适可加缩放：
-    W = XMMatrixScaling(0.01f, 0.01f, 0.01f);
+    //W = XMMatrixScaling(0.01f, 0.01f, 0.01f);
 
     ModelStatic_SetWorld(W);
 
@@ -98,7 +104,15 @@ void Game_Draw()
     Sampler_SetFillterAnisotropic();
 
     // 一行绘制
-    ModelStatic_Draw();
+    //ModelStatic_Draw();
+
+    ModelSkinned_SetWorldMatrix(W);
+
+    // 你的 view/proj/光照 仍旧通过 Shader3d_* 设置
+    // ...
+    ModelSkinned_Draw();
+
+
 
 	int baseCount = 5;
     float spacing = 1.0f;

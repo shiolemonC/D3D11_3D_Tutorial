@@ -1,6 +1,6 @@
-/*==============================================================================
+ï»¿/*==============================================================================
 
-   ƒeƒNƒXƒ`ƒƒŠÇ— [texture.cpp]
+   ãƒ†ã‚¯ã‚¹ãƒãƒ£ç®¡ç† [texture.cpp]
 														 Author : Youhei Sato
 														 Date   : 2025/06/13
 --------------------------------------------------------------------------------
@@ -13,22 +13,22 @@
 using namespace DirectX;
 
 
-static constexpr int TEXTURE_MAX = 1024; // ƒeƒNƒXƒ`ƒƒŠÇ—Å‘å”
+static constexpr int TEXTURE_MAX = 1024; // ãƒ†ã‚¯ã‚¹ãƒãƒ£ç®¡ç†æœ€å¤§æ•°
 
-struct Texture // ƒeƒNƒXƒ`ƒƒŠÇ—‚·‚é—p‚Ì\‘¢‘Ì
+struct Texture // ãƒ†ã‚¯ã‚¹ãƒãƒ£ç®¡ç†ã™ã‚‹ç”¨ã®æ§‹é€ ä½“
 {
 	std::wstring filename;
-	unsigned int width; // ƒeƒNƒXƒ`ƒƒ‚Ì•
-	unsigned int height; // ƒeƒNƒXƒ`ƒƒ‚Ì‚‚³
+	unsigned int width; // ãƒ†ã‚¯ã‚¹ãƒãƒ£ã®å¹…
+	unsigned int height; // ãƒ†ã‚¯ã‚¹ãƒãƒ£ã®é«˜ã•
 
 	ID3D11Resource* pTexture = nullptr;
 	ID3D11ShaderResourceView* pTextureView = nullptr;
 };
 
 static Texture g_Textures[TEXTURE_MAX] = {};
-static int g_SetTextureIndex = -1; // ŠÇ—”Ô†AƒfƒtƒHƒ‹ƒg‚Í -1
+static int g_SetTextureIndex = -1; // ç®¡ç†ç•ªå·ã€ãƒ‡ãƒ•ã‚©ãƒ«ãƒˆã¯ -1
 
-// ’ˆÓI‰Šú‰»‚ÅŠO•”‚©‚çİ’è‚³‚ê‚é‚à‚ÌBRelease•s—vB
+// æ³¨æ„ï¼åˆæœŸåŒ–ã§å¤–éƒ¨ã‹ã‚‰è¨­å®šã•ã‚Œã‚‹ã‚‚ã®ã€‚Releaseä¸è¦ã€‚
 static ID3D11Device* g_pDevice = nullptr;
 static ID3D11DeviceContext* g_pContext = nullptr;
 
@@ -41,7 +41,7 @@ void Texture_Initialize(ID3D11Device* pDevice, ID3D11DeviceContext* pContext)
 
 	g_SetTextureIndex = -1;
 
-	// ƒfƒoƒCƒX‚ÆƒfƒoƒCƒXƒRƒ“ƒeƒLƒXƒg‚Ì•Û‘¶
+	// ãƒ‡ãƒã‚¤ã‚¹ã¨ãƒ‡ãƒã‚¤ã‚¹ã‚³ãƒ³ãƒ†ã‚­ã‚¹ãƒˆã®ä¿å­˜
 	g_pDevice = pDevice;
 	g_pContext = pContext;
 }
@@ -53,24 +53,24 @@ void Texture_Finalize(void)
 
 int Texture_Load(const wchar_t* pFilename)
 {
-	// ‚·‚Å‚É“Ç‚İ‚ñ‚Å‚¢‚é‚à‚Ì‚Í“Ç‚İ‚Ü‚È‚¢
+	// ã™ã§ã«èª­ã¿è¾¼ã‚“ã§ã„ã‚‹ã‚‚ã®ã¯èª­ã¿è¾¼ã¾ãªã„
 	for (int i = 0; i < TEXTURE_MAX; i++)
 	{
-		if (g_Textures[i].filename == pFilename) // ¡“Ç‚İ‚à‚¤‚Æ‚·‚éƒtƒ@ƒCƒ‹–¼‚Í“¯‚¶‚Å‚·‚©
+		if (g_Textures[i].filename == pFilename) // ä»Šèª­ã¿è¾¼ã‚‚ã†ã¨ã™ã‚‹ãƒ•ã‚¡ã‚¤ãƒ«åã¯åŒã˜ã§ã™ã‹
 		{
-			return i; // ŠÇ—”Ô†‚ğ•Ô‚·
+			return i; // ç®¡ç†ç•ªå·ã‚’è¿”ã™
 		}
 	}
 
-	// ‹ó‚¢‚Ä‚¢‚éŠÇ——Ìˆæ‚ğ’T‚·
+	// ç©ºã„ã¦ã„ã‚‹ç®¡ç†é ˜åŸŸã‚’æ¢ã™
 	for (int i = 0; i < TEXTURE_MAX; i++)
 	{
 		if (g_Textures[i].pTexture)
 		{
-			continue; // g—p’†
+			continue; // ä½¿ç”¨ä¸­
 		}
 
-		// ƒeƒNƒXƒ`ƒƒ‚Ì“Ç‚İ‚İ
+		// ãƒ†ã‚¯ã‚¹ãƒãƒ£ã®èª­ã¿è¾¼ã¿
 		HRESULT hr;
 
 		hr = CreateWICTextureFromFile(g_pDevice, g_pContext, pFilename, &g_Textures[i].pTexture, &g_Textures[i].pTextureView);
@@ -83,13 +83,13 @@ int Texture_Load(const wchar_t* pFilename)
 
 		if (FAILED(hr))
 		{
-			MessageBoxW(nullptr, L"ƒeƒNƒXƒ`ƒƒ‚Ì“Ç‚İ‚İ‚É¸”s‚µ‚Ü‚µ‚½", pFilename, MB_OK | MB_ICONERROR);
+			MessageBoxW(nullptr, L"ãƒ†ã‚¯ã‚¹ãƒãƒ£ã®èª­ã¿è¾¼ã¿ã«å¤±æ•—ã—ã¾ã—ãŸ", pFilename, MB_OK | MB_ICONERROR);
 			return -1;
 		}
 
 		g_Textures[i].filename = pFilename;
 
-		return i; // ŠÇ—”Ô†‚ğ•Ô‚·
+		return i; // ç®¡ç†ç•ªå·ã‚’è¿”ã™
 	}
 }
 
@@ -97,7 +97,7 @@ void Texture_AllRelease()
 {
 	for (Texture& t : g_Textures)
 	{
-		t.filename.clear(); // ƒtƒ@ƒCƒ‹–¼íœ
+		t.filename.clear(); // ãƒ•ã‚¡ã‚¤ãƒ«åå‰Šé™¤
 		SAFE_RELEASE(t.pTexture);
 		SAFE_RELEASE(t.pTextureView);
 	}
@@ -105,10 +105,10 @@ void Texture_AllRelease()
 
 void Texture_SetTexture(int texid, int slot)
 {
-	// ƒeƒNƒXƒ`ƒƒİ’è
+	// ãƒ†ã‚¯ã‚¹ãƒãƒ£è¨­å®š
 	if (texid < 0)
 	{
-		return; // ŠÇ—”Ô†‚Í-1‚Ìê‡
+		return; // ç®¡ç†ç•ªå·ã¯-1ã®å ´åˆ
 	}
 	// if (g_SetTextureIndex == texid) return;
 
@@ -133,4 +133,10 @@ unsigned int Texture_Height(int texid)
 		return 0;
 	}
 	return g_Textures[texid].height;
+}
+
+ID3D11ShaderResourceView* Texture_GetSRV(int texid)
+{
+	if (texid < 0 || texid >= TEXTURE_MAX) return nullptr;
+	return g_Textures[texid].pTextureView; // ä»…è¿”å›æŒ‡é’ˆï¼Œä¸åš AddRef
 }

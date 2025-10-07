@@ -158,6 +158,7 @@
     <ClCompile Include="light.cpp" />
     <ClCompile Include="main.cpp" />
     <ClCompile Include="meshfield.cpp" />
+    <ClCompile Include="ModelSkinned.cpp" />
     <ClCompile Include="ModelStatic.cpp" />
     <ClCompile Include="mouse.cpp" />
     <ClCompile Include="sampler.cpp" />
@@ -193,6 +194,7 @@
     <ClInclude Include="key_logger.h" />
     <ClInclude Include="light.h" />
     <ClInclude Include="meshfield.h" />
+    <ClInclude Include="ModelSkinned.h" />
     <ClInclude Include="ModelStatic.h" />
     <ClInclude Include="mouse.h" />
     <ClInclude Include="sampler.h" />
@@ -235,6 +237,12 @@
       <ShaderModel Condition="'$(Configuration)|$(Platform)'=='Release|x64'">5.0</ShaderModel>
     </FxCompile>
     <FxCompile Include="shader_vertex_3d.hlsl">
+      <ShaderType Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">Vertex</ShaderType>
+      <ShaderModel Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">5.0</ShaderModel>
+      <ShaderType Condition="'$(Configuration)|$(Platform)'=='Release|x64'">Vertex</ShaderType>
+      <ShaderModel Condition="'$(Configuration)|$(Platform)'=='Release|x64'">5.0</ShaderModel>
+    </FxCompile>
+    <FxCompile Include="shader_vertex_skinned_3d.hlsl">
       <ShaderType Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">Vertex</ShaderType>
       <ShaderModel Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">5.0</ShaderModel>
       <ShaderType Condition="'$(Configuration)|$(Platform)'=='Release|x64'">Vertex</ShaderType>
