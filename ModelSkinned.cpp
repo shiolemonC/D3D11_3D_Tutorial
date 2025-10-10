@@ -309,7 +309,8 @@ static bool LoadSkel(const std::wstring& skelPathW) {
         auto jr = (const JointRec*)p; p += sizeof(JointRec);
         Joint j{};
         j.parent = jr->parent;
-        j.invBind = Float16_ColMajor_to_RowMajor(jr->invBind);
+        //j.invBind = Float16_ColMajor_to_RowMajor(jr->invBind);
+        memcpy(&j.invBind, jr->invBind, sizeof(float) * 16);
         j.bindT = XMFLOAT3(jr->bindLocalT[0], jr->bindLocalT[1], jr->bindLocalT[2]);
         j.bindR = XMFLOAT4(jr->bindLocalR[0], jr->bindLocalR[1], jr->bindLocalR[2], jr->bindLocalR[3]);
         j.bindS = XMFLOAT3(jr->bindLocalS[0], jr->bindLocalS[1], jr->bindLocalS[2]);
@@ -444,11 +445,47 @@ void ModelSkinned_Seek(float t) { gTime = t; }
 void ModelSkinned_Draw() {
     if (!gVB || !gIB || !gVS || !gIL) return;
 
-    // 1) 计算骨骼变换矩阵
+    // 1) 关节数检查
     const size_t J = gJoints.size();
     if (J == 0) return;
 
+    // 让临时数组有空间（后面复用）
     g_temp_globals.resize(J);
+
+    // ====== A. 绑定姿势一致性检查（仅跑一次）======
+    {
+        static bool s_checked = false;
+        if (!s_checked) {
+            // 用“绑定的 local TRS”递归出每根骨骼的绑定全局矩阵 BindGlobal
+            for (size_t j = 0; j < J; ++j) {
+                if (gJoints[j].parent == -1) {
+                    // 父级用单位阵即可（绑定时场景根变换已经烘入各关节的local里了）
+                    ComputeGlobalBindPoseRecursively(j, XMMatrixIdentity());
+                }
+            }
+
+            // 检查 BindGlobal * InvBind 是否≈单位阵
+            float worst = 0.0f;
+            for (size_t j = 0; j < J; ++j) {
+                XMMATRIX B = g_temp_globals[j];                 // 绑定全局
+                XMMATRIX InvB = XMLoadFloat4x4(&gJoints[j].invBind); // 从 .skel 读出的 inverse bind
+                XMMATRIX T = B * InvB;                           // 期望≈I
+
+                XMFLOAT4X4 t; XMStoreFloat4x4(&t, T);
+                for (int r = 0; r < 4; ++r) {
+                    for (int c = 0; c < 4; ++c) {
+                        float expect = (r == c) ? 1.f : 0.f;
+                        worst = std::max(worst, fabsf(t.m[r][c] - expect));
+                    }
+                }
+            }
+
+            char dbg[128];
+            sprintf_s(dbg, "[SKIN CHECK] max |BindGlobal*InvBind - I| = %.6f\n", worst);
+            OutputDebugStringA(dbg); // VS 的“输出(Output)”窗口可见
+            s_checked = true;
+        }
+    }
 
     // 根据是否有动画数据，选择不同的计算路径
     if (gFrameCount > 0) {

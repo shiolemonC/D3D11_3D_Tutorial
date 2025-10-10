@@ -84,15 +84,15 @@ void Game_Draw()
 
     Sampler_SetFillterAnisotropic();
 
-    Cube_Draw(World);
+    //Cube_Draw(World);
 
     World = XMMatrixTranslation(3.0f, 0.0f, 0.0f);
 
     Sampler_SetFillterLinear();
 
-    Cube_Draw(World);
+    //Cube_Draw(World);
 
-    Grid_Draw();
+    //Grid_Draw();
 
     XMMATRIX W = XMMatrixIdentity();
     // 如果尺度不合适可加缩放：

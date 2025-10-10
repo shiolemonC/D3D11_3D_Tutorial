@@ -90,10 +90,10 @@ int APIENTRY WinMain(
 	ModelSkinned_Initialize(Direct3D_GetDevice(), Direct3D_GetContext());
 
 	ModelSkinnedDesc d;
-	d.meshPath = L"D:/AssetCooker/resources/Cooked/idle.mesh";
-	d.skelPath = L"D:/AssetCooker/resources/Cooked/idle.skel";
-	d.animPath = L"D:/AssetCooker/resources/Cooked/idle.anim";   // 没有可以留空
-	d.matPath = L"D:/AssetCooker/resources/Cooked/idle.mat";    // 不写则默认同名 .mat
+	d.meshPath = L"D:/AssetCooker/resources/Cooked/idle_test.mesh";
+	d.skelPath = L"D:/AssetCooker/resources/Cooked/idle_test.skel";
+	d.animPath = L"D:/AssetCooker/resources/Cooked/idle_test.anim";   // 没有可以留空
+	d.matPath =  L"D:/AssetCooker/resources/Cooked/idle_test.mat";    // 不写则默认同名 .mat
 	d.baseColorTexOverride = L"D:/AssetCooker/resources/test/ninja_T.fbm/Ch24_1001_Diffuse.png";
 
 	ModelSkinned_Load(d);
