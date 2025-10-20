@@ -74,8 +74,11 @@ static void PrintMatrix(const char* name, const XMMATRIX& M) {
             M.r[r].m128_f32[0], M.r[r].m128_f32[1], M.r[r].m128_f32[2], M.r[r].m128_f32[3]);
     }
 }
-// ▲▲▲ 新增结束 ▲▲▲
-// 
+
+static bool DecomposeRowMajor(const XMMATRIX& M, XMVECTOR& S, XMVECTOR& R, XMVECTOR& T) {
+    return XMMatrixDecompose(&S, &R, &T, M);
+}
+
 // 工具用
 static std::vector<XMMATRIX> g_temp_globals;
 
@@ -388,6 +391,63 @@ bool ModelSkinned_Load(const ModelSkinnedDesc& d) {
     // skeleton
     if (!LoadSkel(d.skelPath)) return false;
     // anim (optional)
+    auto RebuildBindLocalsFromInvBind = [&]() {
+        const size_t J = gJoints.size();
+        if (J == 0) return;
+
+        // ---------- 1) 用“当前 bindLocal（尽管不可靠）”先递归出每根骨骼的 BindGlobal ----------
+        g_temp_globals.resize(J);
+        for (size_t j = 0; j < J; ++j) {
+            if (gJoints[j].parent == -1) {
+                ComputeGlobalBindPoseRecursively(j, XMMatrixIdentity());
+            }
+        }
+
+        // 计算每根骨骼的 Mj = Bj * InvBj，并对 16 个分量分别做平均（简单但足够稳）
+        double sum[16] = { 0.0 };
+        for (size_t j = 0; j < J; ++j) {
+            XMMATRIX Bj = g_temp_globals[j];
+            XMMATRIX InvBj = XMLoadFloat4x4(&gJoints[j].invBind); // 注意：继续沿用你现在“memcpy 加载”的行主矩阵
+            XMMATRIX Mj = Bj * InvBj;
+
+            XMFLOAT4X4 fm; XMStoreFloat4x4(&fm, Mj);
+            const float* p = &fm._11;
+            for (int k = 0; k < 16; ++k) sum[k] += p[k];
+        }
+        float avg[16];
+        for (int k = 0; k < 16; ++k) avg[k] = float(sum[k] / double(J));
+
+        // 平均后的 MeshGlobalAtBind
+        XMFLOAT4X4 avgM{}; std::memcpy(&avgM._11, avg, sizeof(avg));
+        XMMATRIX MeshGlobalAtBind = XMLoadFloat4x4(&avgM);
+
+        // ---------- 2) 用 InvBind 反推“每根骨骼的绑定时全局矩阵” ----------
+        std::vector<XMMATRIX> G(J);
+        for (size_t j = 0; j < J; ++j) {
+            XMMATRIX InvBj = XMLoadFloat4x4(&gJoints[j].invBind);
+            // 注意：Inv（InvBj）就是 Bj；MeshGlobalAtBind * Bj 这一步不是恒等，
+            // 它把坐标系统一到了“网格绑定时的全局坐标系”下
+            XMMATRIX Bj = MeshGlobalAtBind * XMMatrixInverse(nullptr, InvBj);
+            G[j] = Bj;
+        }
+
+        // ---------- 3) 统一 parent 关系，重算本地 TRS 并回填 ----------
+        for (size_t j = 0; j < J; ++j) {
+            XMMATRIX parentG = (gJoints[j].parent >= 0) ? G[gJoints[j].parent] : XMMatrixIdentity();
+            XMMATRIX local = XMMatrixInverse(nullptr, parentG) * G[j];
+
+            XMVECTOR S, R, T;
+            if (!XMMatrixDecompose(&S, &R, &T, local)) continue;
+
+            XMStoreFloat3(&gJoints[j].bindT, T);
+            XMStoreFloat4(&gJoints[j].bindR, R);
+            XMStoreFloat3(&gJoints[j].bindS, S);
+        }
+        };
+
+    // 调用一次修正
+    RebuildBindLocalsFromInvBind();
+
     if (!LoadAnim(d.animPath)) return false;
 
     // texture: override > .mat > none
@@ -456,33 +516,78 @@ void ModelSkinned_Draw() {
     {
         static bool s_checked = false;
         if (!s_checked) {
-            // 用“绑定的 local TRS”递归出每根骨骼的绑定全局矩阵 BindGlobal
-            for (size_t j = 0; j < J; ++j) {
-                if (gJoints[j].parent == -1) {
-                    // 父级用单位阵即可（绑定时场景根变换已经烘入各关节的local里了）
+            // 1) 用当前 bindLocal 递归得出每根骨骼的绑定全局矩阵 Bj
+            for (size_t j = 0; j < J; ++j)
+                if (gJoints[j].parent == -1)
                     ComputeGlobalBindPoseRecursively(j, XMMatrixIdentity());
-                }
-            }
 
-            // 检查 BindGlobal * InvBind 是否≈单位阵
-            float worst = 0.0f;
+            // 2) 计算 Mj = InvBj * Bj
+            std::vector<XMMATRIX> Ms(J);
             for (size_t j = 0; j < J; ++j) {
-                XMMATRIX B = g_temp_globals[j];                 // 绑定全局
-                XMMATRIX InvB = XMLoadFloat4x4(&gJoints[j].invBind); // 从 .skel 读出的 inverse bind
-                XMMATRIX T = B * InvB;                           // 期望≈I
-
-                XMFLOAT4X4 t; XMStoreFloat4x4(&t, T);
-                for (int r = 0; r < 4; ++r) {
-                    for (int c = 0; c < 4; ++c) {
-                        float expect = (r == c) ? 1.f : 0.f;
-                        worst = std::max(worst, fabsf(t.m[r][c] - expect));
-                    }
-                }
+                XMMATRIX Bj = g_temp_globals[j];
+                XMMATRIX InvB = XMLoadFloat4x4(&gJoints[j].invBind);
+                Ms[j] = InvB * Bj;
             }
 
-            char dbg[128];
-            sprintf_s(dbg, "[SKIN CHECK] max |BindGlobal*InvBind - I| = %.6f\n", worst);
-            OutputDebugStringA(dbg); // VS 的“输出(Output)”窗口可见
+            // 3) 相对 Frobenius & 去缩放的正交误差（记录最差索引）
+            auto frob = [](const XMFLOAT4X4& m) {
+                double s = 0; const float* p = &m._11; for (int k = 0; k < 16; ++k) s += double(p[k]) * double(p[k]); return std::sqrt(s);
+                };
+            auto ortho_err_noscale = [](const XMMATRIX& M)->double {
+                XMFLOAT4X4 f; XMStoreFloat4x4(&f, M);
+                double c0[3] = { f._11,f._21,f._31 }, c1[3] = { f._12,f._22,f._32 }, c2[3] = { f._13,f._23,f._33 };
+                auto norm = [](const double c[3]) {return std::sqrt(c[0] * c[0] + c[1] * c[1] + c[2] * c[2]); };
+                auto dot = [](const double a[3], const double b[3]) {return a[0] * b[0] + a[1] * b[1] + a[2] * b[2]; };
+                double n0 = std::max(1e-12, norm(c0)), n1 = std::max(1e-12, norm(c1)), n2 = std::max(1e-12, norm(c2));
+                for (int i = 0; i < 3; ++i) { c0[i] /= n0; c1[i] /= n1; c2[i] /= n2; }
+                double RtR[3][3] = { {dot(c0,c0),dot(c0,c1),dot(c0,c2)},
+                                  {dot(c1,c0),dot(c1,c1),dot(c1,c2)},
+                                  {dot(c2,c0),dot(c2,c1),dot(c2,c2)} };
+                double s = 0; for (int i = 0; i < 3; ++i) for (int j = 0; j < 3; ++j) { double t = RtR[i][j] - (i == j ? 1.0 : 0.0); s += t * t; }
+                return std::sqrt(s);
+                };
+
+            // 先算平均矩阵用于相对误差
+            double sum[16] = { 0 };
+            for (size_t j = 0; j < J; ++j) { XMFLOAT4X4 fm; XMStoreFloat4x4(&fm, Ms[j]); const float* p = &fm._11; for (int k = 0; k < 16; ++k) sum[k] += p[k]; }
+            float avgf[16]; for (int k = 0; k < 16; ++k) avgf[k] = float(sum[k] / double(J));
+            XMFLOAT4X4 favg{}; memcpy(&favg._11, avgf, sizeof(avgf));
+            XMMATRIX Mavg = XMLoadFloat4x4(&favg);
+            XMFLOAT4X4 favgF; XMStoreFloat4x4(&favgF, Mavg);
+            double normAvg = std::max(1e-12, frob(favgF));
+
+            double worstRel = 0.0, worstOrtho = 0.0;
+            size_t worstRelJ = 0, worstOrthoJ = 0;
+            for (size_t j = 0; j < J; ++j) {
+                XMFLOAT4X4 fM; XMStoreFloat4x4(&fM, Ms[j]);
+                XMFLOAT4X4 fD; XMStoreFloat4x4(&fD, Ms[j] - Mavg);
+                double rel = frob(fD) / normAvg;
+                if (rel > worstRel) { worstRel = rel; worstRelJ = j; }
+                double o = ortho_err_noscale(Ms[j]);
+                if (o > worstOrtho) { worstOrtho = o; worstOrthoJ = j; }
+            }
+
+            char buf[256];
+            sprintf_s(buf, "[SKIN CHECK] rel-Frob(worst)=%.6g @j=%zu  ortho-noscale(worst)=%.6g @j=%zu\n",
+                worstRel, worstRelJ, worstOrtho, worstOrthoJ);
+            OutputDebugStringA(buf);
+
+            // 4) 对“最差骨骼”打印 3 列范数与两两点积（看是缩放大，还是剪切大）
+            auto dump3x3 = [](const XMMATRIX& M, const char* tag) {
+                XMFLOAT4X4 f; XMStoreFloat4x4(&f, M);
+                double c0[3] = { f._11,f._21,f._31 }, c1[3] = { f._12,f._22,f._32 }, c2[3] = { f._13,f._23,f._33 };
+                auto norm = [](const double c[3]) {return std::sqrt(c[0] * c[0] + c[1] * c[1] + c[2] * c[2]); };
+                auto dot = [](const double a[3], const double b[3]) {return a[0] * b[0] + a[1] * b[1] + a[2] * b[2]; };
+                char b2[256];
+                sprintf_s(b2, "[SKIN CHECK] %s |col norms| = (%.4f, %.4f, %.4f),  dots = (c0·c1=%.4f, c0·c2=%.4f, c1·c2=%.4f)\n",
+                    tag, norm(c0), norm(c1), norm(c2), dot(c0, c1), dot(c0, c2), dot(c1, c2));
+                OutputDebugStringA(b2);
+                };
+            dump3x3(Ms[worstOrthoJ], "InvB*B of worst-ortho joint");
+
+            s_checked = true;
+
+            // 你也可以按需只在超过阈值时再详细 dump
             s_checked = true;
         }
     }

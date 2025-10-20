@@ -141,6 +141,8 @@
     </PostBuildEvent>
   </ItemDefinitionGroup>
   <ItemGroup>
+    <ClCompile Include="AnimatorRegistry.cpp" />
+    <ClCompile Include="animator_register.cpp" />
     <ClCompile Include="Audio.cpp" />
     <ClCompile Include="camera.cpp" />
     <ClCompile Include="collision.cpp" />
@@ -176,6 +178,7 @@
     <ClCompile Include="WICTextureLoader11.cpp" />
   </ItemGroup>
   <ItemGroup>
+    <ClInclude Include="AnimatorRegistry.h" />
     <ClInclude Include="asset_format.h" />
     <ClInclude Include="Audio.h" />
     <ClInclude Include="camera.h" />

@@ -28,6 +28,7 @@
 #include "light.h"
 #include "ModelStatic.h"
 #include "ModelSkinned.h"
+#include "AnimatorRegistry.h"
 #pragma comment(lib, "xinput.lib")
 
 using namespace DirectX;
@@ -67,7 +68,7 @@ int APIENTRY WinMain(
 	Fade_Initialize();
 	Mouse_SetVisible(true);
 
-	//Game_Initialize();
+	Game_Initialize();
 	Scene_Initialize();
 	Grid_Initialize(Direct3D_GetDevice(), Direct3D_GetContext());
 	Cube_Initialize(Direct3D_GetDevice(), Direct3D_GetContext());
@@ -85,21 +86,30 @@ int APIENTRY WinMain(
 	);
 
 	// 加载
-	ModelStatic_LoadDefault();
+	//ModelStatic_LoadDefault();
 
-	ModelSkinned_Initialize(Direct3D_GetDevice(), Direct3D_GetContext());
+	//ModelSkinned_Initialize(Direct3D_GetDevice(), Direct3D_GetContext());
 
-	ModelSkinnedDesc d;
-	d.meshPath = L"D:/AssetCooker/resources/Cooked/idle_test.mesh";
-	d.skelPath = L"D:/AssetCooker/resources/Cooked/idle_test.skel";
-	d.animPath = L"D:/AssetCooker/resources/Cooked/idle_test.anim";   // 没有可以留空
-	d.matPath =  L"D:/AssetCooker/resources/Cooked/idle_test.mat";    // 不写则默认同名 .mat
-	d.baseColorTexOverride = L"D:/AssetCooker/resources/test/ninja_T.fbm/Ch24_1001_Diffuse.png";
+	//ModelSkinnedDesc d;
+	//d.meshPath = L"D:/AssetCooker/resources/Cooked/walk_test.mesh";
+	//d.skelPath = L"D:/AssetCooker/resources/Cooked/walk_test.skel";
+	//d.animPath = L"D:/AssetCooker/resources/Cooked/walk_test.anim";   // 没有可以留空
+	//d.matPath =  L"D:/AssetCooker/resources/Cooked/walk_test.mat";    // 不写则默认同名 .mat
+	//d.baseColorTexOverride = L"D:/AssetCooker/resources/test/ninja_T.fbm/Ch24_1001_Diffuse.png";
 
-	ModelSkinned_Load(d);
+	//ModelSkinned_Load(d);
 
-	ModelSkinned_SetLoop(true);
-	ModelSkinned_SetPlaybackRate(1.0f);
+	//ModelSkinned_SetLoop(true);
+	//ModelSkinned_SetPlaybackRate(1.0f);
+
+	AnimatorRegistry_Initialize(Direct3D_GetDevice(), Direct3D_GetContext());
+
+	// 一键登录你项目的所有动作（放在 animator_register.cpp 里）
+	AnimRegister();
+
+	// 开机默认播 Idle（可选覆盖 loop/rate）
+	bool changed = false;
+	AnimatorRegistry_Play(L"Walk", &changed);
 
 
 
@@ -161,7 +171,7 @@ int APIENTRY WinMain(
 				// ゲームの更新
 				KeyLogger_Update(); // キーの状態を更新
 
-				//Game_Update(elapsed_time);
+				Game_Update(elapsed_time);
 				Scene_Update(elapsed_time);
 				SpriteAnim_Update(elapsed_time);
 				Fade_Update(elapsed_time);
@@ -171,7 +181,7 @@ int APIENTRY WinMain(
 
 				Sprite_Begin();
 
-				//Game_Draw();
+				Game_Draw();
 				Scene_Draw();
 				Fade_Draw();
 

@@ -18,6 +18,7 @@
 #include "meshfield.h"
 #include "ModelStatic.h"
 #include "ModelSkinned.h"
+#include "AnimatorRegistry.h"
 using namespace DirectX;
 
 static float g_x = 0.0f;
@@ -47,7 +48,10 @@ void Game_Update(double elapsed_time)
     Camera_Update(elapsed_time);
     Cube_Update(elapsed_time);
 
-    ModelSkinned_Update(elapsed_time);
+    //ModelSkinned_Update(elapsed_time);
+
+    AnimatorRegistry_Update(elapsed_time);
+
 
     g_angle = g_AccumulatedTime * 3.0f;
 
@@ -106,11 +110,15 @@ void Game_Draw()
     // 一行绘制
     //ModelStatic_Draw();
 
-    ModelSkinned_SetWorldMatrix(W);
+    //ModelSkinned_SetWorldMatrix(W);
 
-    // 你的 view/proj/光照 仍旧通过 Shader3d_* 设置
-    // ...
-    ModelSkinned_Draw();
+    //// 你的 view/proj/光照 仍旧通过 Shader3d_* 设置
+    //// ...
+    //ModelSkinned_Draw();
+
+    //W = XMMatrixScaling(0.01f, 0.01f, 0.01f);
+    AnimatorRegistry_SetWorld(W);
+    AnimatorRegistry_Draw();
 
 
 

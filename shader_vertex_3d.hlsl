@@ -70,7 +70,7 @@ VS_OUT main(VS_IN vi)
     //calculate lighting
     float4 normalW = mul(float4(vi.normalL.xyz, 0.0f), world);
     normalW = normalize(normalW);
-    float dl = dot(-direction_world_vector, normalW);
+    float dl = max(0.0f, dot(-direction_world_vector, normalW));
     
     float3 color = vi.color.rgb * direction_world_color.rgb * dl + ambient_color.rgb * vi.color.rgb;
     vo.color = float4(color, vi.color.a);
