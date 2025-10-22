@@ -1,6 +1,6 @@
 /*==============================================================================
 
-   3D描画用頂点シェーダー [shader_vertex_3d.hlsl]
+   mesh field描画用頂点シェーダー [shader_vertex_field.hlsl]
 
 --------------------------------------------------------------------------------
 
@@ -26,20 +26,34 @@ cbuffer VS_CONSTANT_BUFFER : register(b2)
     float4x4 proj;
 };
 
+cbuffer VS_CONSTANT_BUFFER : register(b3)
+{
+    float4 ambient_color;
+};
+
+cbuffer VS_CONSTANT_BUFFER : register(b4)
+{
+    float4 direction_world_vector;
+    float4 direction_world_color;
+};
+
 
 struct VS_IN
 {
-    float4 posL  : POSITION0;
+    float4 posL : POSITION0;
+    float4 normalL : NORMAL0;
     float4 color : COLOR0;
-    float2 uv    : TEXCOORD0;
+    float2 uv : TEXCOORD0;
 };
 
 
 struct VS_OUT
 {
-    float4 posH  : SV_POSITION; // システム定義の頂点位置（クリップ空間座標）
+    float4 posH : SV_POSITION; // システム定義の頂点位置（クリップ空間座標）
     float4 color : COLOR0;
-    float2 uv    : TEXCOORD0;
+    float4 directional : COLOR1;
+    float4 ambient : COLOR2;
+    float2 uv : TEXCOORD0;
 };
 
 
@@ -55,10 +69,20 @@ VS_OUT main(VS_IN vi)
     float4 powWV = mul(posW, view);
     vo.posH = mul(powWV, proj);
     
+    //calculate lighting
+    float4 normalW = mul(float4(vi.normalL.xyz, 0.0f), world);
+    normalW = normalize(normalW);
+    float dl = max(0.0f, dot(-direction_world_vector, normalW));
+    
     vo.color = vi.color;
+    
+    
+    //float3 color = direction_world_color.rgb * dl + ambient_color.rgb;
+    vo.directional = float4(direction_world_color.rgb * dl, 1.0f);
+    vo.ambient = float4(ambient_color.rgb, 1.0f);
     vo.uv = vi.uv;
     
-	return vo;
+    return vo;
 }
 
 

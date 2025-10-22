@@ -29,6 +29,7 @@ static ID3D11DeviceContext* g_pContext = nullptr;
 struct Vertex3d
 {
 	XMFLOAT3 position; // 頂点座標
+	XMFLOAT3 normal;
 	XMFLOAT4 color;    // 色
 	XMFLOAT2 texcoord;
 };
@@ -55,6 +56,7 @@ void MeshField_Initialize(ID3D11Device* pDevice, ID3D11DeviceContext* pContext)
 		{
 			int index = x + FIELD_MESH_H_VERTEX_COUNT * z;
 			g_MeshFieldVertex[index].position = { x * FIELD_MESH_SIZE, 0.0f, z * FIELD_MESH_SIZE };
+			g_MeshFieldVertex[index].normal = { 0.0f, 1.0f, 0.0f };
 			g_MeshFieldVertex[index].color = { 0.0f, 1.0f, 0.0f, 1.0f };
 			g_MeshFieldVertex[index].texcoord = { x * 1.0f, z * 1.0f };
 		}

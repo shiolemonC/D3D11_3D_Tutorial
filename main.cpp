@@ -73,7 +73,7 @@ int APIENTRY WinMain(
 	Grid_Initialize(Direct3D_GetDevice(), Direct3D_GetContext());
 	Cube_Initialize(Direct3D_GetDevice(), Direct3D_GetContext());
 	Light_Initialize(Direct3D_GetDevice(), Direct3D_GetContext());
-	//MeshField_Initialize(Direct3D_GetDevice(), Direct3D_GetContext());
+	MeshField_Initialize(Direct3D_GetDevice(), Direct3D_GetContext());
 	ModelStatic_Initialize(Direct3D_GetDevice(), Direct3D_GetContext());
 
 	// 配置默认模型路径（mat 可留空；overrideDiffuse 可选）

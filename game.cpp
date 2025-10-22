@@ -72,7 +72,7 @@ void Game_Update(double elapsed_time)
 
 void Game_Draw()
 {
-    Light_SetAmbient({0.3f, 0.3f, 0.3f});
+    Light_SetAmbient({0.3f, 0.0f, 0.3f});
 
     XMVECTOR v{ -1.0f, -1.0f, 1.0f, 0.0f };
 
@@ -80,7 +80,7 @@ void Game_Draw()
 
     Light_SetDirectionWorld({1.0f, 1.0f, 0.0f, 0.0f}, {1.0f, 0.0f, 0.0f, 1.0f});
 
-    //MeshField_Draw();
+    MeshField_Draw();
 
     XMMATRIX World = XMMatrixRotationY(g_angle * 0.0f);
 
