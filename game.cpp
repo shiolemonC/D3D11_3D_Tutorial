@@ -19,6 +19,7 @@
 #include "ModelStatic.h"
 #include "ModelSkinned.h"
 #include "AnimatorRegistry.h"
+#include "model.h"
 using namespace DirectX;
 
 static float g_x = 0.0f;
@@ -28,16 +29,22 @@ static float g_AccumulatedTime = 0.0f;
 static XMFLOAT3 g_CubePosition{};
 static XMFLOAT3 g_CubeVelocity{};
 
+static MODEL* g_pModelTest = nullptr;
+
 void Game_Initialize()
 {
     Camera_Initialize(
         {4.2f, 2.4f, -5.7f},
         {-0.5f, -0.3f, 0.7f},
         {0.8f, 0.0f, 0.5f});
+
+    g_pModelTest = ModelLoad("resources/test.fbx");
 }
 
 void Game_Finalize()
 {
+    ModelRelease(g_pModelTest);
+
     Camera_Finalize();
 }
 
@@ -50,7 +57,7 @@ void Game_Update(double elapsed_time)
 
     //ModelSkinned_Update(elapsed_time);
 
-    AnimatorRegistry_Update(elapsed_time);
+    //AnimatorRegistry_Update(elapsed_time);
 
 
     g_angle = g_AccumulatedTime * 3.0f;
@@ -72,15 +79,17 @@ void Game_Update(double elapsed_time)
 
 void Game_Draw()
 {
-    Light_SetAmbient({0.3f, 0.0f, 0.3f});
+    Light_SetAmbient({0.7f, 0.7f, 0.7f});
 
     XMVECTOR v{ -1.0f, -1.0f, 1.0f, 0.0f };
 
     v = XMVector3Normalize(v);
 
-    Light_SetDirectionWorld({1.0f, 1.0f, 0.0f, 0.0f}, {1.0f, 0.0f, 0.0f, 1.0f});
+    Light_SetDirectionWorld({1.0f, -0.6f, 0.0f, 0.0f}, {1.0f, 0.0f, 0.0f, 1.0f});
 
     MeshField_Draw();
+
+    ModelDraw(g_pModelTest, XMMatrixIdentity());
 
     XMMATRIX World = XMMatrixRotationY(g_angle * 0.0f);
 
@@ -117,8 +126,8 @@ void Game_Draw()
     //ModelSkinned_Draw();
 
     //W = XMMatrixScaling(0.01f, 0.01f, 0.01f);
-    AnimatorRegistry_SetWorld(W);
-    AnimatorRegistry_Draw();
+    //AnimatorRegistry_SetWorld(W);
+    //AnimatorRegistry_Draw();
 
 
 

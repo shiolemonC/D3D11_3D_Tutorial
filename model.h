@@ -3,6 +3,7 @@
 #include <unordered_map>
 
 #include <d3d11.h>
+#include <DirectXMath.h>
 #include "assimp/cimport.h"
 #include "assimp/scene.h"
 #include "assimp/postprocess.h"
@@ -22,6 +23,7 @@ struct MODEL
 };
 
 
-MODEL* ModelLoad(const char* FileName);
+MODEL* ModelLoad(const char* FileName, bool bBlender = false);
 void ModelRelease(MODEL* model);
 
+void ModelDraw(MODEL* model, const DirectX::XMMATRIX& mtxWorld);
