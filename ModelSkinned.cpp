@@ -34,6 +34,9 @@ static ID3D11InputLayout* gIL = nullptr;
 static ID3D11Buffer* gCBBones = nullptr;
 static const UINT           MAX_BONES = 128;
 
+static ID3D11Buffer* gCBAmbient = nullptr;     // VS b3
+static ID3D11Buffer* gCBDirectional = nullptr; // VS b4
+
 // 世界矩阵
 static XMMATRIX             gWorld = XMMatrixIdentity();
 
@@ -382,7 +385,38 @@ static bool CreateCBBones() {
 // ---------------------------------------------------------
 bool ModelSkinned_Initialize(ID3D11Device* dev, ID3D11DeviceContext* ctx) {
     gDev = dev; gCtx = ctx;
-    return CreateCBBones();
+
+    // b5: bones
+    if (!CreateCBBones()) return false;
+
+    // b3: ambient(float4)
+    {
+        D3D11_BUFFER_DESC bd{};
+        bd.BindFlags = D3D11_BIND_CONSTANT_BUFFER;
+        bd.Usage = D3D11_USAGE_DEFAULT;
+        bd.ByteWidth = sizeof(DirectX::XMFLOAT4);
+        if (FAILED(gDev->CreateBuffer(&bd, nullptr, &gCBAmbient))) return false;
+
+        const DirectX::XMFLOAT4 amb{ 0.25f, 0.25f, 0.25f, 1.0f }; // 适度环境光
+        gCtx->UpdateSubresource(gCBAmbient, 0, nullptr, &amb, 0, 0);
+    }
+    // b4: dir(vec, color)
+    {
+        struct DirCB { DirectX::XMFLOAT4 dir; DirectX::XMFLOAT4 color; };
+        D3D11_BUFFER_DESC bd{};
+        bd.BindFlags = D3D11_BIND_CONSTANT_BUFFER;
+        bd.Usage = D3D11_USAGE_DEFAULT;
+        bd.ByteWidth = sizeof(DirCB);
+        if (FAILED(gDev->CreateBuffer(&bd, nullptr, &gCBDirectional))) return false;
+
+        // 光从上往下（注意 VS 里用 dot(-direction, n)）
+        DirCB d{};
+        d.dir = DirectX::XMFLOAT4(0.0f, 1.0f, 0.0f, 0.0f);
+        d.color = DirectX::XMFLOAT4(1.0f, 1.0f, 1.0f, 1.0f);
+        gCtx->UpdateSubresource(gCBDirectional, 0, nullptr, &d, 0, 0);
+    }
+
+    return true;
 }
 
 bool ModelSkinned_Load(const ModelSkinnedDesc& d) {
@@ -469,11 +503,15 @@ bool ModelSkinned_Load(const ModelSkinnedDesc& d) {
 }
 
 void ModelSkinned_Finalize() {
+
+    SAFE_RELEASE(gCBDirectional);
+    SAFE_RELEASE(gCBAmbient);
+    SAFE_RELEASE(gCBBones);
     SAFE_RELEASE(gVB);
     SAFE_RELEASE(gIB);
     SAFE_RELEASE(gVS);
     SAFE_RELEASE(gIL);
-    SAFE_RELEASE(gCBBones);
+    //SAFE_RELEASE(gCBBones);
     gJoints.clear();
     gAnimFrames.clear();
     gIndexCount = 0;
@@ -501,6 +539,11 @@ void ModelSkinned_SetWorldMatrix(const XMMATRIX& world) {
 void ModelSkinned_SetLoop(bool loop) { gLoop = loop; }
 void ModelSkinned_SetPlaybackRate(float rate) { gPlayback = rate; }
 void ModelSkinned_Seek(float t) { gTime = t; }
+
+bool ModelSkinned_LoadAnimOnly(const std::wstring& animPath)
+{
+    return LoadAnim(animPath);
+}
 
 void ModelSkinned_Draw() {
     if (!gVB || !gIB || !gVS || !gIL) return;
@@ -638,28 +681,28 @@ void ModelSkinned_Draw() {
         std::memcpy(mp.pData, gPalette.data(), copyJ * sizeof(XMFLOAT4X4));
         gCtx->Unmap(gCBBones, 0);
     }
-    gCtx->VSSetConstantBuffers(5, 1, &gCBBones);
+    Shader3d_Begin();      // ← 先让它把 b0~b4 等统一好
 
-    // 4) 绑定渲染状态 (包括默认的VS/PS, CBs 0-4等)
-    Shader3d_Begin();
-    // 用我们蒙皮专用的VS和IL，覆盖掉Shader3d_Begin()中设置的默认项
+    Shader3d_SetColor({ 1,1,1,1 });
+
     gCtx->VSSetShader(gVS, nullptr, 0);
     gCtx->IASetInputLayout(gIL);
-
-    // 5) 绑定顶点和索引缓冲
-    UINT stride = 56;
-    UINT offset = 0;
-    gCtx->IASetVertexBuffers(0, 1, &gVB, &stride, &offset);
-    gCtx->IASetIndexBuffer(gIB, gIndexFormat, 0);
-    gCtx->IASetPrimitiveTopology(D3D11_PRIMITIVE_TOPOLOGY_TRIANGLELIST);
-
-    // 6) 设置世界矩阵 (通过Shader3d模块)
     Shader3d_SetWorldMatrix(gWorld);
 
-    // 7) 绑定贴图和采样器
+    ID3D11Buffer* cbs34[2] = { gCBAmbient, gCBDirectional };
+    gCtx->VSSetConstantBuffers(3, 2, cbs34);
+
+    // ！！现在再把 b5 绑回去（避免被 Begin 清掉/覆盖）
+    gCtx->VSSetConstantBuffers(5, 1, &gCBBones);
+
+    // 然后再设纹理/采样、VB/IB、Draw
     if (gTexId >= 0) Texture_SetTexture(gTexId);
     Sampler_SetFillterAnisotropic();
 
-    // 8) 发出绘制指令
+
+    UINT stride = 56, offset = 0;
+    gCtx->IASetVertexBuffers(0, 1, &gVB, &stride, &offset);
+    gCtx->IASetIndexBuffer(gIB, gIndexFormat, 0);
+    gCtx->IASetPrimitiveTopology(D3D11_PRIMITIVE_TOPOLOGY_TRIANGLELIST);
     gCtx->DrawIndexed(gIndexCount, 0, 0);
 }

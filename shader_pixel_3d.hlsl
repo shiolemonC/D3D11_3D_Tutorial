@@ -1,10 +1,14 @@
 /*==============================================================================
 
-   3D描画用ピクセルシェーダー [shader_pixel_3d.hlsl]
+   3D謠冗判逕ｨ繝斐け繧ｻ繝ｫ繧ｷ繧ｧ繝ｼ繝繝ｼ [shader_pixel_3d.hlsl]
 
 --------------------------------------------------------------------------------
 
 ==============================================================================*/
+cbuffer PS_CONSTANT_BUFFER : register(b0)
+{
+    float4 color;
+};
 
 struct PS_IN
 {
@@ -13,12 +17,13 @@ struct PS_IN
     float2 uv    : TEXCOORD0;
 };
 
-Texture2D tex; // テクスチャ
-SamplerState samp; // テクスチャサンプラ
+Texture2D tex: register(t0); // PS 郤ｹ逅�讒ｽ t0
+SamplerState samp: register(s0); // PS 驥�譬ｷ蝎ｨ讒ｽ s0
 
 float4 main(PS_IN pi) : SV_TARGET
 {
     // a * b
     // a.r * b.r a.g * b.g a.b * b.b a.a * b.a
-    return tex.Sample(samp, pi.uv) * pi.color;
+    return tex.Sample(samp, pi.uv) * pi.color * color;
+    //return pi.color * color;
 }

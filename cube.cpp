@@ -158,6 +158,9 @@ void Cube_Draw(const DirectX::XMMATRIX& mtxWorld)
 {
 	Shader3d_Begin();
 
+	//set PSShader color
+	Shader3d_SetColor({ 1.0f, 1.0f, 1.0f, 1.0f });
+
 	Texture_SetTexture(g_CubeTexId);
 
 	// 頂点バッファを描画パイプラインに設定

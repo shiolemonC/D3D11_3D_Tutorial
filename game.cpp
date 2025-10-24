@@ -57,7 +57,7 @@ void Game_Update(double elapsed_time)
 
     //ModelSkinned_Update(elapsed_time);
 
-    //AnimatorRegistry_Update(elapsed_time);
+    AnimatorRegistry_Update(elapsed_time);
 
 
     g_angle = g_AccumulatedTime * 3.0f;
@@ -89,8 +89,6 @@ void Game_Draw()
 
     MeshField_Draw();
 
-    ModelDraw(g_pModelTest, XMMatrixIdentity());
-
     XMMATRIX World = XMMatrixRotationY(g_angle * 0.0f);
 
     World *= XMMatrixTranslationFromVector(XMLoadFloat3(&g_CubePosition)); 
@@ -99,7 +97,14 @@ void Game_Draw()
 
     //Cube_Draw(World);
 
-    World = XMMatrixTranslation(3.0f, 0.0f, 0.0f);
+    XMMATRIX kirby = XMMatrixIdentity();
+
+    //World = XMMatrixTranslation(3.0f, 20.0f, 0.0f);
+
+    kirby *= XMMatrixScaling(0.1f, 0.1f, 0.1f);
+
+    kirby *= XMMatrixTranslation(0.0f, 2.0f, 0.0f);
+    ModelDraw(g_pModelTest, kirby);
 
     Sampler_SetFillterLinear();
 
@@ -126,8 +131,8 @@ void Game_Draw()
     //ModelSkinned_Draw();
 
     //W = XMMatrixScaling(0.01f, 0.01f, 0.01f);
-    //AnimatorRegistry_SetWorld(W);
-    //AnimatorRegistry_Draw();
+    AnimatorRegistry_SetWorld(W);
+    AnimatorRegistry_Draw();
 
 
 

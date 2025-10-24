@@ -39,3 +39,5 @@ void ModelSkinned_SetPlaybackRate(float rate);
 
 // （可选）跳到某时间（秒）
 void ModelSkinned_Seek(float timeSec);
+
+bool ModelSkinned_LoadAnimOnly(const std::wstring& animPath);

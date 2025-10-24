@@ -1,92 +1,90 @@
-﻿#include "AnimatorRegistry.h"
-#include "ModelSkinned.h"   // 直接复用你现成的 ModelSkinned_* API
-#include <Windows.h>
-#include <cassert>
+﻿// AnimatorRegistry.cpp  —— 与你给的 AnimatorRegistry.h 完全匹配
+#include "AnimatorRegistry.h"
+#include "ModelSkinned.h"
+#include "shader3d.h"
+
+#include <vector>
+#include <string>
+#include <filesystem>
 
 using namespace DirectX;
+namespace fs = std::filesystem;
 
-// 内部状态
-struct RegistryState {
-    ID3D11Device* dev = nullptr;
-    ID3D11DeviceContext* ctx = nullptr;
+// -----------------------------
+// 内部数据
+// -----------------------------
+static std::vector<AnimClipDesc> gClips;   // 注册表
+static int   gCurrent = -1;                // 当前播放索引（-1 表示无）
+static XMMATRIX gBaseWorld = XMMatrixIdentity();
 
-    std::vector<AnimClipDesc> list;             // 顺序保存
-    std::unordered_map<std::wstring, size_t> map; // name -> index
+// 记录当前已加载的 mesh+skel 组合（方便将来仅换 anim；目前为稳妥总是全量加载）
+struct MeshSkelKey {
+    std::wstring mesh;
+    std::wstring skel;
+    bool operator==(const MeshSkelKey& o) const { return mesh == o.mesh && skel == o.skel; }
+};
+static MeshSkelKey gLoadedKey{ L"", L"" };
 
-    // 当前播放的“名”（通过 Play 设置）
-    std::wstring currentName;
-} gAR;
+// 辅助：查找 clip
+static int FindIndex(const std::wstring& name)
+{
+    for (int i = 0; i < (int)gClips.size(); ++i)
+        if (gClips[i].name == name) return i;
+    return -1;
+}
 
-static void LogW(const wchar_t* s) { OutputDebugStringW(s); }
-static void LogA(const char* s) { OutputDebugStringA(s); }
-
-// -----------------------------------------------------------
-
+// -----------------------------
+// 对外实现
+// -----------------------------
 bool AnimatorRegistry_Initialize(ID3D11Device* dev, ID3D11DeviceContext* ctx)
 {
-    gAR = {};
-    gAR.dev = dev;
-    gAR.ctx = ctx;
-    // ModelSkinned 仍旧是单实例黑盒，我们只初始化一次
+    gClips.clear();
+    gCurrent = -1;
+    gBaseWorld = XMMatrixIdentity();
+    gLoadedKey = MeshSkelKey{};
+
+    // 初始化底层蒙皮播放器
     return ModelSkinned_Initialize(dev, ctx);
 }
 
 void AnimatorRegistry_Finalize()
 {
-    // 先卸载 ModelSkinned（释放 VB/IB/…）
-    ModelSkinned_Finalize();
-
-    gAR.list.clear();
-    gAR.map.clear();
-    gAR.currentName.clear();
-    gAR.dev = nullptr;
-    gAR.ctx = nullptr;
+    gClips.clear();
+    gCurrent = -1;
+    // ModelSkinned 里有自己的 Finalize/资源释放（如果你需要的话在别处调用）
 }
 
 void AnimatorRegistry_Clear()
 {
-    gAR.list.clear();
-    gAR.map.clear();
-    gAR.currentName.clear();
+    gClips.clear();
+    gCurrent = -1;
 }
 
 bool AnimatorRegistry_Register(const AnimClipDesc& clip)
 {
     if (clip.name.empty()) return false;
-    if (gAR.map.count(clip.name)) {
-        // 重复名直接拒绝，避免混淆
-        return false;
-    }
-    size_t idx = gAR.list.size();
-    gAR.list.push_back(clip);
-    gAR.map.emplace(clip.name, idx);
+    if (FindIndex(clip.name) >= 0) return false; // 不允许重名
+    gClips.push_back(clip);
     return true;
 }
 
 bool AnimatorRegistry_Has(const std::wstring& name)
 {
-    return gAR.map.count(name) != 0;
+    return FindIndex(name) >= 0;
 }
 
 const AnimClipDesc* AnimatorRegistry_Get(const std::wstring& name)
 {
-    auto it = gAR.map.find(name);
-    if (it == gAR.map.end()) return nullptr;
-    return &gAR.list[it->second];
+    int idx = FindIndex(name);
+    return (idx >= 0) ? &gClips[idx] : nullptr;
 }
 
 bool AnimatorRegistry_LoadAll()
 {
-    // 这里“最小可用版”就不做提前 IO 了（因为 ModelSkinned_Load 已经做了）
-    // 但可以做一点简单校验，防止路径串错。
-    // 如果你想严格，可以对每个 clip 检查文件存在性。
-    // 现在返回 true，表示注册表可用。
+    // 当前版本：不做磁盘 IO；真正加载在 Play 时进行
     return true;
 }
 
-// -----------------------------------------------------------
-// 播放：把注册信息套到 ModelSkinned_* 黑盒上
-// -----------------------------------------------------------
 bool AnimatorRegistry_Play(const std::wstring& name,
     bool* outChanged,
     bool overrideLoop,
@@ -96,50 +94,55 @@ bool AnimatorRegistry_Play(const std::wstring& name,
 {
     if (outChanged) *outChanged = false;
 
-    auto* clip = AnimatorRegistry_Get(name);
-    if (!clip) return false;
+    int idx = FindIndex(name);
+    if (idx < 0) return false;
 
-    // 如果“当前名”相同且不需要强制重载，可直接返回
-    if (gAR.currentName == name && !overrideLoop && !overrideRate) {
-        if (outChanged) *outChanged = false;
-        return true;
-    }
+    const AnimClipDesc& clip = gClips[idx];
 
-    // 组装你已有的 ModelSkinnedDesc
+    // 组装底层加载描述
     ModelSkinnedDesc d;
-    d.meshPath = clip->meshPath;
-    d.skelPath = clip->skelPath;
-    d.animPath = clip->animPath;
-    d.matPath = clip->matPath;
-    d.baseColorTexOverride = clip->baseColorOverride;
+    d.meshPath = clip.meshPath;
+    d.skelPath = clip.skelPath;
+    d.animPath = clip.animPath;
+    d.matPath = clip.matPath;
+    d.baseColorTexOverride = clip.baseColorOverride;
 
-    if (!ModelSkinned_Load(d)) {
-        // 加载失败
-        return false;
-    }
+    // 为了稳定，当前一律全量加载（如果你已经实现了 ModelSkinned_LoadAnimOnly，这里可以做“同 mesh+skel 只换 anim”的优化）
+    bool ok = ModelSkinned_Load(d);
+    if (!ok) return false;
 
-    // Loop 与 Rate：优先使用外部覆盖，否则用注册表默认值
-    const bool loop = overrideLoop ? loopValue : clip->loop;
-    const float rate = overrideRate ? rateValue : clip->playbackRate;
+    // 应用播放参数（可被临时覆盖）
+    bool loop = clip.loop;
+    float rate = clip.playbackRate;
+    if (overrideLoop) loop = loopValue;
+    if (overrideRate) rate = rateValue;
 
     ModelSkinned_SetLoop(loop);
     ModelSkinned_SetPlaybackRate(rate);
 
-    // 更新当前名
-    gAR.currentName = name;
+    // 切换“当前动画”
+    if (gCurrent != idx) {
+        gCurrent = idx;
+        if (outChanged) *outChanged = true;
+    }
 
-    if (outChanged) *outChanged = true;
+    // 同步世界矩阵
+    ModelSkinned_SetWorldMatrix(gBaseWorld);
+
     return true;
 }
 
-// 透传给 ModelSkinned
-void AnimatorRegistry_SetWorld(const XMMATRIX& world)
+void AnimatorRegistry_SetWorld(const DirectX::XMMATRIX& world)
 {
-    ModelSkinned_SetWorldMatrix(world);
+    gBaseWorld = world;
+    ModelSkinned_SetWorldMatrix(gBaseWorld);
 }
 
 void AnimatorRegistry_Update(double dtSec)
 {
+    // 这里未来可以根据 RootMotionType 做位移/朝向累计；
+    // 目前先只推进底层骨骼播放器
+    (void)dtSec;
     ModelSkinned_Update(dtSec);
 }
 
@@ -148,26 +151,27 @@ void AnimatorRegistry_Draw()
     ModelSkinned_Draw();
 }
 
-// 查询当前播放属性（没播放则给默认）
+// 查询
 std::wstring AnimatorRegistry_CurrentName()
 {
-    return gAR.currentName;
+    if (gCurrent < 0 || gCurrent >= (int)gClips.size()) return L"";
+    return gClips[gCurrent].name;
 }
 
 RootMotionType AnimatorRegistry_CurrentRootMotionType()
 {
-    auto* clip = AnimatorRegistry_Get(gAR.currentName);
-    return clip ? clip->rmType : RootMotionType::None;
+    if (gCurrent < 0 || gCurrent >= (int)gClips.size()) return RootMotionType::None;
+    return gClips[gCurrent].rmType;
 }
 
 float AnimatorRegistry_CurrentPlaybackRate()
 {
-    auto* clip = AnimatorRegistry_Get(gAR.currentName);
-    return clip ? clip->playbackRate : 1.0f;
+    if (gCurrent < 0 || gCurrent >= (int)gClips.size()) return 1.0f;
+    return gClips[gCurrent].playbackRate;
 }
 
 bool AnimatorRegistry_CurrentLoop()
 {
-    auto* clip = AnimatorRegistry_Get(gAR.currentName);
-    return clip ? clip->loop : true;
+    if (gCurrent < 0 || gCurrent >= (int)gClips.size()) return true;
+    return gClips[gCurrent].loop;
 }
