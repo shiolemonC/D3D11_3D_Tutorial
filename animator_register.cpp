@@ -18,7 +18,7 @@ void AnimRegister()
 
         c.loop = true;
         c.playbackRate = 1.0f;
-        c.rmType = RootMotionType::UseAnimDelta;   // Idle 其实没有位移，但作为例子
+        c.rmType = RootMotionType::None;   // Idle 其实没有位移，但作为例子
         AnimatorRegistry_Register(c);
     }
 
@@ -34,6 +34,7 @@ void AnimRegister()
         c.loop = true;
         c.playbackRate = 1.0f;
         c.rmType = RootMotionType::VelocityDriven;
+        c.velocity = 2.0f;
         AnimatorRegistry_Register(c);
     }
 

@@ -28,6 +28,7 @@ struct AnimClipDesc {
     bool          loop = true;
     float         playbackRate = 1.0f;
     RootMotionType rmType = RootMotionType::None;
+    float         velocity = 0.0f;
 };
 
 // 对外 API

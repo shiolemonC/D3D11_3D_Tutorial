@@ -41,3 +41,12 @@ void ModelSkinned_SetPlaybackRate(float rate);
 void ModelSkinned_Seek(float timeSec);
 
 bool ModelSkinned_LoadAnimOnly(const std::wstring& animPath);
+
+int  ModelSkinned_GetRootJointIndex();
+
+// 以“当前时间 t”为起点，采样区间 [t, t+dt] 的“根关节局部位移 ΔT（单位：模型局部空间，米）”
+// 成功返回 true；若没有动画/根关节不存在返回 false
+bool ModelSkinned_SampleRootDelta_Local(float dt, DirectX::XMFLOAT3* outDeltaT);
+
+// VelocityDriven 时把根关节局部平移的 XZ 清零（保留 Y），启/停
+void ModelSkinned_SetZeroRootTranslationXZ(bool enable);

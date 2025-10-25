@@ -33,6 +33,16 @@ static int FindIndex(const std::wstring& name)
     return -1;
 }
 
+//算位移用
+static DirectX::XMFLOAT3 gRM_AccumPos = { 0,0,0 };
+
+static void ApplyWorldWithRootMotion()
+{
+    using namespace DirectX;
+    XMMATRIX T = XMMatrixTranslation(gRM_AccumPos.x, gRM_AccumPos.y, gRM_AccumPos.z);
+    ModelSkinned_SetWorldMatrix(T * gBaseWorld);
+}
+
 // -----------------------------
 // 对外实现
 // -----------------------------
@@ -42,6 +52,8 @@ bool AnimatorRegistry_Initialize(ID3D11Device* dev, ID3D11DeviceContext* ctx)
     gCurrent = -1;
     gBaseWorld = XMMatrixIdentity();
     gLoadedKey = MeshSkelKey{};
+
+    gRM_AccumPos = { 0,0,0 }; //重置位移
 
     // 初始化底层蒙皮播放器
     return ModelSkinned_Initialize(dev, ctx);
@@ -124,6 +136,11 @@ bool AnimatorRegistry_Play(const std::wstring& name,
     if (gCurrent != idx) {
         gCurrent = idx;
         if (outChanged) *outChanged = true;
+
+        //清空位移
+        gRM_AccumPos = { 0,0,0 };
+        ApplyWorldWithRootMotion();
+        ModelSkinned_SetZeroRootTranslationXZ(clip.rmType == RootMotionType::VelocityDriven);
     }
 
     // 同步世界矩阵
@@ -135,14 +152,66 @@ bool AnimatorRegistry_Play(const std::wstring& name,
 void AnimatorRegistry_SetWorld(const DirectX::XMMATRIX& world)
 {
     gBaseWorld = world;
-    ModelSkinned_SetWorldMatrix(gBaseWorld);
+    ApplyWorldWithRootMotion();
+    //ModelSkinned_SetWorldMatrix(gBaseWorld);
 }
 
 void AnimatorRegistry_Update(double dtSec)
 {
-    // 这里未来可以根据 RootMotionType 做位移/朝向累计；
-    // 目前先只推进底层骨骼播放器
-    (void)dtSec;
+    if (gCurrent < 0 || gCurrent >= (int)gClips.size()) {
+        ModelSkinned_Update(dtSec);
+        return;
+    }
+
+    const AnimClipDesc& c = gClips[gCurrent];
+
+    using namespace DirectX;
+
+    switch (c.rmType)
+    {
+    case RootMotionType::None:
+        // 不改位移
+        break;
+
+    case RootMotionType::VelocityDriven:
+    {
+        // 用 BaseWorld 的“前向列”当方向（和你之前一致：第三列是前）
+        XMFLOAT4X4 m; XMStoreFloat4x4(&m, gBaseWorld);
+        XMFLOAT3 fwd = { m._13, m._23, m._33 };
+        XMVECTOR v = XMVector3Normalize(XMLoadFloat3(&fwd));
+        XMStoreFloat3(&fwd, v);
+
+        gRM_AccumPos.x += fwd.x * c.velocity * (float)dtSec;
+        gRM_AccumPos.y += fwd.y * c.velocity * (float)dtSec;
+        gRM_AccumPos.z += fwd.z * c.velocity * (float)dtSec;
+        ApplyWorldWithRootMotion();
+        break;
+    }
+
+    case RootMotionType::UseAnimDelta:
+    {
+        // 重点：在推进骨骼时间之前，采样 [t, t+dt] 的“根关节局部位移”
+        XMFLOAT3 dLocal{};
+        if (ModelSkinned_SampleRootDelta_Local((float)dtSec, &dLocal))
+        {
+            // 把“局部 ΔT”变到世界：只用 BaseWorld 的三列作为基向量
+            XMFLOAT4X4 m; XMStoreFloat4x4(&m, gBaseWorld);
+            XMFLOAT3 right = { m._11, m._21, m._31 };
+            XMFLOAT3 up = { m._12, m._22, m._32 };
+            XMFLOAT3 fwd = { m._13, m._23, m._33 };
+
+            // 如只想在 XZ 平面移动，可把 up 项去掉
+            gRM_AccumPos.x += right.x * dLocal.x + up.x * dLocal.y + fwd.x * dLocal.z;
+            gRM_AccumPos.y += right.y * dLocal.x + up.y * dLocal.y + fwd.y * dLocal.z;
+            gRM_AccumPos.z += right.z * dLocal.x + up.z * dLocal.y + fwd.z * dLocal.z;
+
+            ApplyWorldWithRootMotion();
+        }
+        break;
+    }
+    }
+
+    // 最后再推进骨骼播放器（让骨架时间与采样区间对齐）
     ModelSkinned_Update(dtSec);
 }
 

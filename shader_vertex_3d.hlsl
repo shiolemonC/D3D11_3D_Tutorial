@@ -26,16 +26,6 @@ cbuffer VS_CONSTANT_BUFFER : register(b2)
     float4x4 proj;
 };
 
-cbuffer VS_CONSTANT_BUFFER : register(b3)
-{
-    float4 ambient_color;
-};
-
-cbuffer VS_CONSTANT_BUFFER : register(b4)
-{
-    float4 direction_world_vector;
-    float4 direction_world_color;
-};
 
 
 struct VS_IN
@@ -50,6 +40,8 @@ struct VS_IN
 struct VS_OUT
 {
     float4 posH  : SV_POSITION; // システム定義の頂点位置（クリップ空間座標）
+    float4 posW  : POSITION0;
+    float4 normalW : NORMAL0;
     float4 color : COLOR0;
     float2 uv    : TEXCOORD0;
 };
@@ -62,18 +54,28 @@ VS_OUT main(VS_IN vi)
 {
     VS_OUT vo;
     
+
     
-    float4 posW = mul(vi.posL, world);
-    float4 powWV = mul(posW, view);
-    vo.posH = mul(powWV, proj);
+ //   float4 posW = mul(vi.posL, world);
+    float4x4 mtvWV = mul(world, view);
+    float4x4 mtvWVP = mul(mtvWV, proj);
+    //float4 powWV = mul(posW, view);
+    vo.posH = mul(vi.posL, mtvWVP);
+    
+
+    float4 normalW = mul(float4(vi.normalL.xyz, 0.0f), world);
+    vo.normalW = normalize(normalW);
     
     //calculate lighting
-    float4 normalW = mul(float4(vi.normalL.xyz, 0.0f), world);
-    normalW = normalize(normalW);
-    float dl = max(0.0f, dot(-direction_world_vector, normalW));
+
     
-    float3 color = vi.color.rgb * direction_world_color.rgb * dl + ambient_color.rgb * vi.color.rgb;
-    vo.color = float4(color, vi.color.a);
+    //specular calculation
+    vo.posW = mul(vi.posL, world);
+
+    //float3 color = vi.color.rgb * direction_world_color.rgb * dl + ambient_color.rgb * vi.color.rgb ; 
+    //color += float3(1.0f, 1.0f, 1.0f) * t;
+    //vo.color = float4(color, vi.color.a);
+    vo.color = vi.color;
     vo.uv = vi.uv;
     
 	return vo;

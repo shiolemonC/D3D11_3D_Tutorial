@@ -85,7 +85,7 @@ void Game_Draw()
 
     v = XMVector3Normalize(v);
 
-    Light_SetDirectionWorld({1.0f, -0.6f, 0.0f, 0.0f}, {1.0f, 0.0f, 0.0f, 1.0f});
+    Light_SetDirectionWorld({1.0f, -0.6f, 0.0f, 0.0f}, {1.0f, 0.0f, 0.0f, 1.0f}, Camera_GetPosition());
 
     MeshField_Draw();
 

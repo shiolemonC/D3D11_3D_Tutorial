@@ -37,6 +37,9 @@ static const UINT           MAX_BONES = 128;
 static ID3D11Buffer* gCBAmbient = nullptr;     // VS b3
 static ID3D11Buffer* gCBDirectional = nullptr; // VS b4
 
+//给动画位移用的
+static bool gZeroRootTransXZ = false;
+
 // 世界矩阵
 static XMMATRIX             gWorld = XMMatrixIdentity();
 
@@ -367,6 +370,86 @@ static bool LoadAnim(const std::wstring& animPathW) {
     return true;
 }
 
+
+// === 辅助：拿根索引 ===
+int ModelSkinned_GetRootJointIndex()
+{
+    for (int i = 0; i < (int)gJoints.size(); ++i)
+        if (gJoints[i].parent == -1) return i;
+    return -1;
+}
+
+// === 辅助：按时间 t 线性插值采样某关节的 TRS（只用到T；S/R 保留以防以后扩展） ===
+static AnimTRS SampleJointTRS_Linear(int joint, float tSec)
+{
+    AnimTRS out{};
+    if (gFrameCount == 0 || gJoints.empty()) return out;
+
+    const float rate = gSampleRate;             // 帧率（来自 .anim）
+    const float f = tSec * rate;             // 连续帧坐标
+    int   f0 = (int)floorf(f);
+    float a = f - f0;                          // 插值因子
+    auto wrap = [&](int x) {                    // 循环动画时的包裹
+        if (gFrameCount == 0) return 0;
+        while (x < 0) x += (int)gFrameCount;
+        while (x >= (int)gFrameCount) x -= (int)gFrameCount;
+        return x;
+        };
+    int f1 = wrap(f0 + 1);
+    f0 = wrap(f0);
+
+    const size_t J = gJoints.size();
+    const AnimTRS* base = gAnimFrames.data();
+
+    const AnimTRS& A = base[(size_t)f0 * J + joint];
+    const AnimTRS& B = base[(size_t)f1 * J + joint];
+
+    // 线性插值平移/缩放、四元数做球面插值（稳一点）
+    out.T[0] = A.T[0] + (B.T[0] - A.T[0]) * a;
+    out.T[1] = A.T[1] + (B.T[1] - A.T[1]) * a;
+    out.T[2] = A.T[2] + (B.T[2] - A.T[2]) * a;
+
+    out.S[0] = A.S[0] + (B.S[0] - A.S[0]) * a;
+    out.S[1] = A.S[1] + (B.S[1] - A.S[1]) * a;
+    out.S[2] = A.S[2] + (B.S[2] - A.S[2]) * a;
+
+    DirectX::XMVECTOR qA = DirectX::XMVectorSet(A.R[0], A.R[1], A.R[2], A.R[3]);
+    DirectX::XMVECTOR qB = DirectX::XMVectorSet(B.R[0], B.R[1], B.R[2], B.R[3]);
+    DirectX::XMVECTOR q = DirectX::XMQuaternionSlerp(qA, qB, a);
+    DirectX::XMFLOAT4 qf;
+    DirectX::XMStoreFloat4(&qf, q);
+    out.R[0] = qf.x; out.R[1] = qf.y; out.R[2] = qf.z; out.R[3] = qf.w;
+
+    return out;
+}
+
+// === 采样根关节在区间 [t, t+dt] 的“局部位移 ΔT” ===
+// 说明：该函数使用“内部当前时间 gTime”作为起点，所以需要在 AnimatorRegistry_Update 里
+//       先调用它，再调用 ModelSkinned_Update(dt) 推进时间（否则会错位）
+bool ModelSkinned_SampleRootDelta_Local(float dt, DirectX::XMFLOAT3* outDeltaT)
+{
+    if (!outDeltaT) return false;
+    outDeltaT->x = outDeltaT->y = outDeltaT->z = 0.0f;
+
+    if (gFrameCount == 0 || gJoints.empty()) return false;
+    const int root = ModelSkinned_GetRootJointIndex();
+    if (root < 0) return false;
+
+    // 采样 t0 与 t1 的“根局部平移”，做差即可
+    const float t0 = gTime;
+    const float t1 = gLoop ? (t0 + dt) : std::min(t0 + dt, gDurationSec);
+
+    AnimTRS R0 = SampleJointTRS_Linear(root, t0);
+    AnimTRS R1 = SampleJointTRS_Linear(root, t1);
+
+    outDeltaT->x = (R1.T[0] - R0.T[0]);
+    outDeltaT->y = (R1.T[1] - R0.T[1]);
+    outDeltaT->z = (R1.T[2] - R0.T[2]);
+    return true;
+}
+
+
+
 // ---------------------------------------------------------
 // 创建骨矩阵常量缓冲
 // ---------------------------------------------------------
@@ -539,6 +622,7 @@ void ModelSkinned_SetWorldMatrix(const XMMATRIX& world) {
 void ModelSkinned_SetLoop(bool loop) { gLoop = loop; }
 void ModelSkinned_SetPlaybackRate(float rate) { gPlayback = rate; }
 void ModelSkinned_Seek(float t) { gTime = t; }
+void ModelSkinned_SetZeroRootTranslationXZ(bool enable) { gZeroRootTransXZ = enable; }
 
 bool ModelSkinned_LoadAnimOnly(const std::wstring& animPath)
 {
@@ -645,12 +729,21 @@ void ModelSkinned_Draw() {
 
         const AnimTRS* currentFramePose = gAnimFrames.data() + size_t(f0) * J;
 
-        // 从根骨骼开始，递归计算所有骨骼的全局矩阵
+        // 可选：VelocityDriven 时把根局部平移的 XZ 清零（保留 Y 抖动）
+        const AnimTRS* pose = currentFramePose;
+        std::vector<AnimTRS> tempPose;
+        if (gZeroRootTransXZ && J > 0) {
+            tempPose.assign(currentFramePose, currentFramePose + J);
+            // root = 0 号关节；只清 XZ，保留 Y（上下起伏对步态有帮助）
+            tempPose[0].T[0] = 0.0f;  // X
+            tempPose[0].T[2] = 0.0f;  // Z
+            pose = tempPose.data();
+        }
+
+        // ↓↓↓ 把后续递归的输入从 currentFramePose 换成 pose
         for (size_t j = 0; j < J; ++j) {
             if (gJoints[j].parent == -1) {
-                // 递归的起点是单位矩阵。
-                // 因为正确的场景根变换已由AssetCooker烘焙进骨骼的局部变换数据中。
-                ComputeAnimationPoseRecursively(j, XMMatrixIdentity(), currentFramePose);
+                ComputeAnimationPoseRecursively(j, XMMatrixIdentity(), pose);
             }
         }
     }

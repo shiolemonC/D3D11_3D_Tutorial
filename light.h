@@ -17,7 +17,10 @@ void Light_Finalize();
 
 void Light_SetAmbient(const DirectX::XMFLOAT3& color);
 
-void Light_SetDirectionWorld(const DirectX::XMFLOAT4& world_directional, const DirectX::XMFLOAT4& color);
+void Light_SetDirectionWorld(
+	const DirectX::XMFLOAT4& world_directional, 
+	const DirectX::XMFLOAT4& color, 
+	const DirectX::XMFLOAT3& camera_position);
 
 
 #endif // !LIGHT_H
