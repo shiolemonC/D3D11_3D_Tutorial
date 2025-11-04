@@ -67,7 +67,8 @@ int APIENTRY WinMain(
 	SpriteAnim_Initialize();
 	Fade_Initialize();
 	Mouse_SetVisible(true);
-
+	//ModelSkinned_Initialize(Direct3D_GetDevice(), Direct3D_GetContext());
+	AnimatorRegistry_Initialize(Direct3D_GetDevice(), Direct3D_GetContext());
 	Game_Initialize();
 	Scene_Initialize();
 	Grid_Initialize(Direct3D_GetDevice(), Direct3D_GetContext());
@@ -88,7 +89,7 @@ int APIENTRY WinMain(
 	// 加载
 	//ModelStatic_LoadDefault();
 
-	//ModelSkinned_Initialize(Direct3D_GetDevice(), Direct3D_GetContext());
+
 
 	//ModelSkinnedDesc d;
 	//d.meshPath = L"D:/AssetCooker/resources/Cooked/walk_test.mesh";
@@ -102,14 +103,14 @@ int APIENTRY WinMain(
 	//ModelSkinned_SetLoop(true);
 	//ModelSkinned_SetPlaybackRate(1.0f);
 
-	AnimatorRegistry_Initialize(Direct3D_GetDevice(), Direct3D_GetContext());
 
-	// 一键登录你项目的所有动作（放在 animator_register.cpp 里）
-	AnimRegister();
 
-	// 开机默认播 Idle（可选覆盖 loop/rate）
-	bool changed = false;
-	AnimatorRegistry_Play(L"Walk", &changed);
+	//// 一键登录你项目的所有动作（放在 animator_register.cpp 里）
+	//AnimRegister();
+
+	//// 开机默认播 Idle（可选覆盖 loop/rate）
+	//bool changed = false;
+	//AnimatorRegistry_Play(L"Walk", &changed);
 
 
 

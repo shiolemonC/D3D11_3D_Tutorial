@@ -21,6 +21,11 @@ void PlayerCamera_Initialize(const PlayerCameraDesc& d)
     s_eye = { p.x + offW.x, p.y + offW.y, p.z + offW.z };
     s_target = { p.x + s_desc.lookAtOffset.x, p.y + s_desc.lookAtOffset.y, p.z + s_desc.lookAtOffset.z };
 
+    XMVECTOR eye = XMLoadFloat3(&s_eye);
+    XMVECTOR tgt = XMLoadFloat3(&s_target);
+    XMVECTOR front = XMVector3Normalize(tgt - eye);
+    XMFLOAT3 f; XMStoreFloat3(&f, front);
+    Camera_SetPose(s_eye, f, { 0,1,0 });
     Camera_EnableExternalControl(true);
 }
 

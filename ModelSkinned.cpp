@@ -12,6 +12,7 @@
 #include "shader3d.h"         // 用来设置 b0~b4（已存在）
 #include "texture.h"          // Texture_Load / Texture_SetTexture
 #include "sampler.h"          // Sampler_SetFillterAnisotropic 等
+#include "direct3d.h"
 
 using namespace DirectX;
 namespace fs = std::filesystem;
@@ -70,7 +71,15 @@ static std::vector<AnimTRS> gAnimFrames; // 连续存储：frame 0..N-1，每帧
 static std::vector<XMFLOAT4X4> gPalette;
 
 // 工具：SAFE_RELEASE
-template<typename T> static void SAFE_RELEASE(T*& p) { if (p) { p->Release(); p = nullptr; } }
+//template<typename T> static void SAFE_RELEASE(T*& p) { if (p) { p->Release(); p = nullptr; } }
+
+static void EnsureD3D()
+{
+    if (!gDev || !gCtx) {
+        gDev = Direct3D_GetDevice();
+        gCtx = Direct3D_GetContext();
+    }
+}
 
 // ▼▼▼ 新增这个打印矩阵的函数 ▼▼▼
 static void PrintMatrix(const char* name, const XMMATRIX& M) {
@@ -198,6 +207,8 @@ static bool TryLoadBaseColorFromMat(const std::wstring& matPathW) {
 // 加载 .mesh（v1 带皮肤）：创建 VB/IB & InputLayout
 // ---------------------------------------------------------
 static bool LoadMeshV1(const std::wstring& meshPathW) {
+    OutputDebugStringA("[ModelSkinned] LoadMeshV1() entering.\n");   // ★断点/输出位
+    EnsureD3D();
     std::vector<uint8_t> bin;
     if (!ReadAll(meshPathW, bin)) return false;
 
@@ -454,6 +465,7 @@ bool ModelSkinned_SampleRootDelta_Local(float dt, DirectX::XMFLOAT3* outDeltaT)
 // 创建骨矩阵常量缓冲
 // ---------------------------------------------------------
 static bool CreateCBBones() {
+    EnsureD3D();
     SAFE_RELEASE(gCBBones);
     D3D11_BUFFER_DESC bd{};
     bd.BindFlags = D3D11_BIND_CONSTANT_BUFFER;
@@ -467,7 +479,9 @@ static bool CreateCBBones() {
 // 对外 API
 // ---------------------------------------------------------
 bool ModelSkinned_Initialize(ID3D11Device* dev, ID3D11DeviceContext* ctx) {
+
     gDev = dev; gCtx = ctx;
+    OutputDebugStringA("[ModelSkinned] Initialize() called.\n");
 
     // b5: bones
     if (!CreateCBBones()) return false;

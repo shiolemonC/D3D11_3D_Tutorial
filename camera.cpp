@@ -172,22 +172,22 @@ void Camera_Update(double elapsed_time)
 		XMVECTOR at = XMVectorSet(0.0f, 0.0f, 0.0f, 1.0f);
 		//XMVECTOR up = XMVectorSet(0.0f, 1.0f, 0.0f, 0.0f);
 
-		XMMATRIX mtxView = XMMatrixLookAtLH(position, position + front, up);
-
-		XMStoreFloat4x4(&g_CameraMatrix, mtxView);
-
-		Shader3d_SetViewMatrix(mtxView);
-
-		//Perspective array
-		//NearZ一定要大于0 是距离
-		float aspectRatio = (float)Direct3D_GetBackBufferWidth() / Direct3D_GetBackBufferHeight();
-		float nearZ = 0.1f;
-		float farZ = 100.0f;
-		XMMATRIX mtxPerspective = XMMatrixPerspectiveFovLH(g_Fov, aspectRatio, nearZ, farZ);
-
-		XMStoreFloat4x4(&g_PerspectiveMatrix, mtxPerspective);
-		Shader3d_SetProjectionMatrix(mtxPerspective);
 	}
+	XMMATRIX mtxView = XMMatrixLookAtLH(position, position + front, up);
+
+	XMStoreFloat4x4(&g_CameraMatrix, mtxView);
+
+	Shader3d_SetViewMatrix(mtxView);
+
+	//Perspective array
+	//NearZ一定要大于0 是距离
+	float aspectRatio = (float)Direct3D_GetBackBufferWidth() / Direct3D_GetBackBufferHeight();
+	float nearZ = 0.1f;
+	float farZ = 100.0f;
+	XMMATRIX mtxPerspective = XMMatrixPerspectiveFovLH(g_Fov, aspectRatio, nearZ, farZ);
+
+	XMStoreFloat4x4(&g_PerspectiveMatrix, mtxPerspective);
+	Shader3d_SetProjectionMatrix(mtxPerspective);
 }
 
 const DirectX::XMFLOAT4X4& Camera_GetMatrix()
