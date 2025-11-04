@@ -166,6 +166,11 @@
     <ClCompile Include="ModelSkinned.cpp" />
     <ClCompile Include="ModelStatic.cpp" />
     <ClCompile Include="mouse.cpp" />
+    <ClCompile Include="player.cpp" />
+    <ClCompile Include="player_camera.cpp" />
+    <ClCompile Include="player_camera_test.cpp" />
+    <ClCompile Include="player_state.cpp" />
+    <ClCompile Include="player_test.cpp" />
     <ClCompile Include="sampler.cpp" />
     <ClCompile Include="scene.cpp" />
     <ClCompile Include="score.cpp" />
@@ -204,6 +209,11 @@
     <ClInclude Include="ModelSkinned.h" />
     <ClInclude Include="ModelStatic.h" />
     <ClInclude Include="mouse.h" />
+    <ClInclude Include="player.h" />
+    <ClInclude Include="player_camera.h" />
+    <ClInclude Include="player_camera_test.h" />
+    <ClInclude Include="player_state.h" />
+    <ClInclude Include="player_test.h" />
     <ClInclude Include="sampler.h" />
     <ClInclude Include="scene.h" />
     <ClInclude Include="score.h" />

@@ -66,3 +66,12 @@ bool AnimatorRegistry_CurrentLoop();
 
 // 方便：把“登录脚本”里的函数声明一下（你可以在 animator_register.cpp 实现它）
 void AnimRegister();   // 在游戏初始化时调用一次
+
+// ---- 根运动Δ读取（从动画侧同步位移到 Player 的“真值源”） ----
+struct RootMotionDelta {
+    DirectX::XMFLOAT3 pos; // 世界系Δ位置（一般只用XZ，Y可按需丢弃）
+    float yaw;             // 世界系Δ朝向（先给 0，将来需要可扩展）
+};
+
+// 读取并“消费”本帧动画位移（返回 true 表示本帧有Δ；同时清空内部累积）
+bool AnimatorRegistry_ConsumeRootMotionDelta(RootMotionDelta* out);

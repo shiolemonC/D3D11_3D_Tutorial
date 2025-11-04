@@ -782,8 +782,8 @@ void ModelSkinned_Draw() {
     gCtx->IASetInputLayout(gIL);
     Shader3d_SetWorldMatrix(gWorld);
 
-    ID3D11Buffer* cbs34[2] = { gCBAmbient, gCBDirectional };
-    gCtx->PSSetConstantBuffers(3, 2, cbs34);
+    //ID3D11Buffer* cbs34[2] = { gCBAmbient, gCBDirectional };
+    //gCtx->PSSetConstantBuffers(3, 2, cbs34);
 
     // ！！现在再把 b5 绑回去（避免被 Begin 清掉/覆盖）
     gCtx->VSSetConstantBuffers(5, 1, &gCBBones);

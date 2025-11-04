@@ -74,16 +74,16 @@ int APIENTRY WinMain(
 	Cube_Initialize(Direct3D_GetDevice(), Direct3D_GetContext());
 	Light_Initialize(Direct3D_GetDevice(), Direct3D_GetContext());
 	MeshField_Initialize(Direct3D_GetDevice(), Direct3D_GetContext());
-	ModelStatic_Initialize(Direct3D_GetDevice(), Direct3D_GetContext());
+	//ModelStatic_Initialize(Direct3D_GetDevice(), Direct3D_GetContext());
 
-	// 配置默认模型路径（mat 可留空；overrideDiffuse 可选）
-	ModelStatic_SetDefaultPaths(
-		L"D:/AssetCooker/resources/Cooked/ninja_T.mesh",
-		L"D:/AssetCooker/resources/Cooked/ninja_T.mat",
-		// 若 .mat 没有写纹理或想强制指定，请给一张 png；不想覆盖就传 nullptr
-		//nullptr
-		L"D:/AssetCooker/resources/test/ninja_T.fbm/Ch24_1001_Diffuse.png"
-	);
+	//// 配置默认模型路径（mat 可留空；overrideDiffuse 可选）
+	//ModelStatic_SetDefaultPaths(
+	//	L"D:/AssetCooker/resources/Cooked/ninja_T.mesh",
+	//	L"D:/AssetCooker/resources/Cooked/ninja_T.mat",
+	//	// 若 .mat 没有写纹理或想强制指定，请给一张 png；不想覆盖就传 nullptr
+	//	//nullptr
+	//	L"D:/AssetCooker/resources/test/ninja_T.fbm/Ch24_1001_Diffuse.png"
+	//);
 
 	// 加载
 	//ModelStatic_LoadDefault();

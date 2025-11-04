@@ -158,6 +158,9 @@ void MeshField_Draw()
 	ShaderField_SetViewMatrix(XMLoadFloat4x4(&Camera_GetMatrix()));
 	ShaderField_SetProjectionMatrix(XMLoadFloat4x4(&Camera_GetPerspectiveMatrix()));
 
+	//set PSShader color
+	ShaderField_SetColor({ 1.0f, 1.0f, 1.0f, 1.0f });
+
 	g_pContext->DrawIndexed(NUM_INDEX, 0, 0);
 
 	//add some comments to test git

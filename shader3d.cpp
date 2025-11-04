@@ -146,6 +146,7 @@ bool Shader3d_Initialize(ID3D11Device* pDevice, ID3D11DeviceContext* pContext)
 void Shader3d_Finalize()
 {
 	SAFE_RELEASE(g_pPixelShader);
+	SAFE_RELEASE(g_pPSConstantBuffer0);
 	SAFE_RELEASE(g_pVSConstantBuffer2);
 	SAFE_RELEASE(g_pVSConstantBuffer1);
 	SAFE_RELEASE(g_pVSConstantBuffer0);

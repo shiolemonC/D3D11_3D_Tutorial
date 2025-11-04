@@ -244,3 +244,19 @@ bool AnimatorRegistry_CurrentLoop()
     if (gCurrent < 0 || gCurrent >= (int)gClips.size()) return true;
     return gClips[gCurrent].loop;
 }
+
+bool AnimatorRegistry_ConsumeRootMotionDelta(RootMotionDelta* out)
+{
+    if (!out) return false;
+    const float eps = 1e-6f;
+    float len2 = gRM_AccumPos.x * gRM_AccumPos.x
+        + gRM_AccumPos.y * gRM_AccumPos.y
+        + gRM_AccumPos.z * gRM_AccumPos.z;
+    if (len2 < eps) return false;
+
+    out->pos = gRM_AccumPos;
+    out->yaw = 0.0f; // 将来如需取根关节旋转Δ，可在 ModelSkinned 里补采样后填充
+    gRM_AccumPos = { 0,0,0 }; // 清空（很重要）
+    // 不要在这里重新 SetWorld；同帧 draw 用的还是刚刚那帧的世界矩阵
+    return true;
+}
