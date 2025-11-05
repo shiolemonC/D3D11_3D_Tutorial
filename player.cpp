@@ -49,6 +49,27 @@ PlayerState Player_Update(double dt, const PlayerInput& in, PlayerState smState)
     return smState;
 }
 
+void Player_Kinematic_Update(double dt, const PlayerInput& in, bool locomotionActive)
+{
+    XMFLOAT2 v2{ in.moveX, in.moveZ };
+    float len = sqrtf(v2.x * v2.x + v2.y * v2.y);
+    if (len > 1e-5f) { v2.x /= len; v2.y /= len; }
+        if (locomotionActive && len > 1e-4f) {
+            float targetYaw = atan2f(v2.x, v2.y);
+            float a = ExpLerp01(s_turnK, (float)dt);
+            s_yaw += AngleDelta(s_yaw, targetYaw) * a;
+
+            s_pos.x += v2.x * s_speed * (float)dt;
+            s_pos.z += v2.y * s_speed * (float)dt;
+        }
+
+        XMMATRIX S = XMMatrixScaling(s_scale, s_scale, s_scale);
+        XMMATRIX R = XMMatrixRotationY(s_yaw);
+        XMMATRIX T = XMMatrixTranslation(s_pos.x, s_pos.y, s_pos.z);
+        XMMATRIX W = S * R * T;
+        AnimatorRegistry_SetWorld(W);
+}
+
 void Player_ApplyRootMotionDelta(const RootMotionDelta& rm)
 {
     // 常见做法：只取 XZ；若有需要可保留 Y（突进起伏）

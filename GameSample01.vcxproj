@@ -169,6 +169,7 @@
     <ClCompile Include="player.cpp" />
     <ClCompile Include="player_camera.cpp" />
     <ClCompile Include="player_camera_test.cpp" />
+    <ClCompile Include="player_sm_condition.cpp" />
     <ClCompile Include="player_state.cpp" />
     <ClCompile Include="player_test.cpp" />
     <ClCompile Include="sampler.cpp" />
@@ -212,6 +213,7 @@
     <ClInclude Include="player.h" />
     <ClInclude Include="player_camera.h" />
     <ClInclude Include="player_camera_test.h" />
+    <ClInclude Include="player_sm_condition.h" />
     <ClInclude Include="player_state.h" />
     <ClInclude Include="player_test.h" />
     <ClInclude Include="sampler.h" />

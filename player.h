@@ -18,6 +18,7 @@ struct PlayerInput {
 
 void         Player_Initialize(const PlayerDesc& d);
 PlayerState  Player_Update(double dt, const PlayerInput& in, PlayerState smState);
+void         Player_Kinematic_Update(double dt, const PlayerInput& in, bool locomotionActive);
 void         Player_ApplyRootMotionDelta(const RootMotionDelta& rm);
 
 DirectX::XMMATRIX         Player_GetWorld();

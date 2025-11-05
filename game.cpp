@@ -21,6 +21,7 @@
 #include "player.h"
 #include "player_state.h"
 #include "player_camera.h"
+#include "player_sm_condition.h"
 #include "AnimatorRegistry.h"
 #include "model.h"
 #include "player_test.h"
@@ -61,8 +62,13 @@ void Game_Initialize()
     pd.scale = 1.0f;
     Player_Initialize(pd);
 
-    // ★ 开局强制播默认动画（避免第一帧没动画）
-    AnimatorRegistry_Play(L"Idle", nullptr);
+    Cond_Init(/*defaultTriggerBufferSec*/ 0.15f);
+    PlayerSM_LoadConfigDefaults();   // Idle/Move 配好
+    PlayerSM_Reset();                // 初始状态=Idle
+    // 播放初始动画
+    auto out0 = PlayerSM_Update(0.0);
+    AnimatorRegistry_Play(out0.clip, nullptr);
+
     // 相机跟随
     PlayerCamera_Initialize({});
 }
@@ -88,17 +94,17 @@ void Game_Update(double elapsed_time)
     pin.moveX -= KeyLogger_IsPressed(KK_A) ? 1.0f : 0.0f;
     pin.moveX += KeyLogger_IsPressed(KK_D) ? 1.0f : 0.0f;
 
-    // 2) 状态机（决定 Idle / Walk，并输出动画名）
-    auto sm = PlayerSM_Update(elapsed_time, pin);
+    // 输入 → FSM（会同步到条件子模块）
+    PlayerSM_SetMoveInput(pin.moveX, pin.moveZ);
+    //if (Key_JustPressed(AttackKey)) PlayerSM_FireTrigger("Attack");
 
-    // 3) 动画切换（仅在状态改变时）
-    if (sm.animChanged && sm.animName) {
-        bool changed = false;
-        AnimatorRegistry_Play(sm.animName, &changed /*outChanged*/);
+    auto smOut = PlayerSM_Update(elapsed_time);
+    if (smOut.changed) {
+        AnimatorRegistry_Play(smOut.clip, nullptr);
     }
 
-    // 4) Player 推进（写世界矩阵进 AnimatorRegistry）
-    Player_Update(elapsed_time, pin, sm.state);
+    // 由状态机产出的布尔位控制是否行走
+    Player_Kinematic_Update(elapsed_time, pin, smOut.locomotionActive);
 
     // 5) 骨骼更新（若动画是 UseAnimDelta，会在内部累积根Δ并作用到模型）
     AnimatorRegistry_Update(elapsed_time);
@@ -189,7 +195,8 @@ void Game_Draw()
     AnimatorRegistry_Draw();
 
 #if defined(DEBUG) || defined(_DEBUG) // debug buildだけで有効
-    Camera_DebugDraw();
+    PlayerSM_DebugDraw();
+    //Camera_DebugDraw();
 #endif
 }
 

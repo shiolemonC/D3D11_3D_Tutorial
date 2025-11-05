@@ -17,6 +17,12 @@
       <UniqueIdentifier>{8b7def56-65a6-47f8-8b23-ca6dff9ffff7}</UniqueIdentifier>
       <Extensions>hlsl;</Extensions>
     </Filter>
+    <Filter Include="ソース ファイル\player_function">
+      <UniqueIdentifier>{bfc0c692-83cc-47f6-aca4-b7c563a254ce}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="ヘッダー ファイル\player_function">
+      <UniqueIdentifier>{b1d643b0-47cd-4331-ab5c-416d39b18bf7}</UniqueIdentifier>
+    </Filter>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="main.cpp">
@@ -128,19 +134,22 @@
       <Filter>ソース ファイル</Filter>
     </ClCompile>
     <ClCompile Include="player.cpp">
-      <Filter>ソース ファイル</Filter>
-    </ClCompile>
-    <ClCompile Include="player_state.cpp">
-      <Filter>ソース ファイル</Filter>
+      <Filter>ソース ファイル\player_function</Filter>
     </ClCompile>
     <ClCompile Include="player_camera.cpp">
-      <Filter>ソース ファイル</Filter>
-    </ClCompile>
-    <ClCompile Include="player_test.cpp">
-      <Filter>ソース ファイル</Filter>
+      <Filter>ソース ファイル\player_function</Filter>
     </ClCompile>
     <ClCompile Include="player_camera_test.cpp">
-      <Filter>ソース ファイル</Filter>
+      <Filter>ソース ファイル\player_function</Filter>
+    </ClCompile>
+    <ClCompile Include="player_state.cpp">
+      <Filter>ソース ファイル\player_function</Filter>
+    </ClCompile>
+    <ClCompile Include="player_test.cpp">
+      <Filter>ソース ファイル\player_function</Filter>
+    </ClCompile>
+    <ClCompile Include="player_sm_condition.cpp">
+      <Filter>ソース ファイル\player_function</Filter>
     </ClCompile>
   </ItemGroup>
   <ItemGroup>
@@ -253,19 +262,22 @@
       <Filter>ヘッダー ファイル</Filter>
     </ClInclude>
     <ClInclude Include="player.h">
-      <Filter>ヘッダー ファイル</Filter>
-    </ClInclude>
-    <ClInclude Include="player_state.h">
-      <Filter>ヘッダー ファイル</Filter>
+      <Filter>ヘッダー ファイル\player_function</Filter>
     </ClInclude>
     <ClInclude Include="player_camera.h">
-      <Filter>ヘッダー ファイル</Filter>
-    </ClInclude>
-    <ClInclude Include="player_test.h">
-      <Filter>ヘッダー ファイル</Filter>
+      <Filter>ヘッダー ファイル\player_function</Filter>
     </ClInclude>
     <ClInclude Include="player_camera_test.h">
-      <Filter>ヘッダー ファイル</Filter>
+      <Filter>ヘッダー ファイル\player_function</Filter>
+    </ClInclude>
+    <ClInclude Include="player_state.h">
+      <Filter>ヘッダー ファイル\player_function</Filter>
+    </ClInclude>
+    <ClInclude Include="player_test.h">
+      <Filter>ヘッダー ファイル\player_function</Filter>
+    </ClInclude>
+    <ClInclude Include="player_sm_condition.h">
+      <Filter>ヘッダー ファイル\player_function</Filter>
     </ClInclude>
   </ItemGroup>
   <ItemGroup>
