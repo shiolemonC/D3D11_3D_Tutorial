@@ -151,6 +151,9 @@
     <ClCompile Include="player_sm_condition.cpp">
       <Filter>ソース ファイル\player_function</Filter>
     </ClCompile>
+    <ClCompile Include="player_sm_json.cpp">
+      <Filter>ソース ファイル\player_function</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="debug_ostream.h">
@@ -279,6 +282,9 @@
     <ClInclude Include="player_sm_condition.h">
       <Filter>ヘッダー ファイル\player_function</Filter>
     </ClInclude>
+    <ClInclude Include="player_sm_json.h">
+      <Filter>ヘッダー ファイル\player_function</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <FxCompile Include="shader_pixel_2d.hlsl">
@@ -307,5 +313,6 @@
     <None Include="DirectXTex.inl">
       <Filter>ヘッダー ファイル</Filter>
     </None>
+    <None Include="fsm_player.json" />
   </ItemGroup>
 </Project>

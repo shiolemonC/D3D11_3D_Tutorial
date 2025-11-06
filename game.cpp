@@ -63,7 +63,10 @@ void Game_Initialize()
     Player_Initialize(pd);
 
     Cond_Init(/*defaultTriggerBufferSec*/ 0.15f);
-    PlayerSM_LoadConfigDefaults();   // Idle/Move 配好
+    if (!PlayerSM_LoadConfigJSON(L"resources/fsm_player.json")) {
+        OutputDebugStringA("[PlayerSM] Failed to load 'resources/fsm_player.json'. Falling back to built-in defaults.\n");
+        PlayerSM_LoadConfigDefaults();   // 读不到就回退默认 Idle/Move
+    }
     PlayerSM_Reset();                // 初始状态=Idle
     // 播放初始动画
     auto out0 = PlayerSM_Update(0.0);

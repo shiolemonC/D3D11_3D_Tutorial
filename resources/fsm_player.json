@@ -1,0 +1,48 @@
+{
+  "states": [
+    {
+      "name": "Idle",
+      "clip": "Idle",
+      "loop": true,
+      "root_motion": "none",
+      "length_sec": 1.0,
+      "locomotion": false
+    },
+    {
+      "name": "Move",
+      "clip": "Walk",
+      "loop": true,
+      "root_motion": "none",
+      "length_sec": 1.0,
+      "locomotion": true
+    }
+  ],
+  "transitions": [
+    {
+      "from": "Idle",
+      "to": "Move",
+      "conditions": [ "move.mag > 0.1" ],
+      "window": [ [ 0.00, 1.00 ] ],
+      "duration": 0.18,
+      "curve": "ease_in_out",
+      "can_interrupt": true,
+      "priority": 10
+    },
+
+    {
+      "from": "Move",
+      "to": "Idle",
+      "conditions": [ "move.mag <= 0.1" ],
+      "window": [ [ 0.00, 1.00 ] ],
+      "duration": 0.12,
+      "curve": "ease_out",
+      "can_interrupt": true,
+      "priority": 10
+    }
+  ],
+  "defaults": {
+    "initial_state": "Idle",
+    "trigger_buffer": 0.15,
+    "tie_break_doc": "priority > force > can_interrupt > declaration_order"
+  }
+}

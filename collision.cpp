@@ -59,6 +59,17 @@ bool Collision_OverlapBox(const Box& a, const Box& b)
     return al < br && ar > bl && at < bb && ab > bt;
 }
 
+bool Collision_OverlapAABB(const BOXAABB& a, const BOXAABB& b)
+{
+	return a.min.x < b.max.x
+		&& a.max.x > b.min.x
+		&& a.min.y < b.max.y
+		&& a.max.y > b.min.y
+		&& a.min.z < b.max.z
+		&& a.max.z > b.min.z
+		;
+}
+
 void Collision_DebugInitialize(ID3D11Device* pDevice, ID3D11DeviceContext* pContext)
 {
 	// デバイスとデバイスコンテキストの保存

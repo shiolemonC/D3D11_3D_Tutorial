@@ -25,8 +25,16 @@ struct Box // 四角の定義
     float half_height;
 };
 
+struct BOXAABB
+{
+    DirectX::XMFLOAT3 min;
+    DirectX::XMFLOAT3 max;
+};
+
+
 bool Collision_OverlapCircle(const Circle& a, const Circle& b);
 bool Collision_OverlapBox(const Box& a, const Box& b);
+bool Collision_OverlapAABB(const BOXAABB& a, const BOXAABB& b);
 
 void Collision_DebugInitialize(ID3D11Device* pDevice, ID3D11DeviceContext* pContext);
 void Collision_DebugFinalize(); // 頂点バッファー回収

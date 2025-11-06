@@ -1,8 +1,10 @@
 ﻿// player_state.cpp
 #include "player_state.h"
+#include "player_sm_json.h"
 #include "player_sm_condition.h"
 #include "direct3d.h"
 #include "debug_text.h"
+#include <Windows.h>
 #include <sstream>
 #include <unordered_map>
 #include <string>
@@ -106,12 +108,197 @@ static int idx_or_any(const std::string& name) {
 }
 
 // ---------- 对外：加载配置 ----------
-bool PlayerSM_LoadConfigJSON(const wchar_t* /*jsonPath*/)
+bool PlayerSM_LoadConfigJSON(const wchar_t* jsonPath)
 {
-    // 为避免此阶段引入 JSON 依赖，这里先返回 false。
-    // 你可以先调用 PlayerSM_LoadConfigDefaults() 立即使用；
-    // 等我们实现条件子模块时一并加上 JSON 解析（按你定的 Schema）。
-    return false;
+    using namespace smjson;
+    Value root; std::string err;
+
+    if (!jsonPath || !*jsonPath) {
+        OutputDebugStringA("[PlayerSM] JSON path is null/empty\n");
+        return false;
+    }
+
+    if (!ParseFileUTF8(jsonPath, root, &err)) {
+        OutputDebugStringA(("[PlayerSM] JSON parse failed: " + err + "\n").c_str());
+        return false;
+    }
+
+    SMConfig cfg{};
+    g_stateIndex.clear();
+
+    // -------- defaults --------
+    if (auto d = root.find("defaults"); d && d->isObject()) {
+        if (auto tb = d->find("trigger_buffer"); tb && tb->isNumber())
+            cfg.defaultTriggerBuffer = (float)tb->getNumber(0.15);
+    }
+    // 先同步默认缓冲（稍后也会再次覆盖一次，确保一致）
+    Cond_SetTriggerBufferDefault(cfg.defaultTriggerBuffer);
+
+    // -------- states --------
+    auto stA = root.find("states");
+    if (!stA || !stA->isArray()) {
+        OutputDebugStringA("[PlayerSM] missing states[]\n");
+        return false;
+    }
+    for (auto& js : stA->arr) {
+        if (!js.isObject()) continue;
+        SMState st{};
+
+        auto n = js.find("name");
+        if (!n || !n->isString()) {
+            OutputDebugStringA("[PlayerSM] state without name\n");
+            continue;
+        }
+        st.name = n->getString();
+
+        if (auto c = js.find("clip"); c && c->isString()) {
+            auto s = c->getString();
+            st.clip.assign(s.begin(), s.end());   // UTF-8 → wstring（逐字节）
+        }
+
+        st.loop = js.find("loop") ? js.find("loop")->getBool(true) : true;
+
+        if (auto rm = js.find("root_motion"); rm && rm->isString())
+            st.useRootMotion = _stricmp(rm->getString().c_str(), "use_delta") == 0;
+
+        if (auto ls = js.find("length_sec"); ls && ls->isNumber())
+            st.lengthSec = (float)ls->getNumber(0.0);
+
+        st.locomotionAllowed = js.find("locomotion") ? js.find("locomotion")->getBool(false) : false;
+
+        if (auto ui = js.find("uninterruptible"); ui && ui->isArray()) {
+            for (auto& seg : ui->arr) {
+                if (seg.isArray() && seg.arr.size() == 2) {
+                    float a = (float)seg.arr[0].getNumber(0.0);
+                    float b = (float)seg.arr[1].getNumber(0.0);
+                    st.uninterruptible.emplace_back(a, b);
+                }
+            }
+        }
+
+        g_stateIndex[st.name] = (int)cfg.states.size();
+        cfg.states.push_back(std::move(st));
+    }
+
+    if (cfg.states.empty()) {
+        OutputDebugStringA("[PlayerSM] no states parsed\n");
+        return false;
+    }
+
+    // -------- transitions --------
+    auto trA = root.find("transitions");
+    if (!trA || !trA->isArray()) {
+        OutputDebugStringA("[PlayerSM] missing transitions[]\n");
+        return false;
+    }
+
+    int decl = 0;
+    for (auto& jt : trA->arr) {
+        if (!jt.isObject()) continue;
+        SMTransition tr{};
+
+        std::string from = jt.find("from") && jt.find("from")->isString()
+            ? jt.find("from")->getString() : std::string("Any");
+        std::string to = jt.find("to") && jt.find("to")->isString()
+            ? jt.find("to")->getString() : std::string();
+
+        if (to.empty()) {
+            OutputDebugStringA("[PlayerSM] transition without 'to'\n");
+            continue;
+        }
+
+        int fromIdx = idx_or_any(from);
+        if (fromIdx == -2) {
+            OutputDebugStringA(("[PlayerSM] unknown from: " + from + "\n").c_str());
+            continue;
+        }
+        auto itTo = g_stateIndex.find(to);
+        if (itTo == g_stateIndex.end()) {
+            OutputDebugStringA(("[PlayerSM] unknown to: " + to + "\n").c_str());
+            continue;
+        }
+        tr.from = fromIdx;
+        tr.to = itTo->second;
+
+        // conditions[]
+        if (auto cs = jt.find("conditions"); cs && cs->isArray()) {
+            for (auto& ce : cs->arr) {
+                if (!ce.isString()) continue;
+                auto s = ce.getString();
+                CondExpr h{};
+                if (Cond_CompileBool(s.c_str(), &h)) {
+                    tr.conds.push_back(h);
+                    tr.condStrs.push_back(s);   // 仅用于 Debug HUD；如无此字段可删掉本行
+                }
+                else {
+                    OutputDebugStringA(("[PlayerSM] cond compile failed: " + s + "\n").c_str());
+                }
+            }
+        }
+
+        // trigger + buffer
+        if (auto tg = jt.find("trigger"); tg && tg->isString())
+            tr.trigger = tg->getString();
+        if (auto bf = jt.find("buffer");  bf && bf->isNumber())
+            tr.bufferSec = (float)bf->getNumber(-1.0);
+
+        // window（归一化多段）
+        if (auto win = jt.find("window"); win && win->isArray()) {
+            for (auto& seg : win->arr) {
+                if (seg.isArray() && seg.arr.size() == 2) {
+                    tr.window.emplace_back(
+                        (float)seg.arr[0].getNumber(0.0),
+                        (float)seg.arr[1].getNumber(1.0)
+                    );
+                }
+            }
+        }
+
+        // 其他
+        if (auto du = jt.find("duration"); du && du->isNumber())
+            tr.duration = (float)du->getNumber(0.0);
+
+        if (auto cv = jt.find("curve"); cv && cv->isString()) {
+            std::string s = cv->getString();
+            if (_stricmp(s.c_str(), "ease_in") == 0) tr.curve = "ease_in";
+            else if (_stricmp(s.c_str(), "ease_out") == 0) tr.curve = "ease_out";
+            else if (_stricmp(s.c_str(), "ease_in_out") == 0) tr.curve = "ease_in_out";
+            else tr.curve = "linear";
+        }
+
+        tr.canInterrupt = jt.find("can_interrupt") ? jt.find("can_interrupt")->getBool(true) : true;
+        tr.force = jt.find("force") ? jt.find("force")->getBool(false) : false;
+        tr.priority = jt.find("priority") && jt.find("priority")->isNumber()
+            ? (int)jt.find("priority")->getNumber(0) : 0;
+        tr.declOrder = decl++;
+
+        cfg.transitions.push_back(std::move(tr));
+    }
+
+    // -------- initial_state --------
+    std::string initName = "Idle";
+    if (auto d = root.find("defaults"); d && d->isObject()) {
+        if (auto ini = d->find("initial_state"); ini && ini->isString())
+            initName = ini->getString();
+    }
+    auto itInit = g_stateIndex.find(initName);
+    cfg.initial = (itInit == g_stateIndex.end()) ? 0 : itInit->second;
+
+    // -------- 应用配置 --------
+    g_cfg = std::move(cfg);
+    g_cur = g_cfg.initial;
+    g_timeInState = 0.0;
+    g_moveMag = 0.0f;
+
+    // 再次同步触发器缓冲默认值（双保险）
+    Cond_SetTriggerBufferDefault(g_cfg.defaultTriggerBuffer);
+
+    char buf[256];
+    sprintf_s(buf, "[PlayerSM] JSON loaded: %zu states, %zu transitions, init=%s\n",
+        g_cfg.states.size(), g_cfg.transitions.size(),
+        g_cfg.states[g_cfg.initial].name.c_str());
+    OutputDebugStringA(buf);
+    return true;
 }
 
 void PlayerSM_LoadConfigDefaults()
