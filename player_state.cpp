@@ -12,6 +12,16 @@
 #include <cassert>
 #include <cmath>
 #include <cwchar>
+#include <DirectXMath.h>
+using namespace DirectX;
+
+extern float Player_GetYaw();
+
+static inline float NormalizeDeg(float d) {
+    while (d > 180.0f) d -= 360.0f;
+    while (d <= -180.0f) d += 360.0f;
+    return d;
+}
 
 // ---------- 内部数据结构 ----------
 struct SMState {
@@ -516,6 +526,22 @@ void PlayerSM_DebugDraw()
     ss << " RootMotion : " << (st.useRootMotion ? "true" : "false") << "\n";
     ss << " Locomotion : " << (st.locomotionAllowed ? "true" : "false") << "\n";
     ss << " move.mag   : " << g_moveMag << "\n";
+
+    // === 新增：玩家朝向（forward 向量 + yaw 角度/度） ===
+    {
+        const float yaw = Player_GetYaw();                          // 弧度
+        const float yawDeg = NormalizeDeg(XMConvertToDegrees(yaw)); // 归一化到 (-180,180]
+        // 世界前向由 yaw 旋转 +Z 得到
+        XMVECTOR f = XMVector3TransformNormal(
+            XMVectorSet(0, 0, 1, 0), XMMatrixRotationY(yaw)
+        );
+        f = XMVector3Normalize(f);
+        DirectX::XMFLOAT3 fwd{};
+        XMStoreFloat3(&fwd, f);
+
+        ss << " Facing.fwd : (" << fwd.x << ", " << fwd.y << ", " << fwd.z << ")\n";
+        ss << " Facing.yaw : " << yawDeg << " deg  [source=Player_GetYaw]\n";
+    }
 
     // 列出候选转移（当前+Any），标注窗口与条件
     ss << " Candidates :\n";
