@@ -171,7 +171,6 @@ int APIENTRY WinMain(
 
 				// ゲームの更新
 				KeyLogger_Update(); // キーの状態を更新
-
 				Game_Update(elapsed_time);
 				Scene_Update(elapsed_time);
 				SpriteAnim_Update(elapsed_time);

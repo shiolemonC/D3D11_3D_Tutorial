@@ -278,7 +278,7 @@
   </ItemGroup>
   <ItemGroup>
     <None Include="DirectXTex.inl" />
-    <None Include="fsm_player.json" />
+    <None Include="resources\fsm_player.json" />
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
   <ImportGroup Label="ExtensionTargets">

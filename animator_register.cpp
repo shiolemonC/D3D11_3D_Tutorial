@@ -38,6 +38,21 @@ void AnimRegister()
         AnimatorRegistry_Register(c);
     }
 
+    {
+        AnimClipDesc c{};
+        c.name = L"Attack";
+        c.meshPath = L"D:/AssetCooker/resources/Cooked/Attack_test_2.mesh";
+        c.skelPath = L"D:/AssetCooker/resources/Cooked/Attack_test_2.skel";
+        c.animPath = L"D:/AssetCooker/resources/Cooked/Attack_test_2.anim";
+        c.matPath =  L"D:/AssetCooker/resources/Cooked/Attack_test_2.mat";
+        c.baseColorOverride = L"D:/AssetCooker/resources/test/ninja_T.fbm/Ch24_1001_Diffuse.png";
+        c.loop = false;
+        c.playbackRate = 1.0f;
+        c.rmType = RootMotionType::UseAnimDelta;
+        //c.velocity = 2.0f;
+        AnimatorRegistry_Register(c);
+    }
+
 
     // 注册完可（可选）调用一次加载校验
     AnimatorRegistry_LoadAll();

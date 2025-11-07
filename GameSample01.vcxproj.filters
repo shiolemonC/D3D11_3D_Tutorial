@@ -313,6 +313,8 @@
     <None Include="DirectXTex.inl">
       <Filter>ヘッダー ファイル</Filter>
     </None>
-    <None Include="fsm_player.json" />
+    <None Include="resources\fsm_player.json">
+      <Filter>リソース ファイル</Filter>
+    </None>
   </ItemGroup>
 </Project>

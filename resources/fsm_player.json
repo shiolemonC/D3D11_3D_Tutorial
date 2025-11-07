@@ -15,6 +15,15 @@
       "root_motion": "none",
       "length_sec": 1.0,
       "locomotion": true
+    },
+    {
+      "name": "Attack",
+      "clip": "Attack",
+      "loop": false,
+      "root_motion": "use_delta",
+      "length_sec": 1.50,
+      "locomotion": false,
+      "uninterruptible": [ [ 0.00, 0.35 ] ]
     }
   ],
   "transitions": [
@@ -38,6 +47,40 @@
       "curve": "ease_out",
       "can_interrupt": true,
       "priority": 10
+    },
+
+    {
+      "from": "Idle",
+      "to": "Attack",
+      "trigger": "Attack",
+      "buffer": 0.15,
+      "window": [ [ 0.00, 1.00 ] ],
+      "duration": 0.05,
+      "curve": "linear",
+      "can_interrupt": true,
+      "priority": 50
+    },
+
+    {
+      "from": "Move",
+      "to": "Attack",
+      "trigger": "Attack",
+      "buffer": 0.15,
+      "window": [ [ 0.00, 1.00 ] ],
+      "duration": 0.05,
+      "curve": "linear",
+      "can_interrupt": true,
+      "priority": 60
+    },
+
+    {
+      "from": "Attack",
+      "to": "Idle",
+      "window": [ [ 0.90, 1.00 ] ], 
+      "duration": 0.08,
+      "curve": "ease_out",
+      "can_interrupt": true,
+      "priority": 5
     }
   ],
   "defaults": {

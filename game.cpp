@@ -26,6 +26,7 @@
 #include "model.h"
 #include "player_test.h"
 #include "player_camera_test.h"
+#include "mouse.h"
 using namespace DirectX;
 
 static float g_x = 0.0f;
@@ -36,6 +37,7 @@ static XMFLOAT3 g_CubePosition{};
 static XMFLOAT3 g_CubeVelocity{};
 
 static MODEL* g_pModelTest = nullptr;
+static MODEL* g_pModelTreeTest = nullptr;
 
 void Game_Initialize()
 {
@@ -49,7 +51,17 @@ void Game_Initialize()
         { 0.0f, 0.0f, 1.0f }
     );
 
-    g_pModelTest = ModelLoad("resources/test.fbx");
+    g_pModelTest = ModelLoad("resources/fbx/larva.fbx", true);
+    g_pModelTreeTest = ModelLoad("resources/fbx/larva.fbx", true);
+
+    if (!g_pModelTreeTest)
+    {
+        OutputDebugStringA("[DRAW TREE] Failed to load.\n");
+    }
+    else
+    {
+        OutputDebugStringA("[DRAW TREE] Successed to load.\n");
+    }
 
     // 注册动画（你已有的）
     AnimRegister();
@@ -90,6 +102,21 @@ void Game_Update(double elapsed_time)
     g_AccumulatedTime += elapsed_time;
     Cube_Update(elapsed_time);
 
+    // 采集鼠标
+    Mouse_State ms{};
+    Mouse_GetState(&ms);
+
+    // 简单的“刚按下”检测（边沿）
+    static bool s_prevLB = false;
+    bool justPressedLB = (ms.leftButton && !s_prevLB);
+    s_prevLB = ms.leftButton;
+
+    // 触发器：按下一帧内点火即可（Cond_TestTrigger 会结合 buffer 决定是否命中）
+    if (justPressedLB) {
+        OutputDebugStringA("[Input] LButton just pressed -> Fire Attack\n");
+        Cond_FireTrigger("Attack");
+    }
+
     // 1) 采集输入 → PlayerInput
     PlayerInput pin{};
     pin.moveZ += KeyLogger_IsPressed(KK_W) ? 1.0f : 0.0f;
@@ -117,6 +144,7 @@ void Game_Update(double elapsed_time)
     if (AnimatorRegistry_ConsumeRootMotionDelta(&rm)) {
         // 一般只保留XZ，避免动画上下起伏带来穿地感
         rm.pos.y = 0.0f;
+        rm.yaw = 0.0f;
         Player_ApplyRootMotionDelta(rm);
     }
 
@@ -148,18 +176,33 @@ void Game_Draw()
     XMMATRIX World = XMMatrixRotationY(g_angle * 0.0f);
 
     World *= XMMatrixTranslationFromVector(XMLoadFloat3(&g_CubePosition)); 
+    World *= XMMatrixTranslation(0.0f, 0.5f, 2.0f);
 
     Sampler_SetFillterAnisotropic();
 
-    //Cube_Draw(World);
+    Cube_Draw(World);
 
     XMMATRIX kirby = XMMatrixIdentity();
 
     //World = XMMatrixTranslation(3.0f, 20.0f, 0.0f);
 
     kirby *= XMMatrixScaling(0.1f, 0.1f, 0.1f);
+    kirby *= XMMatrixRotationX(90.0f);
+    kirby *= XMMatrixTranslation(4.0f, 0.5f, 2.0f);
 
-    kirby *= XMMatrixTranslation(0.0f, 2.0f, 0.0f);
+    ModelDraw(g_pModelTreeTest, kirby);
+
+    XMMATRIX tree = XMMatrixIdentity();
+
+    //tree *= XMMatrixTranslation(3.0f, 0.0f, 5.0f);
+
+    tree *= XMMatrixScaling(0.1f, 0.1f, 0.1f);
+    tree *= XMMatrixRotationX(90.0f);
+    tree *= XMMatrixRotationY(45.0f);
+    tree *= XMMatrixTranslation(-5.0f, 0.0f, 0.0f);
+
+    ModelDraw(g_pModelTreeTest, tree);
+
 
     Light_SetAmbient({ 1.0f, 1.0f, 1.0f });
     Light_SetDirectionWorld({ 1.0f, -0.6f, 0.0f, 0.0f }, { 0.0f, 0.0f, 0.0f, 1.0f });
