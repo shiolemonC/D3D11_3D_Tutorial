@@ -13,6 +13,7 @@
 #include <cmath>
 #include <cwchar>
 #include <DirectXMath.h>
+#include "AnimatorRegistry.h"
 using namespace DirectX;
 
 extern float Player_GetYaw();
@@ -543,6 +544,37 @@ void PlayerSM_DebugDraw()
         ss << " Facing.yaw : " << yawDeg << " deg  [source=Player_GetYaw]\n";
     }
 
+    // === 动画根旋转（局部）调试：首帧与当前帧的 yaw（弧度→度） ===
+    {
+        const wchar_t* clipW = nullptr;
+        float yaw0 = 0.0f, yawNow = 0.0f;
+        bool hasClip = AnimatorRegistry_DebugGetCurrentClipName(&clipW);
+        bool hasYaw = AnimatorRegistry_DebugGetRootYaw(&yaw0, &yawNow);
+
+        if (hasClip) {
+            std::string clipN = clipW ? std::string(clipW, clipW + wcslen(clipW)) : "<null>";
+            ss << " ClipName   : " << clipN << "\n";
+        }
+        if (hasYaw) {
+            const float deg0 = XMConvertToDegrees(yaw0);
+            const float degNow = XMConvertToDegrees(yawNow);
+            float d = degNow - deg0;
+            while (d > 180.0f) d -= 360.0f;
+            while (d <= -180.0f) d += 360.0f;
+
+            ss << " RootYaw0   : " << deg0 << " deg\n";
+            ss << " RootYawNow : " << degNow << " deg\n";
+            ss << " RootYaw d  : " << d << " deg\n";
+
+            // 小提示：接近 ±180 基本就是该剪辑根朝向和 Idle/Move 不一致
+            if (std::fabs(d) > 170.0f) {
+                ss << "  [WARN] root yaw delta ~180 deg (clip root faces opposite)\n";
+            }
+        }
+        else {
+            ss << " RootYaw    : <n/a>\n";
+        }
+    }
     // 列出候选转移（当前+Any），标注窗口与条件
     ss << " Candidates :\n";
     for (int i = 0; i < (int)g_cfg.transitions.size(); ++i) {
@@ -591,4 +623,19 @@ void PlayerSM_DebugDraw()
     g_pDT_SM->Draw();
     g_pDT_SM->Clear();
 #endif
+}
+
+void PlayerSM_OverrideCurrentStateLength(float seconds)
+{
+    if (g_cur < 0 || g_cur >= (int)g_cfg.states.size()) return;
+    if (seconds <= 0.0f) return;
+
+    auto& st = g_cfg.states[g_cur];
+    if (st.lengthSec <= 0.0f) {
+        st.lengthSec = seconds;
+        char buf[128];
+        sprintf_s(buf, "[PlayerSM] auto length set: state='%s' len=%.3fs\n",
+            st.name.c_str(), st.lengthSec);
+        OutputDebugStringA(buf);
+    }
 }

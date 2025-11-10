@@ -35,6 +35,11 @@ static int FindIndex(const std::wstring& name)
 
 //算位移用
 static DirectX::XMFLOAT3 gRM_AccumPos = { 0,0,0 };
+static float gRM_AccumYaw = 0.0f;  // 动画产生的 Δyaw（单位：弧度）
+
+//在 Play 时计算并设置 yawFix
+static bool  gYawBaselineInit = false;
+static float gYawBaselineRad = 0.0f; // 第一次 Play 的剪辑首帧 rootYaw0 作为基准
 
 static void ApplyWorldWithRootMotion()
 {
@@ -123,6 +128,26 @@ bool AnimatorRegistry_Play(const std::wstring& name,
     bool ok = ModelSkinned_Load(d);
     if (!ok) return false;
 
+    // ★ 读取该剪辑首帧 rootYaw0，设定“对齐目标 = baseline”，并重置轨迹
+    {
+        float yaw0 = 0.0f;
+        if (ModelSkinned_DebugGetRootYaw_F0(&yaw0)) {
+            if (!gYawBaselineInit) { gYawBaselineInit = true; gYawBaselineRad = yaw0; }
+
+            // 告诉底层：对齐到 baseline（目标），并把本剪辑的“首帧 yaw”记录为 Track 起点
+            ModelSkinned_SetRootYawAlignTarget(gYawBaselineRad);
+            ModelSkinned_ResetRootYawTrack(yaw0);
+
+            // （可选）日志
+            char buf[160];
+            sprintf_s(buf, "[Anim] Play %ls | yaw0=%.1f°, target=%.1f°(baseline)\n",
+                name.c_str(),
+                DirectX::XMConvertToDegrees(yaw0),
+                DirectX::XMConvertToDegrees(gYawBaselineRad));
+            OutputDebugStringA(buf);
+        }
+    }
+
     // 应用播放参数（可被临时覆盖）
     bool loop = clip.loop;
     float rate = clip.playbackRate;
@@ -190,26 +215,28 @@ void AnimatorRegistry_Update(double dtSec)
 
     case RootMotionType::UseAnimDelta:
     {
-        // 重点：在推进骨骼时间之前，采样 [t, t+dt] 的“根关节局部位移”
         XMFLOAT3 dLocal{};
         if (ModelSkinned_SampleRootDelta_Local((float)dtSec, &dLocal))
         {
-            // 把“局部 ΔT”变到世界：只用 BaseWorld 的三列作为基向量
             XMFLOAT4X4 m; XMStoreFloat4x4(&m, gBaseWorld);
             XMFLOAT3 right = { m._11, m._21, m._31 };
             XMFLOAT3 up = { m._12, m._22, m._32 };
             XMFLOAT3 fwd = { m._13, m._23, m._33 };
 
-            // 如只想在 XZ 平面移动，可把 up 项去掉
             gRM_AccumPos.x += right.x * dLocal.x + up.x * dLocal.y + fwd.x * dLocal.z;
             gRM_AccumPos.y += right.y * dLocal.x + up.y * dLocal.y + fwd.y * dLocal.z;
             gRM_AccumPos.z += right.z * dLocal.x + up.z * dLocal.y + fwd.z * dLocal.z;
-
-            ApplyWorldWithRootMotion();
         }
+
+        float dyaw = 0.0f;
+        if (ModelSkinned_SampleRootYawDelta((float)dtSec, &dyaw)) {
+            gRM_AccumYaw += dyaw; // 想丢弃旋转就不累加
+        }
+
+        ApplyWorldWithRootMotion();
         break;
     }
-    }
+}
 
     // 最后再推进骨骼播放器（让骨架时间与采样区间对齐）
     ModelSkinned_Update(dtSec);
@@ -255,8 +282,44 @@ bool AnimatorRegistry_ConsumeRootMotionDelta(RootMotionDelta* out)
     if (len2 < eps) return false;
 
     out->pos = gRM_AccumPos;
-    out->yaw = 0.0f; // 将来如需取根关节旋转Δ，可在 ModelSkinned 里补采样后填充
-    gRM_AccumPos = { 0,0,0 }; // 清空（很重要）
+    out->yaw = gRM_AccumYaw;
+    gRM_AccumPos = { 0,0,0 };
+    gRM_AccumYaw = 0.0f;
     // 不要在这里重新 SetWorld；同帧 draw 用的还是刚刚那帧的世界矩阵
+    return true;
+}
+
+
+bool AnimatorRegistry_DebugGetCurrentClipName(const wchar_t** outName)
+{
+    if (!outName) return false;
+    if (gCurrent < 0 || gCurrent >= (int)gClips.size()) return false;
+    *outName = gClips[gCurrent].name.c_str();
+    return true;
+}
+
+bool AnimatorRegistry_DebugGetRootYaw(float* yaw0, float* yawNow)
+{
+    if (!yaw0 || !yawNow) return false;
+    float a = 0.0f, b = 0.0f;
+    bool ok0 = ModelSkinned_DebugGetRootYaw_F0(&a);
+    bool ok1 = ModelSkinned_DebugGetRootYaw_Current(&b);
+    if (!(ok0 && ok1)) return false;
+    *yaw0 = a; *yawNow = b;
+    return true;
+}
+
+bool AnimatorRegistry_DebugGetCurrentClipLengthSec(float* outSec)
+{
+    if (!outSec) return false;
+    if (gCurrent < 0 || gCurrent >= (int)gClips.size()) return false;
+
+    const auto& cur = gClips[gCurrent];           // 含 playbackRate
+    const uint32_t fc = ModelSkinned_GetFrameCount();
+    const float    sr = ModelSkinned_GetSampleRate();
+    if (fc == 0 || sr <= 0.0f) return false;
+
+    const float rate = (cur.playbackRate > 0.0f ? cur.playbackRate : 1.0f);
+    *outSec = (float(fc) / sr) / rate;            // 时长 = 帧数/采样率/播放速率
     return true;
 }

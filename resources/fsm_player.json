@@ -5,7 +5,7 @@
       "clip": "Idle",
       "loop": true,
       "root_motion": "none",
-      "length_sec": 1.0,
+      "length_sec": 0.0,
       "locomotion": false
     },
     {
@@ -13,7 +13,7 @@
       "clip": "Walk",
       "loop": true,
       "root_motion": "none",
-      "length_sec": 1.0,
+      "length_sec": 0.0,
       "locomotion": true
     },
     {
@@ -21,7 +21,7 @@
       "clip": "Attack",
       "loop": false,
       "root_motion": "use_delta",
-      "length_sec": 1.50,
+      "length_sec": 0.00,
       "locomotion": false,
       "uninterruptible": [ [ 0.00, 0.35 ] ]
     }

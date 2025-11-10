@@ -50,3 +50,25 @@ bool ModelSkinned_SampleRootDelta_Local(float dt, DirectX::XMFLOAT3* outDeltaT);
 
 // VelocityDriven 时把根关节局部平移的 XZ 清零（保留 Y），启/停
 void ModelSkinned_SetZeroRootTranslationXZ(bool enable);
+
+// Debug: 取得当前已加载剪辑的 root 局部 yaw（弧度）
+// yaw0  = 第0帧（首帧）root 局部朝向
+// yawNow= 当前时间点（内部时间）的 root 局部朝向
+bool ModelSkinned_DebugGetRootYaw_F0(float* yaw0);
+bool ModelSkinned_DebugGetRootYaw_Current(float* yawNow);
+
+void ModelSkinned_SetRootYawFix(float yawFixRad); // 弧度
+
+// —— 根局部旋转的“入场对齐 + ΔYaw 抽取”接口 ——
+// 设定对齐目标（通常 = 第一次播放的 Idle 首帧 yaw，单位：弧度）
+void ModelSkinned_SetRootYawAlignTarget(float yawTargetRad);
+// 重置 yaw 基准（本剪辑首帧 yaw，单位：弧度）
+void ModelSkinned_ResetRootYawTrack(float yawStartRad);
+// 采样区间 [t, t+dt] 的根局部 Δyaw（单位：弧度；成功返回 true）
+// 注意：要在 ModelSkinned_Update(dt) 之前调用，和 SampleRootDelta_Local 使用同样的时间点
+bool ModelSkinned_SampleRootYawDelta(float dt, float* outDeltaYaw);
+
+// === meta getters ===
+uint32_t ModelSkinned_GetFrameCount();
+float    ModelSkinned_GetSampleRate();
+

@@ -9,12 +9,19 @@ void AnimRegister()
     {
         AnimClipDesc c{};
         c.name = L"Idle";
-        c.meshPath = L"D:/AssetCooker/resources/Cooked/idle_test.mesh";
-        c.skelPath = L"D:/AssetCooker/resources/Cooked/idle_test.skel";
-        c.animPath = L"D:/AssetCooker/resources/Cooked/idle_test.anim";
-        c.matPath = L"D:/AssetCooker/resources/Cooked/idle_test.mat";
+        //c.meshPath = L"D:/AssetCooker/resources/Cooked/idle_test.mesh";
+        //c.skelPath = L"D:/AssetCooker/resources/Cooked/idle_test.skel";
+        //c.animPath = L"D:/AssetCooker/resources/Cooked/idle_test.anim";
+        //c.matPath = L"D:/AssetCooker/resources/Cooked/idle_test.mat";
+        //// 如需强制贴图（覆盖 .mat）：
+        //c.baseColorOverride = L"D:/AssetCooker/resources/test/ninja_T.fbm/Ch24_1001_Diffuse.png";
+
+        c.meshPath = L"resources/player_anim/cooked/player_idle.mesh";
+        c.skelPath = L"resources/player_anim/cooked/player_idle.skel";
+        c.animPath = L"resources/player_anim/cooked/player_idle.anim";
+        c.matPath =  L"resources/player_anim/cooked/player_idle.mat";
         // 如需强制贴图（覆盖 .mat）：
-        c.baseColorOverride = L"D:/AssetCooker/resources/test/ninja_T.fbm/Ch24_1001_Diffuse.png";
+        c.baseColorOverride = L"resources/player_anim/cooked/Textures/Mutant_diffuse.png";
 
         c.loop = true;
         c.playbackRate = 1.0f;
@@ -26,11 +33,12 @@ void AnimRegister()
     {
         AnimClipDesc c{};
         c.name = L"Walk";
-        c.meshPath = L"D:/AssetCooker/resources/Cooked/walk_test.mesh";
-        c.skelPath = L"D:/AssetCooker/resources/Cooked/walk_test.skel";
-        c.animPath = L"D:/AssetCooker/resources/Cooked/walk_test.anim";
-        c.matPath = L"D:/AssetCooker/resources/Cooked/walk_test.mat";
-        c.baseColorOverride = L"D:/AssetCooker/resources/test/ninja_T.fbm/Ch24_1001_Diffuse.png";
+        c.meshPath = L"resources/player_anim/cooked/player_move.mesh";
+        c.skelPath = L"resources/player_anim/cooked/player_move.skel";
+        c.animPath = L"resources/player_anim/cooked/player_move.anim";
+        c.matPath =  L"resources/player_anim/cooked/player_move.mat";
+        // 如需强制贴图（覆盖 .mat）：
+        c.baseColorOverride = L"resources/player_anim/cooked/Textures/Mutant_diffuse.png";
         c.loop = true;
         c.playbackRate = 1.0f;
         c.rmType = RootMotionType::VelocityDriven;
@@ -41,11 +49,12 @@ void AnimRegister()
     {
         AnimClipDesc c{};
         c.name = L"Attack";
-        c.meshPath = L"D:/AssetCooker/resources/Cooked/Attack_test_2.mesh";
-        c.skelPath = L"D:/AssetCooker/resources/Cooked/Attack_test_2.skel";
-        c.animPath = L"D:/AssetCooker/resources/Cooked/Attack_test_2.anim";
-        c.matPath =  L"D:/AssetCooker/resources/Cooked/Attack_test_2.mat";
-        c.baseColorOverride = L"D:/AssetCooker/resources/test/ninja_T.fbm/Ch24_1001_Diffuse.png";
+        c.meshPath = L"resources/player_anim/cooked/player_attack.mesh";
+        c.skelPath = L"resources/player_anim/cooked/player_attack.skel";
+        c.animPath = L"resources/player_anim/cooked/player_attack.anim";
+        c.matPath =  L"resources/player_anim/cooked/player_attack.mat";
+        // 如需强制贴图（覆盖 .mat）：
+        c.baseColorOverride = L"resources/player_anim/cooked/Textures/Mutant_diffuse.png";
         c.loop = false;
         c.playbackRate = 1.0f;
         c.rmType = RootMotionType::UseAnimDelta;

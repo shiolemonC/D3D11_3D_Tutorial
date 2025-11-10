@@ -73,6 +73,31 @@ static std::vector<XMFLOAT4X4> gPalette;
 // 工具：SAFE_RELEASE
 //template<typename T> static void SAFE_RELEASE(T*& p) { if (p) { p->Release(); p = nullptr; } }
 
+// —— 入场对齐 + ΔYaw 抽取 —— 
+static bool  gRootYawAlignEnabled = false;
+static float gRootYawAlignTarget = 0.0f;  // 要对齐到的目标 yaw（弧度），通常 = Idle 首帧
+static float gRootYawStart = 0.0f;  // 本剪辑首帧 yaw（弧度）
+
+static inline float AngleDelta(float a) {
+    const float PI = 3.14159265358979323846f;
+    const float TWO_PI = 6.283185307179586f;
+    while (a > PI) a -= TWO_PI;
+    while (a <= -PI) a += TWO_PI;
+    return a;
+}
+
+void ModelSkinned_SetRootYawAlignTarget(float yawTargetRad) {
+    gRootYawAlignTarget = yawTargetRad;
+    gRootYawAlignEnabled = true;
+}
+void ModelSkinned_ResetRootYawTrack(float yawStartRad) {
+    gRootYawStart = yawStartRad;
+}
+
+//工具：
+static float gRootYawFixRad = 0.0f;  // 当前剪辑的根朝向修正（弧度）
+void ModelSkinned_SetRootYawFix(float yawFixRad) { gRootYawFixRad = yawFixRad; }
+
 static void EnsureD3D()
 {
     if (!gDev || !gCtx) {
@@ -444,6 +469,7 @@ bool ModelSkinned_SampleRootDelta_Local(float dt, DirectX::XMFLOAT3* outDeltaT)
 
     if (gFrameCount == 0 || gJoints.empty()) return false;
     const int root = ModelSkinned_GetRootJointIndex();
+    
     if (root < 0) return false;
 
     // 采样 t0 与 t1 的“根局部平移”，做差即可
@@ -459,6 +485,34 @@ bool ModelSkinned_SampleRootDelta_Local(float dt, DirectX::XMFLOAT3* outDeltaT)
     return true;
 }
 
+bool ModelSkinned_SampleRootYawDelta(float dt, float* outDeltaYaw)
+{
+    if (!outDeltaYaw) return false;
+    *outDeltaYaw = 0.0f;
+
+    if (gFrameCount == 0 || gJoints.empty()) return false;
+    const int root = ModelSkinned_GetRootJointIndex();
+    if (root < 0) return false;
+
+    const float t0 = gTime;
+    const float t1 = gLoop ? (t0 + dt) : std::min(t0 + dt, gDurationSec);
+
+    const AnimTRS R0 = SampleJointTRS_Linear(root, t0);
+    const AnimTRS R1 = SampleJointTRS_Linear(root, t1);
+
+    auto YawFromQuat = [](const AnimTRS& r)->float {
+        XMVECTOR q = XMQuaternionNormalize(XMVectorSet(r.R[0], r.R[1], r.R[2], r.R[3]));
+        XMVECTOR f = XMVector3Rotate(XMVectorSet(0, 0, 1, 0), q);
+        f = XMVector3Normalize(f);
+        XMFLOAT3 fv; XMStoreFloat3(&fv, f);
+        return std::atan2f(fv.x, fv.z);
+        };
+
+    const float y0 = YawFromQuat(R0);
+    const float y1 = YawFromQuat(R1);
+    *outDeltaYaw = AngleDelta(y1 - y0);
+    return true;
+}
 
 
 // ---------------------------------------------------------
@@ -744,20 +798,86 @@ void ModelSkinned_Draw() {
         const AnimTRS* currentFramePose = gAnimFrames.data() + size_t(f0) * J;
 
         // 可选：VelocityDriven 时把根局部平移的 XZ 清零（保留 Y 抖动）
-        const AnimTRS* pose = currentFramePose;
+ // —— 读/写双指针方案 ——
+// 只读指针：直接指向帧缓存
+        const AnimTRS* poseRO = currentFramePose;
+        // 可写指针：必要时拷贝到 tempPose 后指向它
         std::vector<AnimTRS> tempPose;
+        AnimTRS* poseRW = nullptr;
+
+        // 找到真正的 root（没有就用 0）
+        int root = ModelSkinned_GetRootJointIndex();
+        if (root < 0) root = 0;
+
+        // 可选：清掉根的局部 XZ 平移（保留 Y 抖动）
         if (gZeroRootTransXZ && J > 0) {
             tempPose.assign(currentFramePose, currentFramePose + J);
-            // root = 0 号关节；只清 XZ，保留 Y（上下起伏对步态有帮助）
-            tempPose[0].T[0] = 0.0f;  // X
-            tempPose[0].T[2] = 0.0f;  // Z
-            pose = tempPose.data();
+            tempPose[root].T[0] = 0.0f;  // X
+            tempPose[root].T[2] = 0.0f;  // Z
+            poseRW = tempPose.data();    // 现在有了“可写”姿态
         }
 
-        // ↓↓↓ 把后续递归的输入从 currentFramePose 换成 pose
+        // ★ 根局部旋转：入场对齐 + 累计Δ补偿（视觉不转身，ΔYaw 由 RootMotion 暴露）
+        // 需要对局部姿态写入 → 确保有 poseRW
+        if (gRootYawAlignEnabled && J > 0) {
+            OutputDebugStringA("[Skinned] ALIGN ACTIVE\n");
+            if (!poseRW) {
+                tempPose.assign(currentFramePose, currentFramePose + J);
+                poseRW = tempPose.data();
+            }
+
+            using namespace DirectX;
+            // root 已在上文计算：int root = ModelSkinned_GetRootJointIndex(); if (root < 0) root = 0;
+
+            auto YawFromLocal = [](const AnimTRS& t)->float {
+                XMVECTOR q = XMQuaternionNormalize(XMVectorSet(t.R[0], t.R[1], t.R[2], t.R[3]));
+                XMVECTOR f = XMVector3Rotate(XMVectorSet(0, 0, 1, 0), q);
+                f = XMVector3Normalize(f);
+                XMFLOAT3 fv; XMStoreFloat3(&fv, f);
+                return std::atan2f(fv.x, fv.z); // 弧度
+                };
+            auto AngleDelta = [](float a)->float {
+                const float PI = 3.14159265358979323846f;
+                const float TWO_PI = 6.283185307179586f;
+                while (a > PI) a -= TWO_PI;
+                while (a <= -PI) a += TWO_PI;
+                return a;
+                };
+
+            // 当前帧根局部 yaw
+            const float yawCurr = YawFromLocal(poseRW[root]);
+
+            // 入场对齐常量 = (目标) - (本剪辑首帧)
+            const float visualOffset = AngleDelta(gRootYawAlignTarget - gRootYawStart);
+            // 累计Δ = 当前 - 首帧
+            const float deltaCum = AngleDelta(yawCurr - gRootYawStart);
+            // 本帧应补偿 = 入场对齐常量 - 累计Δ
+            const float fixYaw = AngleDelta(visualOffset - deltaCum);
+
+            // 左乘 Ry(fixYaw) 到根局部四元数（只改旋转，不动 T/S）
+            XMVECTOR q = XMQuaternionNormalize(XMVectorSet(
+                poseRW[root].R[0], poseRW[root].R[1], poseRW[root].R[2], poseRW[root].R[3]));
+            XMVECTOR qFix = XMQuaternionRotationRollPitchYaw(0.0f, fixYaw, 0.0f);
+            q = XMQuaternionMultiply(qFix, q);
+            XMFLOAT4 out; XMStoreFloat4(&out, q);
+            poseRW[root].R[0] = out.x; poseRW[root].R[1] = out.y;
+            poseRW[root].R[2] = out.z; poseRW[root].R[3] = out.w;
+
+            const float yawAfter = YawFromLocal(poseRW[root]);
+            char buf[160];
+            sprintf_s(buf, "[Skinned] align after=%.1f°, target=%.1f°\n",
+                XMConvertToDegrees(yawAfter),
+                XMConvertToDegrees(gRootYawAlignTarget));
+            OutputDebugStringA(buf);
+        }
+
+        // 递归使用的最终姿态：有可写就用写后的，否则用只读的
+        const AnimTRS* finalPose = poseRW ? (const AnimTRS*)poseRW : poseRO;
+
+        // ↓↓↓ 用 finalPose 递归计算全局矩阵
         for (size_t j = 0; j < J; ++j) {
             if (gJoints[j].parent == -1) {
-                ComputeAnimationPoseRecursively(j, XMMatrixIdentity(), pose);
+                ComputeAnimationPoseRecursively(j, DirectX::XMMatrixIdentity(), finalPose);
             }
         }
     }
@@ -813,3 +933,56 @@ void ModelSkinned_Draw() {
     gCtx->IASetPrimitiveTopology(D3D11_PRIMITIVE_TOPOLOGY_TRIANGLELIST);
     gCtx->DrawIndexed(gIndexCount, 0, 0);
 }
+
+//DEBUG
+
+static int MS_FindRootIndex()
+{
+    for (size_t i = 0; i < gJoints.size(); ++i) {
+        if (gJoints[i].parent == -1) return (int)i;
+    }
+    return gJoints.empty() ? -1 : 0;
+}
+
+static float MS_YawFromLocalQuat(float qx, float qy, float qz, float qw)
+{
+    XMVECTOR q = XMQuaternionNormalize(XMVectorSet(qx, qy, qz, qw));
+    XMVECTOR f = XMVector3Rotate(XMVectorSet(0, 0, 1, 0), q);
+    f = XMVector3Normalize(f);
+    XMFLOAT3 fv; XMStoreFloat3(&fv, f);
+    return std::atan2f(fv.x, fv.z); // 弧度
+}
+
+bool ModelSkinned_DebugGetRootYaw_F0(float* yaw0)
+{
+    if (!yaw0) return false;
+    if (gFrameCount <= 0 || gJoints.empty() || gAnimFrames.empty()) return false;
+
+    const int root = MS_FindRootIndex();
+    if (root < 0) return false;
+
+    const AnimTRS& r0 = gAnimFrames[root]; // 第0帧
+    *yaw0 = MS_YawFromLocalQuat(r0.R[0], r0.R[1], r0.R[2], r0.R[3]);
+    return true;
+}
+
+bool ModelSkinned_DebugGetRootYaw_Current(float* yawNow)
+{
+    if (!yawNow) return false;
+    if (gFrameCount <= 0 || gJoints.empty() || gAnimFrames.empty()) return false;
+
+    const int root = MS_FindRootIndex();
+    if (root < 0) return false;
+
+    const size_t J = gJoints.size();
+    float frameF = gTime * gSampleRate;
+    uint32_t f0 = (uint32_t)floorf(frameF);
+    if (f0 >= (uint32_t)gFrameCount) f0 = (uint32_t)gFrameCount - 1;
+
+    const AnimTRS& rc = gAnimFrames[size_t(f0) * J + root];
+    *yawNow = MS_YawFromLocalQuat(rc.R[0], rc.R[1], rc.R[2], rc.R[3]);
+    return true;
+}
+
+uint32_t ModelSkinned_GetFrameCount() { return gFrameCount; }   // gFrameCount 已有
+float    ModelSkinned_GetSampleRate() { return gSampleRate; }   // gSampleRate 已有

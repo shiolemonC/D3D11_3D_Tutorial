@@ -32,3 +32,5 @@ const char* PlayerSM_GetCurrentStateName();
 
 // Debug HUD（与 Camera_DebugDraw 类似）
 void PlayerSM_DebugDraw();
+
+void PlayerSM_OverrideCurrentStateLength(float seconds);

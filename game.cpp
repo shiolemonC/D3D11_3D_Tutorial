@@ -130,7 +130,14 @@ void Game_Update(double elapsed_time)
 
     auto smOut = PlayerSM_Update(elapsed_time);
     if (smOut.changed) {
+        // 1) 播放动画
         AnimatorRegistry_Play(smOut.clip, nullptr);
+
+        // 2) 若该状态未显式配置 length_sec，则用真实动画时长回填
+        float clipSec = 0.0f;
+        if (AnimatorRegistry_DebugGetCurrentClipLengthSec(&clipSec)) {
+            PlayerSM_OverrideCurrentStateLength(clipSec);
+        }
     }
 
     // 由状态机产出的布尔位控制是否行走

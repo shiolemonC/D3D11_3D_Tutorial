@@ -75,3 +75,12 @@ struct RootMotionDelta {
 
 // 读取并“消费”本帧动画位移（返回 true 表示本帧有Δ；同时清空内部累积）
 bool AnimatorRegistry_ConsumeRootMotionDelta(RootMotionDelta* out);
+
+
+// DEBUG
+// 返回当前剪辑名（宽字串指针只做展示用，别长期缓存）
+bool AnimatorRegistry_DebugGetCurrentClipName(const wchar_t** outName);
+// 返回 root 的局部 yaw：首帧 yaw0、当前帧 yawNow（单位：弧度）
+bool AnimatorRegistry_DebugGetRootYaw(float* yaw0, float* yawNow);
+
+bool AnimatorRegistry_DebugGetCurrentClipLengthSec(float* outSec);
