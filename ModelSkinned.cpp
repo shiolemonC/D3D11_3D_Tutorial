@@ -820,54 +820,61 @@ void ModelSkinned_Draw() {
         // ★ 根局部旋转：入场对齐 + 累计Δ补偿（视觉不转身，ΔYaw 由 RootMotion 暴露）
         // 需要对局部姿态写入 → 确保有 poseRW
         if (gRootYawAlignEnabled && J > 0) {
-            OutputDebugStringA("[Skinned] ALIGN ACTIVE\n");
-            if (!poseRW) {
-                tempPose.assign(currentFramePose, currentFramePose + J);
-                poseRW = tempPose.data();
-            }
+            if (!poseRW) { tempPose.assign(currentFramePose, currentFramePose + J); poseRW = tempPose.data(); }
+            int root = ModelSkinned_GetRootJointIndex(); if (root < 0) root = 0;
 
             using namespace DirectX;
-            // root 已在上文计算：int root = ModelSkinned_GetRootJointIndex(); if (root < 0) root = 0;
 
-            auto YawFromLocal = [](const AnimTRS& t)->float {
-                XMVECTOR q = XMQuaternionNormalize(XMVectorSet(t.R[0], t.R[1], t.R[2], t.R[3]));
-                XMVECTOR f = XMVector3Rotate(XMVectorSet(0, 0, 1, 0), q);
-                f = XMVector3Normalize(f);
-                XMFLOAT3 fv; XMStoreFloat3(&fv, f);
-                return std::atan2f(fv.x, fv.z); // 弧度
-                };
-            auto AngleDelta = [](float a)->float {
+            auto AngleWrap = [](float a)->float {
                 const float PI = 3.14159265358979323846f;
-                const float TWO_PI = 6.283185307179586f;
-                while (a > PI) a -= TWO_PI;
-                while (a <= -PI) a += TWO_PI;
+                const float TWO = 6.283185307179586f;
+                while (a > PI) a -= TWO;
+                while (a <= -PI) a += TWO;
                 return a;
                 };
 
-            // 当前帧根局部 yaw
-            const float yawCurr = YawFromLocal(poseRW[root]);
-
-            // 入场对齐常量 = (目标) - (本剪辑首帧)
-            const float visualOffset = AngleDelta(gRootYawAlignTarget - gRootYawStart);
-            // 累计Δ = 当前 - 首帧
-            const float deltaCum = AngleDelta(yawCurr - gRootYawStart);
-            // 本帧应补偿 = 入场对齐常量 - 累计Δ
-            const float fixYaw = AngleDelta(visualOffset - deltaCum);
-
-            // 左乘 Ry(fixYaw) 到根局部四元数（只改旋转，不动 T/S）
-            XMVECTOR q = XMQuaternionNormalize(XMVectorSet(
+            // 当前根局部四元数
+            XMVECTOR qLocal = XMQuaternionNormalize(XMVectorSet(
                 poseRW[root].R[0], poseRW[root].R[1], poseRW[root].R[2], poseRW[root].R[3]));
+
+            // 当前“前向”投影到 XZ，并单位化（屏蔽 pitch/roll）
+            XMVECTOR f = XMVector3Rotate(XMVectorSet(0, 0, 1, 0), qLocal);
+            XMVECTOR fXZ = XMVector3Normalize(XMVectorSet(XMVectorGetX(f), 0.0f, XMVectorGetZ(f), 0.0f));
+
+            // 计算“动画自身的累计ΔYaw”（也在 XZ 平面）
+            XMVECTOR f0XZ = XMVectorSet(sinf(gRootYawStart), 0.0f, cosf(gRootYawStart), 0.0f);
+            float dot0 = std::clamp(XMVectorGetX(XMVector3Dot(f0XZ, fXZ)), -1.0f, 1.0f);
+            float cross0 = XMVectorGetY(XMVector3Cross(f0XZ, fXZ));
+            float deltaCum = std::atan2f(cross0, dot0);             // 当前相对首帧的旋转Δ
+
+            // 是否“保留动画自身的旋转Δ”
+            constexpr bool kKeepSpin = false; // 需要保留时改成 true
+
+            float targetYaw = kKeepSpin
+                ? AngleWrap(gRootYawAlignTarget + deltaCum)         // 入场对齐 + 保留Δ
+                : gRootYawAlignTarget;                               // 只做入场对齐（把Δ抽成 RootMotion）
+
+            // 目标前向（也在 XZ）
+            XMVECTOR tXZ = XMVectorSet(sinf(targetYaw), 0.0f, cosf(targetYaw), 0.0f);
+
+            // 纯 yaw 的修正角（带符号）
+            float dot = std::clamp(XMVectorGetX(XMVector3Dot(fXZ, tXZ)), -1.0f, 1.0f);
+            float cross = XMVectorGetY(XMVector3Cross(fXZ, tXZ));
+            float fixYaw = std::atan2f(cross, dot);                 // 纯朝向差
+
+            // 左乘 Ry(fixYaw)（只改旋转，不动平移/缩放）
             XMVECTOR qFix = XMQuaternionRotationRollPitchYaw(0.0f, fixYaw, 0.0f);
-            q = XMQuaternionMultiply(qFix, q);
-            XMFLOAT4 out; XMStoreFloat4(&out, q);
+            XMVECTOR qOut = XMQuaternionMultiply(qFix, qLocal);
+            XMFLOAT4 out; XMStoreFloat4(&out, qOut);
             poseRW[root].R[0] = out.x; poseRW[root].R[1] = out.y;
             poseRW[root].R[2] = out.z; poseRW[root].R[3] = out.w;
 
-            const float yawAfter = YawFromLocal(poseRW[root]);
+            // 调试：打印对齐后的 yaw（XZ）
+            float yawAfter = std::atan2f(XMVectorGetX(tXZ), XMVectorGetZ(tXZ));
             char buf[160];
             sprintf_s(buf, "[Skinned] align after=%.1f°, target=%.1f°\n",
                 XMConvertToDegrees(yawAfter),
-                XMConvertToDegrees(gRootYawAlignTarget));
+                XMConvertToDegrees(targetYaw));
             OutputDebugStringA(buf);
         }
 
