@@ -78,6 +78,9 @@ static bool  gRootYawAlignEnabled = false;
 static float gRootYawAlignTarget = 0.0f;  // 要对齐到的目标 yaw（弧度），通常 = Idle 首帧
 static float gRootYawStart = 0.0f;  // 本剪辑首帧 yaw（弧度）
 
+//debug用 确认yaw fixed
+static float gNodeYawFixRad = 0.0f;
+
 static inline float AngleDelta(float a) {
     const float PI = 3.14159265358979323846f;
     const float TWO_PI = 6.283185307179586f;
@@ -921,7 +924,14 @@ void ModelSkinned_Draw() {
 
     gCtx->VSSetShader(gVS, nullptr, 0);
     gCtx->IASetInputLayout(gIL);
-    Shader3d_SetWorldMatrix(gWorld);
+
+    //Shader3d_SetWorldMatrix(gWorld);
+    const float nodeFix = ModelSkinned_GetNodeYawFix();
+    const XMMATRIX W = XMMatrixRotationY(nodeFix) * gWorld;  // 注意左乘
+    Shader3d_SetWorldMatrix(W);                               // 函数收 XMMATRIX&
+
+    // 传 XMMATRIX 版本
+    Shader3d_SetWorldMatrix(W);
 
     //ID3D11Buffer* cbs34[2] = { gCBAmbient, gCBDirectional };
     //gCtx->PSSetConstantBuffers(3, 2, cbs34);
@@ -993,3 +1003,32 @@ bool ModelSkinned_DebugGetRootYaw_Current(float* yawNow)
 
 uint32_t ModelSkinned_GetFrameCount() { return gFrameCount; }   // gFrameCount 已有
 float    ModelSkinned_GetSampleRate() { return gSampleRate; }   // gSampleRate 已有
+
+void ModelSkinned_SetNodeYawFix(float r) { gNodeYawFixRad = r; }
+float ModelSkinned_GetNodeYawFix() { return gNodeYawFixRad; }
+
+// 计算“第0帧根的模型空间 yaw”
+bool ModelSkinned_ComputeRootYaw_ModelSpace_FirstFrame(float* outRad)
+{
+    if (!outRad) return false;
+    const size_t J = gJoints.size();
+    if (J == 0 || gFrameCount == 0) return false;
+
+    int root = ModelSkinned_GetRootJointIndex();
+    if (root < 0) root = 0;
+
+    // 第0帧局部姿态
+    const AnimTRS* pose0 = gAnimFrames.data(); // f0
+    // 用第0帧姿态递归出全局矩阵（模型空间）
+    for (size_t j = 0; j < J; ++j)
+        if (gJoints[j].parent == -1)
+            ComputeAnimationPoseRecursively((int)j, DirectX::XMMatrixIdentity(), pose0);
+
+    // 取 root 的前向在 XZ 的投影 → yaw
+    using namespace DirectX;
+    XMMATRIX M = g_temp_globals[root]; // 模型空间（还没乘 world）
+    XMVECTOR f = XMVector3Normalize(XMVector3TransformNormal(XMVectorSet(0, 0, 1, 0), M));
+    float yaw = std::atan2f(XMVectorGetX(f), XMVectorGetZ(f));
+    *outRad = yaw;
+    return true;
+}

@@ -134,11 +134,32 @@ bool AnimatorRegistry_Play(const std::wstring& name,
         if (ModelSkinned_DebugGetRootYaw_F0(&yaw0)) {
             if (!gYawBaselineInit) { gYawBaselineInit = true; gYawBaselineRad = yaw0; }
 
-            // 告诉底层：对齐到 baseline（目标），并把本剪辑的“首帧 yaw”记录为 Track 起点
+            // 骨架“局部层”的入场基准
             ModelSkinned_SetRootYawAlignTarget(gYawBaselineRad);
             ModelSkinned_ResetRootYawTrack(yaw0);
 
-            // （可选）日志
+            // ---- 节点/世界层 的入场对齐（关键！）----
+            const float target = gYawBaselineRad; // 你的基准（通常取 Idle 的 baseline）
+            float yawModel0 = 0.0f;
+            if (ModelSkinned_ComputeRootYaw_ModelSpace_FirstFrame(&yawModel0)) {
+                auto wrap = [](float a) { const float PI = 3.14159265358979f, T = 2 * PI;
+                while (a > PI)a -= T; while (a <= -PI)a += T; return a; };
+                const float nodeFix = wrap(target - yawModel0);
+                ModelSkinned_SetNodeYawFix(nodeFix);
+
+                // 日志（度）
+                char b2[200];
+                sprintf_s(b2,
+                    "[Anim] Play %ls | yaw0(local)=%.1f°, yaw0(model)=%.1f°, nodeFix=%.1f° (target=%.1f°)\n",
+                    name.c_str(),
+                    DirectX::XMConvertToDegrees(yaw0),
+                    DirectX::XMConvertToDegrees(yawModel0),
+                    DirectX::XMConvertToDegrees(nodeFix),
+                    DirectX::XMConvertToDegrees(target));
+                OutputDebugStringA(b2);
+            }
+
+            // （可选）原有日志
             char buf[160];
             sprintf_s(buf, "[Anim] Play %ls | yaw0=%.1f°, target=%.1f°(baseline)\n",
                 name.c_str(),

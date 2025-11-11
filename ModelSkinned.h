@@ -68,6 +68,13 @@ void ModelSkinned_ResetRootYawTrack(float yawStartRad);
 // 注意：要在 ModelSkinned_Update(dt) 之前调用，和 SampleRootDelta_Local 使用同样的时间点
 bool ModelSkinned_SampleRootYawDelta(float dt, float* outDeltaYaw);
 
+// 节点层入场对齐：设置/读取固定的世界层 yaw 修正
+void  ModelSkinned_SetNodeYawFix(float rad);
+float ModelSkinned_GetNodeYawFix();
+
+// 取“当前 clip 第0帧的根在模型空间的 yaw”（用于计算 nodeYawFix）
+bool  ModelSkinned_ComputeRootYaw_ModelSpace_FirstFrame(float* outRad);
+
 // === meta getters ===
 uint32_t ModelSkinned_GetFrameCount();
 float    ModelSkinned_GetSampleRate();
