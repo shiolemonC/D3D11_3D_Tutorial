@@ -57,7 +57,7 @@ void AnimRegister()
         c.baseColorOverride = L"resources/player_anim/cooked/Textures/Mutant_diffuse.png";
         c.loop = false;
         c.playbackRate = 1.0f;
-        c.rmType = RootMotionType::UseAnimDelta;
+        c.rmType = RootMotionType::None;
         //c.velocity = 2.0f;
         AnimatorRegistry_Register(c);
     }

@@ -42,40 +42,47 @@ void ModelSkinned_Seek(float timeSec);
 
 bool ModelSkinned_LoadAnimOnly(const std::wstring& animPath);
 
+// （历史）真正根：parent==-1（仍保留）
 int  ModelSkinned_GetRootJointIndex();
 
-// 以“当前时间 t”为起点，采样区间 [t, t+dt] 的“根关节局部位移 ΔT（单位：模型局部空间，米）”
-// 成功返回 true；若没有动画/根关节不存在返回 false
+// 以“当前时间 t”为起点，采样区间 [t, t+dt] 的“MotionRoot 局部位移 ΔT（单位：模型局部空间，米）”
+// 成功返回 true；若没有动画/根不存在返回 false
 bool ModelSkinned_SampleRootDelta_Local(float dt, DirectX::XMFLOAT3* outDeltaT);
 
-// VelocityDriven 时把根关节局部平移的 XZ 清零（保留 Y），启/停
+// VelocityDriven 时把 MotionRoot 局部平移的 XZ 清零（保留 Y），启/停
 void ModelSkinned_SetZeroRootTranslationXZ(bool enable);
 
-// Debug: 取得当前已加载剪辑的 root 局部 yaw（弧度）
-// yaw0  = 第0帧（首帧）root 局部朝向
-// yawNow= 当前时间点（内部时间）的 root 局部朝向
+// Debug: 取得当前已加载剪辑的 MotionRoot 局部 yaw（弧度）
+// yaw0  = 第0帧（首帧）MotionRoot 局部朝向
+// yawNow= 当前时间点（内部时间）的 MotionRoot 局部朝向
 bool ModelSkinned_DebugGetRootYaw_F0(float* yaw0);
 bool ModelSkinned_DebugGetRootYaw_Current(float* yawNow);
-
-void ModelSkinned_SetRootYawFix(float yawFixRad); // 弧度
 
 // —— 根局部旋转的“入场对齐 + ΔYaw 抽取”接口 ——
 // 设定对齐目标（通常 = 第一次播放的 Idle 首帧 yaw，单位：弧度）
 void ModelSkinned_SetRootYawAlignTarget(float yawTargetRad);
 // 重置 yaw 基准（本剪辑首帧 yaw，单位：弧度）
 void ModelSkinned_ResetRootYawTrack(float yawStartRad);
-// 采样区间 [t, t+dt] 的根局部 Δyaw（单位：弧度；成功返回 true）
+// 采样区间 [t, t+dt] 的 MotionRoot 局部 Δyaw（单位：弧度；成功返回 true）
 // 注意：要在 ModelSkinned_Update(dt) 之前调用，和 SampleRootDelta_Local 使用同样的时间点
 bool ModelSkinned_SampleRootYawDelta(float dt, float* outDeltaYaw);
 
-// 节点层入场对齐：设置/读取固定的世界层 yaw 修正
+// 节点层入场对齐：设置/读取固定的世界层 yaw 修正（乘在 world 之前）
 void  ModelSkinned_SetNodeYawFix(float rad);
 float ModelSkinned_GetNodeYawFix();
 
-// 取“当前 clip 第0帧的根在模型空间的 yaw”（用于计算 nodeYawFix）
+// 取“当前 clip 第0帧的 MotionRoot 在模型空间的 yaw”（用于计算 nodeYawFix）
 bool  ModelSkinned_ComputeRootYaw_ModelSpace_FirstFrame(float* outRad);
 
 // === meta getters ===
 uint32_t ModelSkinned_GetFrameCount();
 float    ModelSkinned_GetSampleRate();
 
+// —— Motion Root 选择 ——
+// 传入UTF-8骨骼名。空字符串表示“使用默认策略”（优先Hips，否则parent==-1）
+bool  ModelSkinned_SetMotionRootByName(const char* utf8Name);
+int   ModelSkinned_GetMotionRootIndex();   // 解析后的索引（-1表示未解析，跌回默认）
+const char* ModelSkinned_GetMotionRootName();
+
+// 在装载完 skeleton 后解析（内部会自动调用，也可手动调用以重解析）
+void  ModelSkinned_ResolveMotionRoot();

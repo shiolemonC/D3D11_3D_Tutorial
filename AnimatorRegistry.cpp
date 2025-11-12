@@ -1,23 +1,23 @@
-﻿// AnimatorRegistry.cpp  —— 与你给的 AnimatorRegistry.h 完全匹配
+﻿// AnimatorRegistry.cpp
 #include "AnimatorRegistry.h"
 #include "ModelSkinned.h"
 #include "shader3d.h"
 
 #include <vector>
 #include <string>
-#include <filesystem>
+#include <cstdio>
+#include <cmath>
 
 using namespace DirectX;
-namespace fs = std::filesystem;
 
-// -----------------------------
+// ---------------------------------
 // 内部数据
-// -----------------------------
-static std::vector<AnimClipDesc> gClips;   // 注册表
-static int   gCurrent = -1;                // 当前播放索引（-1 表示无）
-static XMMATRIX gBaseWorld = XMMatrixIdentity();
+// ---------------------------------
+static std::vector<AnimClipDesc> gClips;     // 动作注册表
+static int        gCurrent = -1;             // 当前播放索引（-1 = 无）
+static XMMATRIX   gBaseWorld = XMMatrixIdentity();
 
-// 记录当前已加载的 mesh+skel 组合（方便将来仅换 anim；目前为稳妥总是全量加载）
+// 记录加载的 mesh+skel 组合（以后可做只换 anim 的优化）
 struct MeshSkelKey {
     std::wstring mesh;
     std::wstring skel;
@@ -25,32 +25,24 @@ struct MeshSkelKey {
 };
 static MeshSkelKey gLoadedKey{ L"", L"" };
 
-// 辅助：查找 clip
-static int FindIndex(const std::wstring& name)
-{
-    for (int i = 0; i < (int)gClips.size(); ++i)
-        if (gClips[i].name == name) return i;
-    return -1;
-}
+// RootMotion 累计（由 Update 写入 → 被上层消费）
+static XMFLOAT3 gRM_AccumPos = { 0,0,0 };
+static float    gRM_AccumYaw = 0.0f;
 
-//算位移用
-static DirectX::XMFLOAT3 gRM_AccumPos = { 0,0,0 };
-static float gRM_AccumYaw = 0.0f;  // 动画产生的 Δyaw（单位：弧度）
-
-//在 Play 时计算并设置 yawFix
+// 基线 yaw（第一次 Play 的首帧局部 yaw0），用于入场对齐
 static bool  gYawBaselineInit = false;
-static float gYawBaselineRad = 0.0f; // 第一次 Play 的剪辑首帧 rootYaw0 作为基准
+static float gYawBaselineRad = 0.0f;
 
+// 小工具：应用位移到 world（注意：node-fix 在 ModelSkinned_Draw 里做）
 static void ApplyWorldWithRootMotion()
 {
-    using namespace DirectX;
     XMMATRIX T = XMMatrixTranslation(gRM_AccumPos.x, gRM_AccumPos.y, gRM_AccumPos.z);
     ModelSkinned_SetWorldMatrix(T * gBaseWorld);
 }
 
-// -----------------------------
+// ---------------------------------
 // 对外实现
-// -----------------------------
+// ---------------------------------
 bool AnimatorRegistry_Initialize(ID3D11Device* dev, ID3D11DeviceContext* ctx)
 {
     gClips.clear();
@@ -58,9 +50,11 @@ bool AnimatorRegistry_Initialize(ID3D11Device* dev, ID3D11DeviceContext* ctx)
     gBaseWorld = XMMatrixIdentity();
     gLoadedKey = MeshSkelKey{};
 
-    gRM_AccumPos = { 0,0,0 }; //重置位移
+    gRM_AccumPos = { 0,0,0 };
+    gRM_AccumYaw = 0.0f;
+    gYawBaselineInit = false;
+    gYawBaselineRad = 0.0f;
 
-    // 初始化底层蒙皮播放器
     return ModelSkinned_Initialize(dev, ctx);
 }
 
@@ -68,7 +62,7 @@ void AnimatorRegistry_Finalize()
 {
     gClips.clear();
     gCurrent = -1;
-    // ModelSkinned 里有自己的 Finalize/资源释放（如果你需要的话在别处调用）
+    // 如需 ModelSkinned 侧释放，按你的工程调用相应 finalize
 }
 
 void AnimatorRegistry_Clear()
@@ -77,10 +71,17 @@ void AnimatorRegistry_Clear()
     gCurrent = -1;
 }
 
+static int FindIndex(const std::wstring& name)
+{
+    for (int i = 0; i < (int)gClips.size(); ++i)
+        if (gClips[i].name == name) return i;
+    return -1;
+}
+
 bool AnimatorRegistry_Register(const AnimClipDesc& clip)
 {
     if (clip.name.empty()) return false;
-    if (FindIndex(clip.name) >= 0) return false; // 不允许重名
+    if (FindIndex(clip.name) >= 0) return false; // 去重
     gClips.push_back(clip);
     return true;
 }
@@ -98,16 +99,14 @@ const AnimClipDesc* AnimatorRegistry_Get(const std::wstring& name)
 
 bool AnimatorRegistry_LoadAll()
 {
-    // 当前版本：不做磁盘 IO；真正加载在 Play 时进行
+    // 当前实现：真正的加载在 Play 里做；这里返回 true
     return true;
 }
 
 bool AnimatorRegistry_Play(const std::wstring& name,
     bool* outChanged,
-    bool overrideLoop,
-    bool loopValue,
-    bool overrideRate,
-    float rateValue)
+    bool overrideLoop, bool loopValue,
+    bool overrideRate, float rateValue)
 {
     if (outChanged) *outChanged = false;
 
@@ -116,61 +115,49 @@ bool AnimatorRegistry_Play(const std::wstring& name,
 
     const AnimClipDesc& clip = gClips[idx];
 
-    // 组装底层加载描述
-    ModelSkinnedDesc d;
+    // 底层加载描述
+    ModelSkinnedDesc d{};
     d.meshPath = clip.meshPath;
     d.skelPath = clip.skelPath;
     d.animPath = clip.animPath;
     d.matPath = clip.matPath;
     d.baseColorTexOverride = clip.baseColorOverride;
 
-    // 为了稳定，当前一律全量加载（如果你已经实现了 ModelSkinned_LoadAnimOnly，这里可以做“同 mesh+skel 只换 anim”的优化）
-    bool ok = ModelSkinned_Load(d);
-    if (!ok) return false;
+    // 目前为稳妥：统一全量加载
+    if (!ModelSkinned_Load(d)) return false;
 
-    // ★ 读取该剪辑首帧 rootYaw0，设定“对齐目标 = baseline”，并重置轨迹
+    // —— 入场对齐（基于 motion-root）——
     {
+        // 1) 取首帧局部 yaw0：用于 baseline（只取第一次 Play 的序列）
         float yaw0 = 0.0f;
         if (ModelSkinned_DebugGetRootYaw_F0(&yaw0)) {
             if (!gYawBaselineInit) { gYawBaselineInit = true; gYawBaselineRad = yaw0; }
 
-            // 骨架“局部层”的入场基准
-            ModelSkinned_SetRootYawAlignTarget(gYawBaselineRad);
-            ModelSkinned_ResetRootYawTrack(yaw0);
-
-            // ---- 节点/世界层 的入场对齐（关键！）----
-            const float target = gYawBaselineRad; // 你的基准（通常取 Idle 的 baseline）
+            // 2) 计算“模型空间首帧 yaw”并生成 node-fix：视觉上对齐到 baseline
             float yawModel0 = 0.0f;
             if (ModelSkinned_ComputeRootYaw_ModelSpace_FirstFrame(&yawModel0)) {
-                auto wrap = [](float a) { const float PI = 3.14159265358979f, T = 2 * PI;
+                auto wrap = [](float a) { const float PI = 3.14159265358979323846f, T = 2 * PI;
                 while (a > PI)a -= T; while (a <= -PI)a += T; return a; };
+                const float target = gYawBaselineRad;
                 const float nodeFix = wrap(target - yawModel0);
                 ModelSkinned_SetNodeYawFix(nodeFix);
 
-                // 日志（度）
-                char b2[200];
-                sprintf_s(b2,
-                    "[Anim] Play %ls | yaw0(local)=%.1f°, yaw0(model)=%.1f°, nodeFix=%.1f° (target=%.1f°)\n",
+#if defined(DEBUG) || defined(_DEBUG)
+                char b2[196];
+                sprintf_s(b2, "[Anim] Play %ls | yaw0(local)=%.1f°, yaw0(model)=%.1f°, nodeFix=%.1f° (target=%.1f°)\n",
                     name.c_str(),
-                    DirectX::XMConvertToDegrees(yaw0),
-                    DirectX::XMConvertToDegrees(yawModel0),
-                    DirectX::XMConvertToDegrees(nodeFix),
-                    DirectX::XMConvertToDegrees(target));
+                    XMConvertToDegrees(yaw0),
+                    XMConvertToDegrees(yawModel0),
+                    XMConvertToDegrees(nodeFix),
+                    XMConvertToDegrees(target));
                 OutputDebugStringA(b2);
+#endif
             }
-
-            // （可选）原有日志
-            char buf[160];
-            sprintf_s(buf, "[Anim] Play %ls | yaw0=%.1f°, target=%.1f°(baseline)\n",
-                name.c_str(),
-                DirectX::XMConvertToDegrees(yaw0),
-                DirectX::XMConvertToDegrees(gYawBaselineRad));
-            OutputDebugStringA(buf);
         }
     }
 
-    // 应用播放参数（可被临时覆盖）
-    bool loop = clip.loop;
+    // 播放参数
+    bool  loop = clip.loop;
     float rate = clip.playbackRate;
     if (overrideLoop) loop = loopValue;
     if (overrideRate) rate = rateValue;
@@ -183,45 +170,45 @@ bool AnimatorRegistry_Play(const std::wstring& name,
         gCurrent = idx;
         if (outChanged) *outChanged = true;
 
-        //清空位移
+        // 清空 RootMotion 累计
         gRM_AccumPos = { 0,0,0 };
+        gRM_AccumYaw = 0.0f;
         ApplyWorldWithRootMotion();
+
+        // VelocityDriven 时：清掉根局部 XZ 平移
         ModelSkinned_SetZeroRootTranslationXZ(clip.rmType == RootMotionType::VelocityDriven);
     }
 
-    // 同步世界矩阵
+    // 同步世界矩阵（node-fix 会在 Draw 时组合）
     ModelSkinned_SetWorldMatrix(gBaseWorld);
-
     return true;
 }
 
-void AnimatorRegistry_SetWorld(const DirectX::XMMATRIX& world)
+void AnimatorRegistry_SetWorld(const XMMATRIX& world)
 {
     gBaseWorld = world;
-    ApplyWorldWithRootMotion();
-    //ModelSkinned_SetWorldMatrix(gBaseWorld);
+    ApplyWorldWithRootMotion(); // 让位移叠加到新 world 上
 }
 
 void AnimatorRegistry_Update(double dtSec)
 {
     if (gCurrent < 0 || gCurrent >= (int)gClips.size()) {
+        // 没有有效动画也要推进底层时间（如静态姿势）
         ModelSkinned_Update(dtSec);
         return;
     }
 
     const AnimClipDesc& c = gClips[gCurrent];
 
-    using namespace DirectX;
-
     switch (c.rmType)
     {
     case RootMotionType::None:
-        // 不改位移
+        // 不使用动画位移
         break;
 
     case RootMotionType::VelocityDriven:
     {
-        // 用 BaseWorld 的“前向列”当方向（和你之前一致：第三列是前）
+        // 用 BaseWorld 的前向列作为移动方向
         XMFLOAT4X4 m; XMStoreFloat4x4(&m, gBaseWorld);
         XMFLOAT3 fwd = { m._13, m._23, m._33 };
         XMVECTOR v = XMVector3Normalize(XMLoadFloat3(&fwd));
@@ -236,6 +223,7 @@ void AnimatorRegistry_Update(double dtSec)
 
     case RootMotionType::UseAnimDelta:
     {
+        // 以 motion-root 采样局部 ΔT，再映射到世界
         XMFLOAT3 dLocal{};
         if (ModelSkinned_SampleRootDelta_Local((float)dtSec, &dLocal))
         {
@@ -251,21 +239,21 @@ void AnimatorRegistry_Update(double dtSec)
 
         float dyaw = 0.0f;
         if (ModelSkinned_SampleRootYawDelta((float)dtSec, &dyaw)) {
-            gRM_AccumYaw += dyaw; // 想丢弃旋转就不累加
+            gRM_AccumYaw += dyaw; // 如需忽略旋转，只要不加它即可
         }
 
         ApplyWorldWithRootMotion();
         break;
     }
-}
+    }
 
-    // 最后再推进骨骼播放器（让骨架时间与采样区间对齐）
+    // 先采样再推进：保持 [t, t+dt] 采样与推进时序一致
     ModelSkinned_Update(dtSec);
 }
 
 void AnimatorRegistry_Draw()
 {
-    ModelSkinned_Draw();
+    ModelSkinned_Draw(); // 里面会把 node-fix 乘到 World 上
 }
 
 // 查询
@@ -293,24 +281,28 @@ bool AnimatorRegistry_CurrentLoop()
     return gClips[gCurrent].loop;
 }
 
+// 消费 RootMotion
 bool AnimatorRegistry_ConsumeRootMotionDelta(RootMotionDelta* out)
 {
     if (!out) return false;
-    const float eps = 1e-6f;
+    const float epsPos = 1e-6f;
+    const float epsYaw = 1e-6f;
+
     float len2 = gRM_AccumPos.x * gRM_AccumPos.x
         + gRM_AccumPos.y * gRM_AccumPos.y
         + gRM_AccumPos.z * gRM_AccumPos.z;
-    if (len2 < eps) return false;
+
+    if (len2 < epsPos && std::fabs(gRM_AccumYaw) < epsYaw) return false;
 
     out->pos = gRM_AccumPos;
     out->yaw = gRM_AccumYaw;
+
     gRM_AccumPos = { 0,0,0 };
     gRM_AccumYaw = 0.0f;
-    // 不要在这里重新 SetWorld；同帧 draw 用的还是刚刚那帧的世界矩阵
     return true;
 }
 
-
+// DEBUG（保留在用）
 bool AnimatorRegistry_DebugGetCurrentClipName(const wchar_t** outName)
 {
     if (!outName) return false;
@@ -335,12 +327,12 @@ bool AnimatorRegistry_DebugGetCurrentClipLengthSec(float* outSec)
     if (!outSec) return false;
     if (gCurrent < 0 || gCurrent >= (int)gClips.size()) return false;
 
-    const auto& cur = gClips[gCurrent];           // 含 playbackRate
+    const auto& cur = gClips[gCurrent];
     const uint32_t fc = ModelSkinned_GetFrameCount();
     const float    sr = ModelSkinned_GetSampleRate();
     if (fc == 0 || sr <= 0.0f) return false;
 
     const float rate = (cur.playbackRate > 0.0f ? cur.playbackRate : 1.0f);
-    *outSec = (float(fc) / sr) / rate;            // 时长 = 帧数/采样率/播放速率
+    *outSec = (float(fc) / sr) / rate;
     return true;
 }
