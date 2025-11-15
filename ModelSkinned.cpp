@@ -744,6 +744,7 @@ void ModelSkinned_Draw() {
     // world 乘以 NodeYawFix（不要写回 gWorld，避免累乘）
     const float nodeFix = ModelSkinned_GetNodeYawFix();
     const XMMATRIX W = XMMatrixRotationY(nodeFix) * gWorld;
+    //Shader3d_SetWorldMatrix(XMMatrixIdentity());
     Shader3d_SetWorldMatrix(W);
 
     // VS b5（避免被 Shader3d_Begin 覆盖）

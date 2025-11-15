@@ -27,6 +27,8 @@
 #include "player_test.h"
 #include "player_camera_test.h"
 #include "mouse.h"
+#include "billboard.h"
+#include "texture.h"
 using namespace DirectX;
 
 static float g_x = 0.0f;
@@ -39,6 +41,8 @@ static XMFLOAT3 g_CubeVelocity{};
 static MODEL* g_pModelTest = nullptr;
 static MODEL* g_pModelTreeTest = nullptr;
 
+static int g_TestTexid = -1;
+
 void Game_Initialize()
 {
     Camera_Initialize(
@@ -50,6 +54,9 @@ void Game_Initialize()
         { 0.0f, 15.0f, 0.0f },
         { 0.0f, 0.0f, 1.0f }
     );
+
+    Billboard_Initialize();
+    g_TestTexid = Texture_Load(L"resources/runningman001.png");
 
     g_pModelTest = ModelLoad("resources/fbx/larva.fbx", true);
     g_pModelTreeTest = ModelLoad("resources/fbx/larva.fbx", true);
@@ -91,7 +98,7 @@ void Game_Initialize()
 void Game_Finalize()
 {
     ModelRelease(g_pModelTest);
-
+    Billboard_Finalize();
     Camera_Finalize();
     //PlayerCameraTest_Finalize();
 }
@@ -247,10 +254,14 @@ void Game_Draw()
     //AnimatorRegistry_SetWorld(W);
     AnimatorRegistry_Draw();
 
+    Billboard_Draw(g_TestTexid, { -2.0f, 2.5f, 2.0f }, 1.5f, 2.0f, {0.0f, 0.0f});
+
 #if defined(DEBUG) || defined(_DEBUG) // debug buildだけで有効
     PlayerSM_DebugDraw();
     //Camera_DebugDraw();
 #endif
+
+
 }
 
 

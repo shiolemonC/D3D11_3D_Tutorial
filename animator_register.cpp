@@ -16,16 +16,18 @@ void AnimRegister()
         //// 如需强制贴图（覆盖 .mat）：
         //c.baseColorOverride = L"D:/AssetCooker/resources/test/ninja_T.fbm/Ch24_1001_Diffuse.png";
 
-        c.meshPath = L"resources/player_anim/cooked/player_idle.mesh";
-        c.skelPath = L"resources/player_anim/cooked/player_idle.skel";
-        c.animPath = L"resources/player_anim/cooked/player_idle.anim";
-        c.matPath =  L"resources/player_anim/cooked/player_idle.mat";
+        c.meshPath = L"resources/player_anim/cooked/player_idle_test.mesh";
+        c.skelPath = L"resources/player_anim/cooked/player_idle_test.skel";
+        c.animPath = L"resources/player_anim/cooked/player_idle_test.anim";
+        c.matPath =  L"resources/player_anim/cooked/player_idle_test.mat";
         // 如需强制贴图（覆盖 .mat）：
         c.baseColorOverride = L"resources/player_anim/cooked/Textures/Mutant_diffuse.png";
 
         c.loop = true;
         c.playbackRate = 1.0f;
         c.rmType = RootMotionType::None;   // Idle 其实没有位移，但作为例子
+        // ★ 指定此动画用 Hips 作为 motion-root（常见于 Mixamo）
+        c.motionRootNameUTF8 = "mixamorig:Hips";
         AnimatorRegistry_Register(c);
     }
 
@@ -43,6 +45,8 @@ void AnimRegister()
         c.playbackRate = 1.0f;
         c.rmType = RootMotionType::VelocityDriven;
         c.velocity = 2.0f;
+        // ★ 行走通常也用 Hips
+        c.motionRootNameUTF8 = "mixamorig:Hips";
         AnimatorRegistry_Register(c);
     }
 
@@ -57,8 +61,12 @@ void AnimRegister()
         c.baseColorOverride = L"resources/player_anim/cooked/Textures/Mutant_diffuse.png";
         c.loop = false;
         c.playbackRate = 1.0f;
-        c.rmType = RootMotionType::None;
+        c.rmType = RootMotionType::UseAnimDelta;
         //c.velocity = 2.0f;
+           // ★ 若希望攻击不受 Hips 摇摆影响，改用 "Root"（按你的骨骼名来）
+    //   也可以继续用 "mixamorig:Hips"，视资源而定。
+        c.motionRootNameUTF8 = "Root";
+
         AnimatorRegistry_Register(c);
     }
 

@@ -27,6 +27,9 @@ struct AnimClipDesc {
     // RootMotion 相关
     RootMotionType rmType = RootMotionType::None;
     float          velocity = 0.0f;    // VelocityDriven 使用
+
+    // ★ 新增：为该动画显式指定“驱动根”名称（UTF-8）。为空则用 ModelSkinned 的自动解析/上次设置。
+    std::string motionRootNameUTF8; 
 };
 
 // 初始化/结束

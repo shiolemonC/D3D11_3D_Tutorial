@@ -41,7 +41,7 @@ PlayerState Player_Update(double dt, const PlayerInput& in, PlayerState smState)
 
     // 2) 拼世界矩阵并喂给动画系统
     XMMATRIX S = XMMatrixScaling(s_scale, s_scale, s_scale);
-    XMMATRIX R = XMMatrixRotationY(s_yaw);
+    XMMATRIX R = XMMatrixRotationY(s_yaw + XM_PI);
     XMMATRIX T = XMMatrixTranslation(s_pos.x, s_pos.y, s_pos.z);
     XMMATRIX W = S * R * T;
     AnimatorRegistry_SetWorld(W);
@@ -64,7 +64,7 @@ void Player_Kinematic_Update(double dt, const PlayerInput& in, bool locomotionAc
         }
 
         XMMATRIX S = XMMatrixScaling(s_scale, s_scale, s_scale);
-        XMMATRIX R = XMMatrixRotationY(s_yaw);
+        XMMATRIX R = XMMatrixRotationY(s_yaw + XM_PI);
         XMMATRIX T = XMMatrixTranslation(s_pos.x, s_pos.y, s_pos.z);
         XMMATRIX W = S * R * T;
         AnimatorRegistry_SetWorld(W);

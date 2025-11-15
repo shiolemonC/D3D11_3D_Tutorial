@@ -36,4 +36,6 @@ void Camera_SetPose(const DirectX::XMFLOAT3& pos,
     const DirectX::XMFLOAT3& front,
     const DirectX::XMFLOAT3& up);
 
+
+
 #endif // !CAMERA_H

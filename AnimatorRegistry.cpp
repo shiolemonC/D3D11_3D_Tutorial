@@ -126,6 +126,19 @@ bool AnimatorRegistry_Play(const std::wstring& name,
     // 目前为稳妥：统一全量加载
     if (!ModelSkinned_Load(d)) return false;
 
+    // ★ 新增：若本动画注册时指定了 motion-root，就在此覆盖
+    if (!clip.motionRootNameUTF8.empty()) {
+        ModelSkinned_SetMotionRootByName(clip.motionRootNameUTF8.c_str());
+#if defined(DEBUG) || defined(_DEBUG)
+        {
+            char buf[200];
+            sprintf_s(buf, "[Anim] Set motion-root to '%s' for clip %ls\n",
+                clip.motionRootNameUTF8.c_str(), name.c_str());
+            OutputDebugStringA(buf);
+        }
+#endif
+    }
+
     // —— 入场对齐（基于 motion-root）——
     {
         // 1) 取首帧局部 yaw0：用于 baseline（只取第一次 Play 的序列）
@@ -155,6 +168,18 @@ bool AnimatorRegistry_Play(const std::wstring& name,
             }
         }
     }
+
+#if defined(DEBUG) || defined(_DEBUG)
+    {
+        float yaw0 = 0.0f;
+        ModelSkinned_DebugGetRootYaw_F0(&yaw0);
+
+        char buf[256];
+        sprintf_s(buf, "[DEBUG] Clip: %ls, Initial Yaw: %.1f degrees\n",
+            name.c_str(), XMConvertToDegrees(yaw0));
+        OutputDebugStringA(buf);
+    }
+#endif
 
     // 播放参数
     bool  loop = clip.loop;

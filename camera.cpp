@@ -3,9 +3,11 @@
 #include "debug_ostream.h"
 #include "direct3d.h"
 #include "shader3d.h"
+#include "shader_billboard.h"
 #include "key_logger.h"
 #include "debug_text.h"
 #include <sstream>
+
 using namespace DirectX;
 
 static bool g_ExternalControl = false;
@@ -14,12 +16,15 @@ static XMFLOAT3 g_CameraPos{ 0.0f, 0.0f, -5.0f };
 static XMFLOAT3 g_CameraFront{ 0.0f, 0.0f, 1.0f };
 static XMFLOAT3 g_CameraUp{ 0.0f, 1.0f, 0.0f };
 static XMFLOAT3 g_CameraRight{ 1.0f, 0.0f, 0.0f };
+
+
 static constexpr float CAMERA_MOVE_SPEED = 3.0f;
 static constexpr float CAMERA_ROTATION_SPEED = XMConvertToRadians(30); //radian speed
 static XMFLOAT4X4 g_CameraMatrix;
 static XMFLOAT4X4 g_PerspectiveMatrix;
 static float g_Fov = XMConvertToRadians(60);
 static hal::DebugText* g_pDT = nullptr;
+
 
 void Camera_Initialize(
 	const DirectX::XMFLOAT3& position, 
@@ -178,6 +183,9 @@ void Camera_Update(double elapsed_time)
 	XMStoreFloat4x4(&g_CameraMatrix, mtxView);
 
 	Shader3d_SetViewMatrix(mtxView);
+	ShaderBillboard_SetViewMatrix(mtxView);
+
+	XMStoreFloat4x4(&g_CameraMatrix, mtxView);
 
 	//Perspective array
 	//NearZ一定要大于0 是距离
@@ -188,6 +196,7 @@ void Camera_Update(double elapsed_time)
 
 	XMStoreFloat4x4(&g_PerspectiveMatrix, mtxPerspective);
 	Shader3d_SetProjectionMatrix(mtxPerspective);
+	ShaderBillboard_SetProjectionMatrix(mtxPerspective);
 }
 
 const DirectX::XMFLOAT4X4& Camera_GetMatrix()
@@ -253,7 +262,7 @@ void Camera_SetPose(const XMFLOAT3& pos, const XMFLOAT3& front, const XMFLOAT3& 
 	g_CameraFront = front;
 	g_CameraUp = up;
 	// 重新计算 right
-	using namespace DirectX;
+	//using namespace DirectX;
 	XMVECTOR f = XMVector3Normalize(XMLoadFloat3(&g_CameraFront));
 	XMVECTOR u = XMVector3Normalize(XMLoadFloat3(&g_CameraUp));
 	XMVECTOR r = XMVector3Normalize(XMVector3Cross(f, u));
