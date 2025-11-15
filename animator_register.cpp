@@ -43,7 +43,7 @@ void AnimRegister()
         c.baseColorOverride = L"resources/player_anim/cooked/Textures/Mutant_diffuse.png";
         c.loop = true;
         c.playbackRate = 1.0f;
-        c.rmType = RootMotionType::VelocityDriven;
+        c.rmType = RootMotionType::None;
         c.velocity = 2.0f;
         // ★ 行走通常也用 Hips
         c.motionRootNameUTF8 = "mixamorig:Hips";
@@ -65,7 +65,7 @@ void AnimRegister()
         //c.velocity = 2.0f;
            // ★ 若希望攻击不受 Hips 摇摆影响，改用 "Root"（按你的骨骼名来）
     //   也可以继续用 "mixamorig:Hips"，视资源而定。
-        c.motionRootNameUTF8 = "Root";
+        c.motionRootNameUTF8 = "Armature";
 
         AnimatorRegistry_Register(c);
     }

@@ -113,65 +113,45 @@ void Game_Update(double elapsed_time)
     Mouse_State ms{};
     Mouse_GetState(&ms);
 
+    // 计算鼠标移动量（假设 Mouse_State 有 x/y，你根据自己结构改一下）
+    static int s_prevMouseX = 0;
+    static int s_prevMouseY = 0;
+    float deltaX = static_cast<float>(ms.x - s_prevMouseX);
+    float deltaY = static_cast<float>(ms.y - s_prevMouseY);
+    s_prevMouseX = ms.x;
+    s_prevMouseY = ms.y;
+
     // 简单的“刚按下”检测（边沿）
     static bool s_prevLB = false;
     bool justPressedLB = (ms.leftButton && !s_prevLB);
     s_prevLB = ms.leftButton;
 
-    // 触发器：按下一帧内点火即可（Cond_TestTrigger 会结合 buffer 决定是否命中）
-    if (justPressedLB) {
-        OutputDebugStringA("[Input] LButton just pressed -> Fire Attack\n");
-        Cond_FireTrigger("Attack");
-    }
+    // 1) 摄像机：由鼠标控制绕玩家旋转
+    PlayerCameraInput camIn{};
+    camIn.deltaX = deltaX;
+    camIn.deltaY = deltaY;
+    // 如果 Mouse_State 有 wheel 字段，你可以填 camIn.wheelDelta
+    PlayerCamera_Update(elapsed_time, camIn);
 
-    // 1) 采集输入 → PlayerInput
-    PlayerInput pin{};
+    // 2) 玩家输入（WASD）
+    PlayerUpdateInput pin{};
     pin.moveZ += KeyLogger_IsPressed(KK_W) ? 1.0f : 0.0f;
     pin.moveZ -= KeyLogger_IsPressed(KK_S) ? 1.0f : 0.0f;
     pin.moveX -= KeyLogger_IsPressed(KK_A) ? 1.0f : 0.0f;
     pin.moveX += KeyLogger_IsPressed(KK_D) ? 1.0f : 0.0f;
 
-    // 输入 → FSM（会同步到条件子模块）
-    PlayerSM_SetMoveInput(pin.moveX, pin.moveZ);
-    //if (Key_JustPressed(AttackKey)) PlayerSM_FireTrigger("Attack");
+    pin.attack = justPressedLB; // 攻击输入交给 Player_Update 里触发 FSM
 
-    auto smOut = PlayerSM_Update(elapsed_time);
-    if (smOut.changed) {
-        // 1) 播放动画
-        AnimatorRegistry_Play(smOut.clip, nullptr);
+    // 3) 从摄像机模块拿到「移动用坐标系」（按摄像机方向移动）
+    PlayerCamera_GetMoveBasis(&pin.camForwardXZ, &pin.camRightXZ);
 
-        // 2) 若该状态未显式配置 length_sec，则用真实动画时长回填
-        float clipSec = 0.0f;
-        if (AnimatorRegistry_DebugGetCurrentClipLengthSec(&clipSec)) {
-            PlayerSM_OverrideCurrentStateLength(clipSec);
-        }
-    }
+    // 4) 把所有和玩家相关的逻辑都交给 Player_Update
+    Player_Update(elapsed_time, pin);
 
-    // 由状态机产出的布尔位控制是否行走
-    Player_Kinematic_Update(elapsed_time, pin, smOut.locomotionActive);
-
-    // 5) 骨骼更新（若动画是 UseAnimDelta，会在内部累积根Δ并作用到模型）
-    AnimatorRegistry_Update(elapsed_time);
-
-    // 6) 消费根Δ并同步回 Player（把 Player 当“真值源”）
-    RootMotionDelta rm{};
-    if (AnimatorRegistry_ConsumeRootMotionDelta(&rm)) {
-        // 一般只保留XZ，避免动画上下起伏带来穿地感
-        rm.pos.y = 0.0f;
-        rm.yaw = 0.0f;
-        Player_ApplyRootMotionDelta(rm);
-    }
-
-    // 7) 相机跟随
-    PlayerCamera_Update(elapsed_time);
-
-    // 8) （仍保留）Camera_Update：它会根据当前 Pose 生成 view/proj 并下发
+    // 5) 让底层 Camera 模块更新 view/proj（原来就有）
     Camera_Update(elapsed_time);
 
     g_angle = g_AccumulatedTime * 3.0f;
-
-
-
 }
 
 void Game_Draw()

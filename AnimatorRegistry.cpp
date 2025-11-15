@@ -201,7 +201,7 @@ bool AnimatorRegistry_Play(const std::wstring& name,
         ApplyWorldWithRootMotion();
 
         // VelocityDriven 时：清掉根局部 XZ 平移
-        ModelSkinned_SetZeroRootTranslationXZ(clip.rmType == RootMotionType::VelocityDriven);
+        ModelSkinned_SetZeroRootTranslationXZ(clip.rmType != RootMotionType::UseAnimDelta);
     }
 
     // 同步世界矩阵（node-fix 会在 Draw 时组合）
