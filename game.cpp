@@ -29,6 +29,7 @@
 #include "mouse.h"
 #include "billboard.h"
 #include "texture.h"
+#include "sprite_anim.h"
 using namespace DirectX;
 
 static float g_x = 0.0f;
@@ -42,9 +43,12 @@ static MODEL* g_pModelTest = nullptr;
 static MODEL* g_pModelTreeTest = nullptr;
 
 static int g_TestTexid = -1;
+static int g_AnimPatternId = -1;
+static int g_AnimPlayId = -1;
 
 void Game_Initialize()
 {
+
     Camera_Initialize(
         {4.2f, 2.4f, -5.7f},
         {-0.5f, -0.3f, 0.7f},
@@ -57,6 +61,12 @@ void Game_Initialize()
 
     Billboard_Initialize();
     g_TestTexid = Texture_Load(L"resources/runningman001.png");
+
+    g_AnimPatternId = SpriteAnim_RegisterPattern(
+        g_TestTexid, 10, 5, 0.1, {140,200},{0,0},true);
+
+    g_AnimPlayId = SpriteAnim_CreatePlayer(g_AnimPatternId);
+
 
     g_pModelTest = ModelLoad("resources/fbx/larva.fbx", true);
     g_pModelTreeTest = ModelLoad("resources/fbx/larva.fbx", true);
@@ -151,6 +161,7 @@ void Game_Update(double elapsed_time)
     // 5) 让底层 Camera 模块更新 view/proj（原来就有）
     Camera_Update(elapsed_time);
 
+    SpriteAnim_Update(elapsed_time);
     g_angle = g_AccumulatedTime * 3.0f;
 }
 
@@ -234,7 +245,8 @@ void Game_Draw()
     //AnimatorRegistry_SetWorld(W);
     AnimatorRegistry_Draw();
 
-    Billboard_Draw(g_TestTexid, { -2.0f, 2.5f, 2.0f }, 1.5f, 2.0f, {0.0f, 0.0f});
+    //Billboard_Draw(g_TestTexid, { -2.0f, 2.5f, 2.0f }, { 1.5f, 2.0f }, {140.0f * 3, 200.0f, 140.0f, 200.0f}, { 0.0f, 0.0f });
+    BillboardAnim_Draw(g_AnimPlayId, { -2.0f, 2.5f, 2.0f }, { 1.5f, 2.0f },  { 0.0f, 0.0f });
 
 #if defined(DEBUG) || defined(_DEBUG) // debug buildだけで有効
     PlayerSM_DebugDraw();

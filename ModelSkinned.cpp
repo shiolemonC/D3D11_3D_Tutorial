@@ -86,6 +86,10 @@ static float gNodeYawFixRad = 0.0f;
 static std::string gMotionRootNameUTF8 = "mixamorig:Hips"; // 缺省：Hips
 static int         gMotionRootIndex = -1;
 
+// --动画融合用参数
+static std::vector<AnimTRS> gCrossFadeSourcePose; // 旧姿势快照
+static float gCrossFadeWeight = 1.0f;             // 当前混合权重（0~1）
+
 // 安全释放
 #ifndef SAFE_RELEASE
 template<typename T>
@@ -704,9 +708,50 @@ void ModelSkinned_Draw() {
         const AnimTRS* finalPose = poseRW ? (const AnimTRS*)poseRW : poseRO;
 
         // 递归：局部→全局
+
+        const AnimTRS* poseForSkinning = finalPose;
+
+        // 有快照 & 权重不是1，就做混合
+        std::vector<AnimTRS> blendedPose;
+        if (!gCrossFadeSourcePose.empty() && gCrossFadeWeight < 1.0f) {
+            blendedPose.assign(finalPose, finalPose + J);
+
+            const float w = gCrossFadeWeight;
+
+            for (size_t j = 0; j < J; ++j) {
+                const AnimTRS& src = gCrossFadeSourcePose[j]; // 旧姿势
+                AnimTRS& dst = blendedPose[j];                // 新动画姿势
+
+                // 平移 lerp
+                dst.T[0] = src.T[0] + (dst.T[0] - src.T[0]) * w;
+                dst.T[1] = src.T[1] + (dst.T[1] - src.T[1]) * w;
+                dst.T[2] = src.T[2] + (dst.T[2] - src.T[2]) * w;
+
+                // 缩放 lerp
+                dst.S[0] = src.S[0] + (dst.S[0] - src.S[0]) * w;
+                dst.S[1] = src.S[1] + (dst.S[1] - src.S[1]) * w;
+                dst.S[2] = src.S[2] + (dst.S[2] - src.S[2]) * w;
+
+                // 旋转 nlerp（线性插值后归一化）
+                XMVECTOR qA = XMVectorSet(src.R[0], src.R[1], src.R[2], src.R[3]);
+                XMVECTOR qB = XMVectorSet(dst.R[0], dst.R[1], dst.R[2], dst.R[3]);
+                XMVECTOR q = XMVectorLerp(qA, qB, w);
+                q = XMQuaternionNormalize(q);
+                XMFLOAT4 qf; XMStoreFloat4(&qf, q);
+                dst.R[0] = qf.x; dst.R[1] = qf.y;
+                dst.R[2] = qf.z; dst.R[3] = qf.w;
+            }
+
+            poseForSkinning = blendedPose.data();
+        }
+        else {
+            poseForSkinning = finalPose;
+        }
+
+
         for (size_t j = 0; j < J; ++j) {
             if (gJoints[j].parent == -1) {
-                ComputeAnimationPoseRecursively(j, XMMatrixIdentity(), finalPose);
+                ComputeAnimationPoseRecursively(j, XMMatrixIdentity(), poseForSkinning);
             }
         }
     }
@@ -900,4 +945,90 @@ void  ModelSkinned_ResolveMotionRoot() {
         OutputDebugStringA("[Skinned] MotionRoot resolve FAILED\n");
     }
 #endif
+}
+
+void ModelSkinned_CaptureCurrentLocalPose()
+{
+    const size_t J = gJoints.size();
+    if (gFrameCount == 0 || J == 0) {
+        gCrossFadeSourcePose.clear();
+        return;
+    }
+
+    gCrossFadeSourcePose.resize(J);
+
+    // 以下逻辑基本 copy 自 Draw() 顶部那段采样代码
+    float frameF = gTime * gSampleRate;
+    uint32_t f0 = (uint32_t)std::floor(frameF);
+    if (f0 >= gFrameCount) f0 = gFrameCount - 1;
+
+    const AnimTRS* currentFramePose = gAnimFrames.data() + size_t(f0) * J;
+
+    const AnimTRS* poseRO = currentFramePose;
+    std::vector<AnimTRS> tempPose;
+    AnimTRS* poseRW = nullptr;
+
+    // MotionRoot 计算和 Draw 保持一致
+    int root = ModelSkinned_GetMotionRootIndex();
+    if (root < 0) root = ModelSkinned_GetRootJointIndex();
+    if (root < 0) root = 0;
+
+    // ZeroRootTransXZ（VelocityDriven 时清 XZ 平移）
+    if (gZeroRootTransXZ && J > 0) {
+        tempPose.assign(currentFramePose, currentFramePose + J);
+        tempPose[root].T[0] = 0.0f;
+        tempPose[root].T[2] = 0.0f;
+        poseRW = tempPose.data();
+    }
+
+    // RootYawAlign（跟 Draw 中那段用的 AngleWrap / YawFromLocal 完全一致）
+    if (gRootYawAlignEnabled && J > 0) {
+        if (!poseRW) {
+            tempPose.assign(currentFramePose, currentFramePose + J);
+            poseRW = tempPose.data();
+        }
+
+        auto AngleWrap = [](float a)->float {
+            const float PI = 3.14159265358979323846f, TWO = 6.283185307179586f;
+            while (a > PI) a -= TWO;
+            while (a <= -PI) a += TWO;
+            return a;
+            };
+        auto YawFromLocal = [](const AnimTRS& t)->float {
+            XMVECTOR q = XMQuaternionNormalize(XMVectorSet(t.R[0], t.R[1], t.R[2], t.R[3]));
+            XMVECTOR f = XMVector3Rotate(XMVectorSet(0, 0, 1, 0), q);
+            f = XMVector3Normalize(f);
+            XMFLOAT3 fv; XMStoreFloat3(&fv, f);
+            return std::atan2f(fv.x, fv.z);
+            };
+
+        const float yawCurr = YawFromLocal(poseRW[root]);
+        const float visualOffset = AngleWrap(gRootYawAlignTarget - gRootYawStart);
+        const float deltaCum = AngleWrap(yawCurr - gRootYawStart);
+        const float fixYaw = AngleWrap(visualOffset - deltaCum);
+
+        XMVECTOR qLocal = XMQuaternionNormalize(XMVectorSet(
+            poseRW[root].R[0], poseRW[root].R[1], poseRW[root].R[2], poseRW[root].R[3]));
+        XMVECTOR qFix = XMQuaternionRotationRollPitchYaw(0.0f, fixYaw, 0.0f);
+        XMVECTOR qOut = XMQuaternionMultiply(qFix, qLocal);
+
+        XMFLOAT4 out; XMStoreFloat4(&out, qOut);
+        poseRW[root].R[0] = out.x; poseRW[root].R[1] = out.y;
+        poseRW[root].R[2] = out.z; poseRW[root].R[3] = out.w;
+    }
+
+    const AnimTRS* finalPose = poseRW ? (const AnimTRS*)poseRW : poseRO;
+
+    // 拷贝到快照
+    std::copy(finalPose, finalPose + J, gCrossFadeSourcePose.begin());
+}
+
+void ModelSkinned_SetCrossFadeWeight(float w)
+{
+    gCrossFadeWeight = w;
+}
+
+void ModelSkinned_ClearCrossFadeSource()
+{
+    gCrossFadeSourcePose.clear();
 }

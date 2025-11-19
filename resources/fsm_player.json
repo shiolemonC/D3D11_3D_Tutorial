@@ -32,7 +32,7 @@
       "to": "Move",
       "conditions": [ "move.mag > 0.1" ],
       "window": [ [ 0.00, 1.00 ] ],
-      "duration": 0.18,
+      "duration": 0.1,
       "curve": "ease_in_out",
       "can_interrupt": true,
       "priority": 10
@@ -43,7 +43,7 @@
       "to": "Idle",
       "conditions": [ "move.mag <= 0.1" ],
       "window": [ [ 0.00, 1.00 ] ],
-      "duration": 0.12,
+      "duration": 0.1,
       "curve": "ease_out",
       "can_interrupt": true,
       "priority": 10
@@ -55,7 +55,7 @@
       "trigger": "Attack",
       "buffer": 0.15,
       "window": [ [ 0.00, 1.00 ] ],
-      "duration": 0.05,
+      "duration": 0.1,
       "curve": "linear",
       "can_interrupt": true,
       "priority": 50
@@ -67,7 +67,7 @@
       "trigger": "Attack",
       "buffer": 0.15,
       "window": [ [ 0.00, 1.00 ] ],
-      "duration": 0.05,
+      "duration": 0.1,
       "curve": "linear",
       "can_interrupt": true,
       "priority": 60

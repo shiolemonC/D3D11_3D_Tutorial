@@ -97,10 +97,15 @@ void Player_Update(double dt, const PlayerUpdateInput& in)
     PlayerSMOutput smOut = PlayerSM_Update(dt);
 
     if (smOut.changed) {
-        // 播放新动画
-        AnimatorRegistry_Play(smOut.clip, nullptr);
+        if (smOut.blendSeconds > 0.0f) {
+            AnimatorRegistry_CrossFade(smOut.clip,
+                smOut.blendSeconds,
+                smOut.blendCurve); // "linear"/"ease_in"...
+        }
+        else {
+            AnimatorRegistry_Play(smOut.clip, nullptr);
+        }
 
-        // 如果该状态没定 length_sec，就用真实动画长度回写
         float clipSec = 0.0f;
         if (AnimatorRegistry_DebugGetCurrentClipLengthSec(&clipSec)) {
             PlayerSM_OverrideCurrentStateLength(clipSec);

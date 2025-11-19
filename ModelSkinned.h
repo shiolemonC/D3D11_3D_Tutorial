@@ -86,3 +86,12 @@ const char* ModelSkinned_GetMotionRootName();
 
 // 在装载完 skeleton 后解析（内部会自动调用，也可手动调用以重解析）
 void  ModelSkinned_ResolveMotionRoot();
+
+// 在当前 clip / 当前时间已经采样出局部姿势后，拍一张快照
+void ModelSkinned_CaptureCurrentLocalPose();
+
+// 设置当前 crossfade 权重（0=全旧姿势，1=全新姿势）
+void ModelSkinned_SetCrossFadeWeight(float w);
+
+// 混合结束时清掉旧姿势缓存（可选）
+void ModelSkinned_ClearCrossFadeSource();

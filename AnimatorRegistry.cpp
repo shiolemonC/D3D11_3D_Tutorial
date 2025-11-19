@@ -7,6 +7,7 @@
 #include <string>
 #include <cstdio>
 #include <cmath>
+#include <algorithm>
 
 using namespace DirectX;
 
@@ -25,6 +26,23 @@ struct MeshSkelKey {
 };
 static MeshSkelKey gLoadedKey{ L"", L"" };
 
+//动画混合用
+enum class AnimBlendCurve {
+    Linear,
+    EaseIn,
+    EaseOut,
+    EaseInOut,
+};
+
+struct AnimBlendState {
+    bool active = false;
+    float time = 0.0f;
+    float duration = 0.0f;
+    AnimBlendCurve curve = AnimBlendCurve::Linear;
+};
+
+static AnimBlendState gBlend{};
+
 // RootMotion 累计（由 Update 写入 → 被上层消费）
 static XMFLOAT3 gRM_AccumPos = { 0,0,0 };
 static float    gRM_AccumYaw = 0.0f;
@@ -38,6 +56,34 @@ static void ApplyWorldWithRootMotion()
 {
     XMMATRIX T = XMMatrixTranslation(gRM_AccumPos.x, gRM_AccumPos.y, gRM_AccumPos.z);
     ModelSkinned_SetWorldMatrix(T * gBaseWorld);
+}
+
+// 动画混合用工具
+static AnimBlendCurve ParseBlendCurve(const char* curveName)
+{
+    if (!curveName) return AnimBlendCurve::Linear;
+    if (!strcmp(curveName, "ease_in"))      return AnimBlendCurve::EaseIn;
+    if (!strcmp(curveName, "ease_out"))     return AnimBlendCurve::EaseOut;
+    if (!strcmp(curveName, "ease_in_out"))  return AnimBlendCurve::EaseInOut;
+    return AnimBlendCurve::Linear;
+}
+
+static float EvalBlendCurve(float t, AnimBlendCurve c)
+{
+    t = std::clamp(t, 0.0f, 1.0f);
+    switch (c) {
+    case AnimBlendCurve::EaseIn:      return t * t;
+    case AnimBlendCurve::EaseOut:     return 1.0f - (1.0f - t) * (1.0f - t);
+    case AnimBlendCurve::EaseInOut: {
+        // 简单的 S 曲线，可以以后换成更顺的
+        float u = t * 2.0f;
+        if (u < 1.0f) return 0.5f * u * u;
+        u -= 1.0f;
+        return 1.0f - 0.5f * (1.0f - u) * (1.0f - u);
+    }
+    default: // Linear
+        return t;
+    }
 }
 
 // ---------------------------------
@@ -274,6 +320,23 @@ void AnimatorRegistry_Update(double dtSec)
 
     // 先采样再推进：保持 [t, t+dt] 采样与推进时序一致
     ModelSkinned_Update(dtSec);
+
+    // --- 新增：处理 crossfade ---
+    if (gBlend.active) {
+        gBlend.time += (float)dtSec;
+        float t = gBlend.time / gBlend.duration;
+        if (t >= 1.0f) {
+            t = 1.0f;
+            gBlend.active = false;
+            ModelSkinned_ClearCrossFadeSource();
+        }
+
+        float w = EvalBlendCurve(t, gBlend.curve);
+        ModelSkinned_SetCrossFadeWeight(w);
+    }
+    else {
+        ModelSkinned_SetCrossFadeWeight(1.0f);
+    }
 }
 
 void AnimatorRegistry_Draw()
@@ -360,4 +423,35 @@ bool AnimatorRegistry_DebugGetCurrentClipLengthSec(float* outSec)
     const float rate = (cur.playbackRate > 0.0f ? cur.playbackRate : 1.0f);
     *outSec = (float(fc) / sr) / rate;
     return true;
+}
+
+void AnimatorRegistry_CrossFade(const std::wstring& name,
+    float durationSec,
+    const char* curveNameUTF8)
+{
+    // 没有混合时间就退化成普通 Play
+    if (durationSec <= 0.0f) {
+        gBlend.active = false;
+        ModelSkinned_ClearCrossFadeSource();
+        AnimatorRegistry_Play(name, nullptr);
+        return;
+    }
+
+    // 1) 让底层记录“当前姿势快照”
+    ModelSkinned_CaptureCurrentLocalPose();
+
+    // 2) 播放新剪辑（沿用原有 Play 逻辑：加载 .mesh/.skel/.anim，设置 rmType 等）
+    bool changed = false;
+    if (!AnimatorRegistry_Play(name, &changed)) {
+        // 播放失败则取消混合
+        gBlend.active = false;
+        ModelSkinned_ClearCrossFadeSource();
+        return;
+    }
+
+    // 3) 初始化混合状态
+    gBlend.active = true;
+    gBlend.time = 0.0f;
+    gBlend.duration = durationSec;
+    gBlend.curve = ParseBlendCurve(curveNameUTF8);
 }

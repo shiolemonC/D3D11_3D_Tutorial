@@ -78,3 +78,8 @@ bool AnimatorRegistry_DebugGetCurrentClipName(const wchar_t** outName);
 bool AnimatorRegistry_DebugGetRootYaw(float* yaw0, float* yawNow);
 // 返回“当前剪辑总时长（秒）”（考虑 playbackRate）
 bool AnimatorRegistry_DebugGetCurrentClipLengthSec(float* outSec);
+
+// 从当前姿势跨到新 clip，duration<=0 时退化为 Play
+void AnimatorRegistry_CrossFade(const std::wstring& name,
+    float durationSec,
+    const char* curveNameUTF8);

@@ -16,6 +16,7 @@ void SpriteAnim_Finalize();
 
 void SpriteAnim_Update(double elapsed_time);
 void SpriteAnim_Draw(int playid, float dx, float dy, float dw, float dh);
+void BillboardAnim_Draw(int playid,const DirectX::XMFLOAT3& position, const DirectX::XMFLOAT2& scale, const DirectX::XMFLOAT2& pivot = {0.0f, 0.0f});
 
 // パターン登録用
 int SpriteAnim_RegisterPattern(

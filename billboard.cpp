@@ -53,10 +53,14 @@ void Billboard_Finalize()
 }
 
 
-void Billboard_Draw(int texid, const DirectX::XMFLOAT3& position, float scale_x, float scale_y, const DirectX::XMFLOAT2& pivot)
+
+
+void Billboard_Draw(int texid, const DirectX::XMFLOAT3& position, const DirectX::XMFLOAT2& scale, const DirectX::XMFLOAT2& pivot)
 {
-	ShaderBillboard_SetUVParameter({{1.0f, 1.0f}, {0.0f, 0.0f}});
 	ShaderBillboard_Begin();
+
+	ShaderBillboard_SetUVParameter({{1.0f, 1.0f}, {0.6f, 0.5f}});
+
 
 	//set PSShader color
 	ShaderBillboard_SetColor({ 1.0f, 1.0f, 1.0f, 1.0f });
@@ -69,12 +73,53 @@ void Billboard_Draw(int texid, const DirectX::XMFLOAT3& position, float scale_x,
 	Direct3D_GetContext()->IASetPrimitiveTopology(D3D11_PRIMITIVE_TOPOLOGY_TRIANGLESTRIP);
 
 	//XMMATRIX mtxWorld = XMMatrixIdentity(); // 如需自转可插 XMMatrixRotationY(θ)
-	XMMATRIX pivot_offset = XMMatrixTranslation(-pivot.x, -pivot.y, 1.0f);
+
 	XMFLOAT4X4 mtxCamera = Camera_GetMatrix();
 	mtxCamera._41 = mtxCamera._42 = mtxCamera._43 = 0.0f;
 	XMMATRIX iv = XMMatrixTranspose(XMLoadFloat4x4(&mtxCamera));//重い！
 
-	XMMATRIX s = XMMatrixScaling(scale_x, scale_y, 1.0f);
+	XMMATRIX pivot_offset = XMMatrixTranslation(-pivot.x, -pivot.y, 1.0f);
+	XMMATRIX s = XMMatrixScaling(scale.x, scale.y, 1.0f);
+	XMMATRIX t = XMMatrixTranslation(position.x + pivot.x, position.y + pivot.y, position.z);
+	ShaderBillboard_SetWorldMatrix(pivot_offset * s * iv * t);
+
+	// 頂点バッファを描画パイプラインに設定
+	UINT stride = sizeof(Vertex3d);
+	UINT offset = 0;
+	Direct3D_GetContext()->IASetVertexBuffers(0, 1, &g_pVertexBuffer, &stride, &offset);
+
+	Direct3D_GetContext()->Draw(NUM_VERTEX, 0);
+}
+
+void Billboard_Draw(int texid, const DirectX::XMFLOAT3& position, const DirectX::XMFLOAT2& scale, const DirectX::XMUINT4& tex_cut, const DirectX::XMFLOAT2& pivot)
+{
+	ShaderBillboard_Begin();
+	float uv_x = (float)tex_cut.x / Texture_Width(texid);
+	float uv_y = (float)tex_cut.y / Texture_Height(texid);
+	float uv_w = (float)tex_cut.z / Texture_Width(texid);
+	float uv_h = (float)tex_cut.w / Texture_Height(texid);
+
+	ShaderBillboard_SetUVParameter({ {uv_w, uv_h}, {uv_x, uv_y} });
+
+
+	//set PSShader color
+	ShaderBillboard_SetColor({ 1.0f, 1.0f, 1.0f, 1.0f });
+
+	Texture_SetTexture(texid);
+
+
+
+
+	Direct3D_GetContext()->IASetPrimitiveTopology(D3D11_PRIMITIVE_TOPOLOGY_TRIANGLESTRIP);
+
+	//XMMATRIX mtxWorld = XMMatrixIdentity(); // 如需自转可插 XMMatrixRotationY(θ)
+
+	XMFLOAT4X4 mtxCamera = Camera_GetMatrix();
+	mtxCamera._41 = mtxCamera._42 = mtxCamera._43 = 0.0f;
+	XMMATRIX iv = XMMatrixTranspose(XMLoadFloat4x4(&mtxCamera));//重い！
+
+	XMMATRIX pivot_offset = XMMatrixTranslation(-pivot.x, -pivot.y, 1.0f);
+	XMMATRIX s = XMMatrixScaling(scale.x, scale.y, 1.0f);
 	XMMATRIX t = XMMatrixTranslation(position.x + pivot.x, position.y + pivot.y, position.z);
 	ShaderBillboard_SetWorldMatrix(pivot_offset * s * iv * t);
 

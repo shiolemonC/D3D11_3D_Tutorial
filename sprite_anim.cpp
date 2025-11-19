@@ -10,6 +10,7 @@
 #include "sprite.h"
 #include "texture.h"
 #include <DirectXMath.h>
+#include "billboard.h"
 using namespace DirectX;
 
 
@@ -105,6 +106,26 @@ void SpriteAnim_Draw(int playid, float dx, float dy, float dw, float dh)
 		pAnimPatternData->m_PatternSize.x,
 		pAnimPatternData->m_PatternSize.y
 	);
+}
+
+void BillboardAnim_Draw(int playid, const DirectX::XMFLOAT3& position, const DirectX::XMFLOAT2& scale, const DirectX::XMFLOAT2& pivot)
+{
+	int anim_pattern_id = g_AnimPlayData[playid].m_PatternId;
+	AnimPatternData* pAnimPatternData = &g_AnimPattern[anim_pattern_id];
+
+	Billboard_Draw(
+		pAnimPatternData->m_TextureId,
+		position,
+		scale,
+		{
+			pAnimPatternData->m_StartPosition.x + pAnimPatternData->m_PatternSize.x * (g_AnimPlayData[playid].m_PatternNum % pAnimPatternData->m_HPatternMax),
+			pAnimPatternData->m_StartPosition.y + pAnimPatternData->m_PatternSize.y * (g_AnimPlayData[playid].m_PatternNum / pAnimPatternData->m_HPatternMax),
+			pAnimPatternData->m_PatternSize.x,
+			pAnimPatternData->m_PatternSize.y
+		},
+		pivot
+		);
+
 }
 
 int SpriteAnim_RegisterPattern(int texId, int patternMax, int h_pattern_max, double seconds_per_pattern,

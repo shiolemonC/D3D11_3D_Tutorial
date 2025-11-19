@@ -195,7 +195,7 @@ void ShaderBillboard_Begin()
 	Direct3D_GetContext()->VSSetConstantBuffers(0, 1, &g_pVSConstantBuffer0);
 	Direct3D_GetContext()->VSSetConstantBuffers(1, 1, &g_pVSConstantBuffer1);
 	Direct3D_GetContext()->VSSetConstantBuffers(2, 1, &g_pVSConstantBuffer2);
-	Direct3D_GetContext()->VSSetConstantBuffers(3, 1, &g_pVSConstantBuffer2);
+	Direct3D_GetContext()->VSSetConstantBuffers(3, 1, &g_pVSConstantBuffer3);
 
 	Direct3D_GetContext()->PSSetConstantBuffers(0, 1, &g_pPSConstantBuffer0);
 
