@@ -733,13 +733,31 @@ void ModelSkinned_Draw() {
                 dst.S[2] = src.S[2] + (dst.S[2] - src.S[2]) * w;
 
                 // 旋转 nlerp（线性插值后归一化）
+                // 旧姿势四元数
                 XMVECTOR qA = XMVectorSet(src.R[0], src.R[1], src.R[2], src.R[3]);
+                // 新姿势四元数
                 XMVECTOR qB = XMVectorSet(dst.R[0], dst.R[1], dst.R[2], dst.R[3]);
+
+                // 先规整一下，避免积累误差
+                qA = XMQuaternionNormalize(qA);
+                qB = XMQuaternionNormalize(qB);
+
+                // ★ 优弧选择：如果 dot<0，则翻转新四元数
+                float dot = XMVectorGetX(XMVector4Dot(qA, qB));
+                if (dot < 0.0f) {
+                    qB = XMVectorNegate(qB);
+                }
+
+                // 做 nlerp（或者 slerp 都行，这里用 nlerp 即可）
                 XMVECTOR q = XMVectorLerp(qA, qB, w);
                 q = XMQuaternionNormalize(q);
-                XMFLOAT4 qf; XMStoreFloat4(&qf, q);
-                dst.R[0] = qf.x; dst.R[1] = qf.y;
-                dst.R[2] = qf.z; dst.R[3] = qf.w;
+
+                XMFLOAT4 qf;
+                XMStoreFloat4(&qf, q);
+                dst.R[0] = qf.x;
+                dst.R[1] = qf.y;
+                dst.R[2] = qf.z;
+                dst.R[3] = qf.w;
             }
 
             poseForSkinning = blendedPose.data();
