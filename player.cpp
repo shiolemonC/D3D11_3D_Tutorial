@@ -2,6 +2,8 @@
 #include <DirectXMath.h>
 #include <cmath>
 #include "player.h"
+#include "collider_system.h"   // collider
+#include <memory>              // ★ std::make_unique 用
 using namespace DirectX;
 
 // ------------------ 内部状态 ------------------
@@ -11,12 +13,58 @@ static float    s_speed = 2.5f;
 static float    s_turnK = 10.0f;
 static float    s_scale = 1.0f;
 
+// ---- Player 用コライダー情報 ----
+static int      s_bodyColliderId = -1;               // CollisionWorld 内のID
+static XMFLOAT3 s_bodyHalfSize{ 0.4f, 0.9f, 0.4f };  // AABB 半サイズ (x,y,z)
+
+
 static inline float AngleDelta(float a, float b) {
     float d = fmodf(b - a + XM_PI, XM_2PI) - XM_PI;
     return (d < -XM_PI) ? d + XM_2PI : d;
 }
 static inline float ExpLerp01(float k, float dt) {
     return 1.0f - expf(-k * dt);
+}
+
+// プレイヤーの「体」用 AABB コライダーを作成
+static void Player_CreateBodyCollider()
+{
+    // 既にあれば一旦消して作り直す
+    if (s_bodyColliderId >= 0) {
+        GetCollisionWorld().UnregisterCollider(s_bodyColliderId);
+        s_bodyColliderId = -1;
+    }
+
+    auto col = std::make_unique<ColliderBase>();
+    col->category = ColliderCategory::CharacterBody;
+    col->collideMask = 0;            // ★ まだ何とも当てない。今は debug 可視化専用
+    col->userPtr = nullptr;       // 将来 Player* を入れてもOK
+
+    col->shape.type = ColliderShapeType::AABB;
+
+    const XMFLOAT3& c = s_pos;
+    const XMFLOAT3& half = s_bodyHalfSize;
+
+    col->shape.aabb.min = { c.x - half.x, c.y,                 c.z - half.z };
+    col->shape.aabb.max = { c.x + half.x, c.y + 2.0f * half.y,   c.z + half.z };
+
+    s_bodyColliderId = GetCollisionWorld().RegisterCollider(std::move(col));
+}
+
+// 位置が変わったときに AABB を更新
+static void Player_UpdateBodyCollider()
+{
+    if (s_bodyColliderId < 0) return;
+
+    ColliderBase* col = GetCollisionWorld().GetCollider(s_bodyColliderId);
+    if (!col) return;
+
+    const XMFLOAT3& c = s_pos;
+    const XMFLOAT3& half = s_bodyHalfSize;
+
+    col->shape.type = ColliderShapeType::AABB;
+    col->shape.aabb.min = { c.x - half.x, c.y,                 c.z - half.z };
+    col->shape.aabb.max = { c.x + half.x, c.y + 2.0f * half.y,   c.z + half.z };
 }
 
 // ------------------ 初始化 ------------------
@@ -26,6 +74,8 @@ void Player_Initialize(const PlayerDesc& d)
     s_speed = d.moveSpeed;
     s_turnK = d.turnSharpness;
     s_scale = d.scale;
+
+    Player_CreateBodyCollider();
 }
 
 // ------------------ 内部：基于输入的运动（类魂/怪猎） ------------------
@@ -72,6 +122,7 @@ static void Player_Kinematic_Update(double dt,
     XMMATRIX W = S * R * T;
 
     AnimatorRegistry_SetWorld(W);
+    Player_UpdateBodyCollider();  // ★ 新增
 }
 
 // ------------------ 内部：应用 RootMotion Δ ------------------
@@ -82,6 +133,8 @@ static void Player_ApplyRootMotionDelta(const RootMotionDelta& rm)
     s_pos.z += rm.pos.z;
 
     s_yaw += rm.yaw; // 目前 rm.yaw 在调用前可以为 0，将来需要时可以启用
+
+    Player_UpdateBodyCollider();
 }
 
 // ------------------ 对外：一帧更新 ------------------
@@ -144,4 +197,9 @@ XMFLOAT3 Player_GetForward()
 {
     XMVECTOR f = XMVector3Normalize(XMVectorSet(std::sinf(s_yaw), 0, std::cosf(s_yaw), 0));
     XMFLOAT3 out; XMStoreFloat3(&out, f); return out;
+}
+
+int Player_GetBodyColliderId()
+{
+    return s_bodyColliderId;
 }

@@ -19,5 +19,8 @@ void Cube_Update(double elapsed_time);
 
 void Cube_Draw(const DirectX::XMMATRIX& mtxWorld);
 
+void Cube_DrawWireframe(const DirectX::XMMATRIX& mtxWorld,
+    const DirectX::XMFLOAT4& color);
+
 BOXAABB Cube_GetAABB(const DirectX::XMFLOAT3& position);
 #endif // !CUBE_H

@@ -33,3 +33,5 @@ DirectX::XMMATRIX         Player_GetWorld();
 const DirectX::XMFLOAT3& Player_GetPosition();
 float                     Player_GetYaw();
 DirectX::XMFLOAT3         Player_GetForward();
+
+int Player_GetBodyColliderId();

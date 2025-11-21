@@ -35,6 +35,10 @@ static float g_scale = 1.0f;
 static float g_AccumulatedTime = 0.0f;
 static int g_CubeTexId = -1;
 
+// ★ Debug Gizmo 用：纯白贴图 + Wireframe ラスタライザ
+static int   g_CubeDebugTexId = -1;
+static ID3D11RasterizerState* g_pWireframeRS = nullptr;
+
 struct Vertex3d
 {
 	XMFLOAT3 position; // 頂点座標
@@ -137,12 +141,32 @@ void Cube_Initialize(ID3D11Device* pDevice, ID3D11DeviceContext* pContext)
 	g_pDevice->CreateBuffer(&bd, &sd, &g_pIndexBuffer);
 
 	g_CubeTexId = Texture_Load(L"resources/UV_Texture_Pattern.png");
+
+	// ★ Debug Gizmo 用：纯白贴图（Collision_Debug 里也用这张）
+	g_CubeDebugTexId = Texture_Load(L"resources/white.png");
+
+	// ★ Wireframe 用ラスタライザステート生成
+	D3D11_RASTERIZER_DESC rsDesc{};
+	rsDesc.FillMode = D3D11_FILL_WIREFRAME;  // 线框
+	rsDesc.CullMode = D3D11_CULL_NONE;       // 双面都画，方便从背面看
+	rsDesc.FrontCounterClockwise = FALSE;
+	rsDesc.DepthClipEnable = TRUE;
+
+	HRESULT hr = g_pDevice->CreateRasterizerState(&rsDesc, &g_pWireframeRS);
+	if (FAILED(hr)) {
+		hal::dout << "Cube_Initialize() : failed to create wireframe rasterizer state" << std::endl;
+		g_pWireframeRS = nullptr;
+	}
+
 }
 
 void Cube_Finalize(void)
 {
 	SAFE_RELEASE(g_pVertexBuffer);
 	SAFE_RELEASE(g_pIndexBuffer);
+
+	// ★ Wireframe RS 释放
+	SAFE_RELEASE(g_pWireframeRS);
 }
 
 void Cube_Update(double elapsed_time)
@@ -207,6 +231,57 @@ void Cube_Draw(const DirectX::XMMATRIX& mtxWorld)
 	//		}
 	//	}
 	//}
+}
+
+void Cube_DrawWireframe(const DirectX::XMMATRIX& mtxWorld, const DirectX::XMFLOAT4& color)
+{
+	if (!g_pVertexBuffer || !g_pIndexBuffer) {
+		return;
+	}
+
+	// 3D シェーダーの共通セットアップ
+	Shader3d_Begin();
+
+	// 纯色：PS 常量 color
+	Shader3d_SetColor(color);
+
+	// 视觉上“无贴图”：采样一张纯白图，结果就是纯色
+	if (g_CubeDebugTexId >= 0) {
+		Texture_SetTexture(g_CubeDebugTexId);
+	}
+	else if (g_CubeTexId >= 0) {
+		// 退避：万一白贴图没载入，就用原来的
+		Texture_SetTexture(g_CubeTexId);
+	}
+
+	// 顶点 / 索引缓冲
+	UINT stride = sizeof(Vertex3d);
+	UINT offset = 0;
+	g_pContext->IASetVertexBuffers(0, 1, &g_pVertexBuffer, &stride, &offset);
+	g_pContext->IASetIndexBuffer(g_pIndexBuffer, DXGI_FORMAT_R16_UINT, 0);
+
+	// 三角形拓扑 + Wireframe 填充 => 线框盒子
+	g_pContext->IASetPrimitiveTopology(D3D11_PRIMITIVE_TOPOLOGY_TRIANGLELIST);
+
+	// 备份当前 RasterizerState
+	ID3D11RasterizerState* pOldRS = nullptr;
+	g_pContext->RSGetState(&pOldRS);
+
+	if (g_pWireframeRS) {
+		g_pContext->RSSetState(g_pWireframeRS);
+	}
+
+	// 设置世界矩阵
+	Shader3d_SetWorldMatrix(mtxWorld);
+
+	// 实际绘制
+	g_pContext->DrawIndexed(NUM_INDEX, 0, 0);
+
+	// 还原原来的 RasterizerState
+	g_pContext->RSSetState(pOldRS);
+	if (pOldRS) {
+		pOldRS->Release();
+	}
 }
 
 BOXAABB Cube_GetAABB(const DirectX::XMFLOAT3& position)

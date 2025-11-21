@@ -30,6 +30,8 @@
 #include "billboard.h"
 #include "texture.h"
 #include "sprite_anim.h"
+#include "collider_system.h"
+#include "direct3d.h"
 using namespace DirectX;
 
 static float g_x = 0.0f;
@@ -251,6 +253,8 @@ void Game_Draw()
 #if defined(DEBUG) || defined(_DEBUG) // debug buildだけで有効
     PlayerSM_DebugDraw();
     //Camera_DebugDraw();
+    GetCollisionWorld().DebugDraw3D();
+
 #endif
 
 

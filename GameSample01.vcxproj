@@ -148,6 +148,7 @@
     <ClCompile Include="Audio.cpp" />
     <ClCompile Include="billboard.cpp" />
     <ClCompile Include="camera.cpp" />
+    <ClCompile Include="collider_system.cpp" />
     <ClCompile Include="collision.cpp" />
     <ClCompile Include="cube.cpp" />
     <ClCompile Include="debug_ostream.cpp" />
@@ -195,6 +196,7 @@
     <ClInclude Include="Audio.h" />
     <ClInclude Include="billboard.h" />
     <ClInclude Include="camera.h" />
+    <ClInclude Include="collider_system.h" />
     <ClInclude Include="collision.h" />
     <ClInclude Include="cube.h" />
     <ClInclude Include="debug_ostream.h" />
