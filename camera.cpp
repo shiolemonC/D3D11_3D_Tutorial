@@ -4,6 +4,7 @@
 #include "direct3d.h"
 #include "shader3d.h"
 #include "shader_billboard.h"
+#include "shader3d_unlit.h"
 #include "key_logger.h"
 #include "debug_text.h"
 #include <sstream>
@@ -184,6 +185,7 @@ void Camera_Update(double elapsed_time)
 
 	Shader3d_SetViewMatrix(mtxView);
 	ShaderBillboard_SetViewMatrix(mtxView);
+	Shader3d_Unlit_SetViewMatrix(mtxView);
 
 	XMStoreFloat4x4(&g_CameraMatrix, mtxView);
 
@@ -197,6 +199,7 @@ void Camera_Update(double elapsed_time)
 	XMStoreFloat4x4(&g_PerspectiveMatrix, mtxPerspective);
 	Shader3d_SetProjectionMatrix(mtxPerspective);
 	ShaderBillboard_SetProjectionMatrix(mtxPerspective);
+	Shader3d_Unlit_SetProjectionMatrix(mtxPerspective);
 }
 
 const DirectX::XMFLOAT4X4& Camera_GetMatrix()

@@ -27,3 +27,5 @@ MODEL* ModelLoad(const char* FileName, bool bBlender = false);
 void ModelRelease(MODEL* model);
 
 void ModelDraw(MODEL* model, const DirectX::XMMATRIX& mtxWorld);
+
+void ModelDraw_Unlit(MODEL* model, const DirectX::XMMATRIX& mtxWorld);

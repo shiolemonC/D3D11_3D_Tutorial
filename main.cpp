@@ -8,6 +8,7 @@
 #include "direct3d.h"
 #include "shader.h"
 #include "shader3d.h"
+#include "shader3d_unlit.h"
 #include "sampler.h"
 #include "sprite.h"
 #include "texture.h"
@@ -61,6 +62,7 @@ int APIENTRY WinMain(
 	Direct3D_Initialize(hWnd); // Direct3Dの初期化、必ず一番先頭
 	Shader_Initialize(Direct3D_GetDevice(), Direct3D_GetContext());
 	Shader3d_Initialize(Direct3D_GetDevice(), Direct3D_GetContext());
+	Shader3d_Unlit_Initialize();
 	Sampler_Initialize(Direct3D_GetDevice(), Direct3D_GetContext());
 	Sprite_Initialize(Direct3D_GetDevice(), Direct3D_GetContext());
 	Texture_Initialize(Direct3D_GetDevice(), Direct3D_GetContext());
@@ -224,6 +226,7 @@ int APIENTRY WinMain(
 	SpriteAnim_Finalize();
 	Texture_Finalize();
 	Sprite_Finalize();
+	Shader3d_Unlit_Finalize();
 	Shader3d_Finalize();
 	Shader_Finalize();
 	Sampler_Finalize();

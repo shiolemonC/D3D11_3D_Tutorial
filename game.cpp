@@ -13,9 +13,11 @@
 #include "camera.h"
 #include <DirectXMath.h>
 #include "shader3d.h"
+#include "shader3d_unlit.h"
 #include "key_logger.h"
 #include "sampler.h"
 #include "meshfield.h"
+#include "sky.h"
 #include "ModelStatic.h"
 #include "ModelSkinned.h"
 #include "player.h"
@@ -32,6 +34,7 @@
 #include "sprite_anim.h"
 #include "collider_system.h"
 #include "direct3d.h"
+
 using namespace DirectX;
 
 static float g_x = 0.0f;
@@ -61,6 +64,7 @@ void Game_Initialize()
         { 0.0f, 0.0f, 1.0f }
     );
 
+    Sky_Initialize();
     Billboard_Initialize();
     g_TestTexid = Texture_Load(L"resources/runningman001.png");
 
@@ -110,6 +114,7 @@ void Game_Initialize()
 void Game_Finalize()
 {
     ModelRelease(g_pModelTest);
+    Sky_Finalize();
     Billboard_Finalize();
     Camera_Finalize();
     //PlayerCameraTest_Finalize();
@@ -163,6 +168,7 @@ void Game_Update(double elapsed_time)
     // 5) 让底层 Camera 模块更新 view/proj（原来就有）
     Camera_Update(elapsed_time);
 
+    Sky_SetPosition(Player_GetPosition());
     SpriteAnim_Update(elapsed_time);
     g_angle = g_AccumulatedTime * 3.0f;
 }
@@ -210,6 +216,9 @@ void Game_Draw()
 
     ModelDraw(g_pModelTreeTest, tree);
 
+    //Direct3D_SetDepthEnable(false);
+    //Sky_Draw();
+    //Direct3D_SetDepthEnable(true);
 
     Light_SetAmbient({ 1.0f, 1.0f, 1.0f });
     Light_SetDirectionWorld({ 1.0f, -0.6f, 0.0f, 0.0f }, { 0.0f, 0.0f, 0.0f, 1.0f });

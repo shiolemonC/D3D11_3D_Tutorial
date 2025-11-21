@@ -1,5 +1,4 @@
-
-#include "shader_billboard.h"
+#include "shader3d_unlit.h"
 #include <d3d11.h>
 #include <DirectXMath.h>
 #include <fstream>
@@ -16,11 +15,11 @@ static ID3D11InputLayout* g_pInputLayout = nullptr;
 static ID3D11Buffer* g_pVSConstantBuffer0 = nullptr; // 定数バッファb0
 static ID3D11Buffer* g_pVSConstantBuffer1 = nullptr; // 定数バッファb1
 static ID3D11Buffer* g_pVSConstantBuffer2 = nullptr; // 定数バッファb2
-static ID3D11Buffer* g_pVSConstantBuffer3 = nullptr; // 定数バッファb3
+
 static ID3D11PixelShader* g_pPixelShader = nullptr;
 static ID3D11Buffer* g_pPSConstantBuffer0 = nullptr; // 定数バッファb0
 
-bool ShaderBillboard_Initialize()
+bool Shader3d_Unlit_Initialize()
 {
 	HRESULT hr; // 戻り値格納用
 
@@ -30,10 +29,10 @@ bool ShaderBillboard_Initialize()
 
 
 	// 事前コンパイル済み頂点シェーダーの読み込み
-	std::ifstream ifs_vs("shader_vertex_billboard.cso", std::ios::binary);
+	std::ifstream ifs_vs("shader_vertex_3d_unlit.cso", std::ios::binary);
 
 	if (!ifs_vs) {
-		MessageBox(nullptr, "頂点シェーダーの読み込みに失敗しました\n\nshader_vertex_billboard.cso", "エラー", MB_OK);
+		MessageBox(nullptr, "頂点シェーダーの読み込みに失敗しました\n\shader_vertex_3d_unlit.cso", "エラー", MB_OK);
 		return false;
 	}
 
@@ -52,7 +51,7 @@ bool ShaderBillboard_Initialize()
 	hr = Direct3D_GetDevice()->CreateVertexShader(vsbinary_pointer, filesize, nullptr, &g_pVertexShader);
 
 	if (FAILED(hr)) {
-		hal::dout << "ShaderBillboard_Initialize() : 頂点シェーダーの作成に失敗しました" << std::endl;
+		hal::dout << "Shader3d_Unlit_Initialize() : 頂点シェーダーの作成に失敗しました" << std::endl;
 		delete[] vsbinary_pointer; // メモリリークしないようにバイナリデータのバッファを解放
 		return false;
 	}
@@ -62,6 +61,7 @@ bool ShaderBillboard_Initialize()
 	// UVの方がもうTEXCOORDという名前が定められている
 	D3D11_INPUT_ELEMENT_DESC layout[] = {
 		{ "POSITION",    0, DXGI_FORMAT_R32G32B32_FLOAT,    0, D3D11_APPEND_ALIGNED_ELEMENT, D3D11_INPUT_PER_VERTEX_DATA, 0 },
+		{ "NORMAL",      0, DXGI_FORMAT_R32G32B32_FLOAT,    0, D3D11_APPEND_ALIGNED_ELEMENT, D3D11_INPUT_PER_VERTEX_DATA, 0 },
 		{ "COLOR",       0, DXGI_FORMAT_R32G32B32A32_FLOAT, 0, D3D11_APPEND_ALIGNED_ELEMENT, D3D11_INPUT_PER_VERTEX_DATA, 0 },
 		{ "TEXCOORD",    0, DXGI_FORMAT_R32G32_FLOAT,       0, D3D11_APPEND_ALIGNED_ELEMENT, D3D11_INPUT_PER_VERTEX_DATA, 0 },
 	};
@@ -87,13 +87,11 @@ bool ShaderBillboard_Initialize()
 	Direct3D_GetDevice()->CreateBuffer(&buffer_desc, nullptr, &g_pVSConstantBuffer0);
 	Direct3D_GetDevice()->CreateBuffer(&buffer_desc, nullptr, &g_pVSConstantBuffer1);
 	Direct3D_GetDevice()->CreateBuffer(&buffer_desc, nullptr, &g_pVSConstantBuffer2);
-	buffer_desc.ByteWidth = sizeof(UVParameter);
-	Direct3D_GetDevice()->CreateBuffer(&buffer_desc, nullptr, &g_pVSConstantBuffer3);
 
 	// 事前コンパイル済みピクセルシェーダーの読み込み
-	std::ifstream ifs_ps("shader_pixel_billboard.cso", std::ios::binary);
+	std::ifstream ifs_ps("shader_pixel_3d_unlit.cso", std::ios::binary);
 	if (!ifs_ps) {
-		MessageBox(nullptr, "ピクセルシェーダーの読み込みに失敗しました\n\nshader_pixel_2d.cso", "エラー", MB_OK);
+		MessageBox(nullptr, "ピクセルシェーダーの読み込みに失敗しました\n\shader_pixel_3d_unlit.cso", "エラー", MB_OK);
 		return false;
 	}
 
@@ -111,7 +109,7 @@ bool ShaderBillboard_Initialize()
 	delete[] psbinary_pointer; // バイナリデータのバッファを解放
 
 	if (FAILED(hr)) {
-		hal::dout << "Shader_pixel_billboard_Initialize() : ピクセルシェーダーの作成に失敗しました" << std::endl;
+		hal::dout << "Shader3d_Unlit_Initialize() : ピクセルシェーダーの作成に失敗しました" << std::endl;
 		return false;
 	}
 
@@ -124,22 +122,19 @@ bool ShaderBillboard_Initialize()
 
 
 	return true;
-
 }
 
-void ShaderBillboard_Finalize()
+void Shader3d_Unlit_Finalize()
 {
 	SAFE_RELEASE(g_pPixelShader);
 	SAFE_RELEASE(g_pPSConstantBuffer0);
-	SAFE_RELEASE(g_pVSConstantBuffer3);
-	SAFE_RELEASE(g_pVSConstantBuffer2);
 	SAFE_RELEASE(g_pVSConstantBuffer1);
 	SAFE_RELEASE(g_pVSConstantBuffer0);
 	SAFE_RELEASE(g_pInputLayout);
 	SAFE_RELEASE(g_pVertexShader);
 }
 
-void ShaderBillboard_SetWorldMatrix(const DirectX::XMMATRIX& matrix)
+void Shader3d_Unlit_SetWorldMatrix(const DirectX::XMMATRIX& matrix)
 {
 	XMFLOAT4X4 transpose;
 
@@ -148,10 +143,9 @@ void ShaderBillboard_SetWorldMatrix(const DirectX::XMMATRIX& matrix)
 
 	// 定数バッファに行列をセット
 	Direct3D_GetContext()->UpdateSubresource(g_pVSConstantBuffer0, 0, nullptr, &transpose, 0, 0);
-
 }
 
-void ShaderBillboard_SetViewMatrix(const DirectX::XMMATRIX& matrix)
+void Shader3d_Unlit_SetViewMatrix(const DirectX::XMMATRIX& matrix)
 {
 	XMFLOAT4X4 transpose;
 
@@ -162,7 +156,7 @@ void ShaderBillboard_SetViewMatrix(const DirectX::XMMATRIX& matrix)
 	Direct3D_GetContext()->UpdateSubresource(g_pVSConstantBuffer1, 0, nullptr, &transpose, 0, 0);
 }
 
-void ShaderBillboard_SetProjectionMatrix(const DirectX::XMMATRIX& matrix)
+void Shader3d_Unlit_SetProjectionMatrix(const DirectX::XMMATRIX& matrix)
 {
 	XMFLOAT4X4 transpose;
 
@@ -173,17 +167,12 @@ void ShaderBillboard_SetProjectionMatrix(const DirectX::XMMATRIX& matrix)
 	Direct3D_GetContext()->UpdateSubresource(g_pVSConstantBuffer2, 0, nullptr, &transpose, 0, 0);
 }
 
-void ShaderBillboard_SetColor(const DirectX::XMFLOAT4& color)
+void Shader3d_Unlit_SetColor(const DirectX::XMFLOAT4& color)
 {
 	Direct3D_GetContext()->UpdateSubresource(g_pPSConstantBuffer0, 0, nullptr, &color, 0, 0);
 }
 
-void ShaderBillboard_SetUVParameter(const UVParameter& pamameter)
-{
-	Direct3D_GetContext()->UpdateSubresource(g_pVSConstantBuffer3, 0, nullptr, &pamameter, 0, 0);
-}
-
-void ShaderBillboard_Begin()
+void Shader3d_Unlit_Begin()
 {
 	// 頂点シェーダーとピクセルシェーダーを描画パイプラインに設定
 	Direct3D_GetContext()->VSSetShader(g_pVertexShader, nullptr, 0);
@@ -196,8 +185,6 @@ void ShaderBillboard_Begin()
 	Direct3D_GetContext()->VSSetConstantBuffers(0, 1, &g_pVSConstantBuffer0);
 	Direct3D_GetContext()->VSSetConstantBuffers(1, 1, &g_pVSConstantBuffer1);
 	Direct3D_GetContext()->VSSetConstantBuffers(2, 1, &g_pVSConstantBuffer2);
-	Direct3D_GetContext()->VSSetConstantBuffers(3, 1, &g_pVSConstantBuffer3);
 
 	Direct3D_GetContext()->PSSetConstantBuffers(0, 1, &g_pPSConstantBuffer0);
-
 }
