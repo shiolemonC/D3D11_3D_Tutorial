@@ -1,0 +1,97 @@
+﻿#pragma once
+#include <string>
+#include <vector>
+#include <DirectXMath.h>
+#include <d3d11.h>
+
+// 运行时接口（简单版，内部保存全局状态；Draw() 无参数）
+struct BossModelSkinnedDesc {
+    std::wstring meshPath;                 // 必填：.mesh（v1，HAS_SKIN）
+    std::wstring skelPath;                 // 必填：.skel
+    std::wstring animPath;                 // 可选：.anim（没有也能用 bind pose）
+    std::wstring matPath;                  // 可选：.mat（如果不指定，默认 = mesh 同名 .mat）
+    std::wstring baseColorTexOverride;     // 可选：强制覆盖一张漫反射贴图
+};
+
+// 初始化：传入 D3D 设备与上下文（与 Shader3d 相同）
+bool BossModelSkinned_Initialize(ID3D11Device* dev, ID3D11DeviceContext* ctx);
+
+// 加载资源（mesh/skel/anim/mat/贴图；内部保存世界矩阵，默认单位阵）
+bool BossModelSkinned_Load(const BossModelSkinnedDesc& d);
+
+// 卸载 / 释放
+void BossModelSkinned_Finalize();
+
+// 每帧推进动画时间（秒）；没有 .anim 则忽略
+void BossModelSkinned_Update(double dtSec);
+
+// 设世界矩阵（如不调用，默认 I）
+void BossModelSkinned_SetWorldMatrix(const DirectX::XMMATRIX& world);
+
+// 渲染（内部会：Shader3d_Begin(); 绑定蒙皮 VS；设置 VB/IB/布局；上传骨矩阵；绑定贴图；DrawIndexed）
+void BossModelSkinned_Draw();
+
+// （可选）切换是否循环播放
+void BossModelSkinned_SetLoop(bool loop);
+
+// （可选）设置播放速度（倍率）
+void BossModelSkinned_SetPlaybackRate(float rate);
+
+// （可选）跳到某时间（秒）
+void BossModelSkinned_Seek(float timeSec);
+
+bool BossModelSkinned_LoadAnimOnly(const std::wstring& animPath);
+
+// （历史）真正根：parent==-1（仍保留）
+int  BossModelSkinned_GetRootJointIndex();
+
+// 以“当前时间 t”为起点，采样区间 [t, t+dt] 的“MotionRoot 局部位移 ΔT（单位：模型局部空间，米）”
+// 成功返回 true；若没有动画/根不存在返回 false
+bool BossModelSkinned_SampleRootDelta_Local(float dt, DirectX::XMFLOAT3* outDeltaT);
+
+// VelocityDriven 时把 MotionRoot 局部平移的 XZ 清零（保留 Y），启/停
+void BossModelSkinned_SetZeroRootTranslationXZ(bool enable);
+
+// Debug: 取得当前已加载剪辑的 MotionRoot 局部 yaw（弧度）
+// yaw0  = 第0帧（首帧）MotionRoot 局部朝向
+// yawNow= 当前时间点（内部时间）的 MotionRoot 局部朝向
+bool BossModelSkinned_DebugGetRootYaw_F0(float* yaw0);
+bool BossModelSkinned_DebugGetRootYaw_Current(float* yawNow);
+
+// —— 根局部旋转的“入场对齐 + ΔYaw 抽取”接口 ——
+// 设定对齐目标（通常 = 第一次播放的 Idle 首帧 yaw，单位：弧度）
+void BossModelSkinned_SetRootYawAlignTarget(float yawTargetRad);
+// 重置 yaw 基准（本剪辑首帧 yaw，单位：弧度）
+void BossModelSkinned_ResetRootYawTrack(float yawStartRad);
+// 采样区间 [t, t+dt] 的 MotionRoot 局部 Δyaw（单位：弧度；成功返回 true）
+// 注意：要在 ModelSkinned_Update(dt) 之前调用，和 SampleRootDelta_Local 使用同样的时间点
+bool BossModelSkinned_SampleRootYawDelta(float dt, float* outDeltaYaw);
+
+// 节点层入场对齐：设置/读取固定的世界层 yaw 修正（乘在 world 之前）
+void  BossModelSkinned_SetNodeYawFix(float rad);
+float BossModelSkinned_GetNodeYawFix();
+
+// 取“当前 clip 第0帧的 MotionRoot 在模型空间的 yaw”（用于计算 nodeYawFix）
+bool  BossModelSkinned_ComputeRootYaw_ModelSpace_FirstFrame(float* outRad);
+
+// === meta getters ===
+uint32_t BossModelSkinned_GetFrameCount();
+float    BossModelSkinned_GetSampleRate();
+
+// —— Motion Root 选择 ——
+// 传入UTF-8骨骼名。空字符串表示“使用默认策略”（优先Hips，否则parent==-1）
+bool  BossModelSkinned_SetMotionRootByName(const char* utf8Name);
+int   BossModelSkinned_GetMotionRootIndex();   // 解析后的索引（-1表示未解析，跌回默认）
+const char* BossModelSkinned_GetMotionRootName();
+
+// 在装载完 skeleton 后解析（内部会自动调用，也可手动调用以重解析）
+void  BossModelSkinned_ResolveMotionRoot();
+
+// 在当前 clip / 当前时间已经采样出局部姿势后，拍一张快照
+void BossModelSkinned_CaptureCurrentLocalPose();
+
+// 设置当前 crossfade 权重（0=全旧姿势，1=全新姿势）
+void BossModelSkinned_SetCrossFadeWeight(float w);
+
+// 混合结束时清掉旧姿势缓存（可选）
+void BossModelSkinned_ClearCrossFadeSource();
