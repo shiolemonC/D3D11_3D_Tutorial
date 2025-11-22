@@ -146,6 +146,7 @@
     <ClCompile Include="AnimatorRegistry.cpp" />
     <ClCompile Include="animator_register.cpp" />
     <ClCompile Include="anim_event.cpp" />
+    <ClCompile Include="anim_event_player.cpp" />
     <ClCompile Include="Audio.cpp" />
     <ClCompile Include="billboard.cpp" />
     <ClCompile Include="camera.cpp" />
@@ -160,6 +161,7 @@
     <ClCompile Include="game.cpp" />
     <ClCompile Include="game_window.cpp" />
     <ClCompile Include="grid.cpp" />
+    <ClCompile Include="hitbox_system.cpp" />
     <ClCompile Include="keyboard.cpp" />
     <ClCompile Include="key_logger.cpp" />
     <ClCompile Include="light.cpp" />
@@ -196,6 +198,7 @@
   <ItemGroup>
     <ClInclude Include="AnimatorRegistry.h" />
     <ClInclude Include="anim_event.h" />
+    <ClInclude Include="anim_event_player.h" />
     <ClInclude Include="asset_format.h" />
     <ClInclude Include="Audio.h" />
     <ClInclude Include="billboard.h" />
@@ -212,6 +215,7 @@
     <ClInclude Include="game.h" />
     <ClInclude Include="game_window.h" />
     <ClInclude Include="grid.h" />
+    <ClInclude Include="hitbox_system.h" />
     <ClInclude Include="keyboard.h" />
     <ClInclude Include="key_logger.h" />
     <ClInclude Include="light.h" />

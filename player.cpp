@@ -4,6 +4,7 @@
 #include "player.h"
 #include "collider_system.h"   // collider
 #include <memory>              // ★ std::make_unique 用
+#include "anim_event_player.h" // ★ 新增：帧事件播放器
 using namespace DirectX;
 
 // ------------------ 内部状态 ------------------
@@ -16,6 +17,8 @@ static float    s_scale = 1.0f;
 // ---- Player 用コライダー情報 ----
 static int      s_bodyColliderId = -1;               // CollisionWorld 内のID
 static XMFLOAT3 s_bodyHalfSize{ 0.4f, 0.9f, 0.4f };  // AABB 半サイズ (x,y,z)
+
+static AnimEventPlayer s_animEventPlayer;  // ★ 每个玩家一份的事件播放器
 
 
 static inline float AngleDelta(float a, float b) {
@@ -76,6 +79,10 @@ void Player_Initialize(const PlayerDesc& d)
     s_scale = d.scale;
 
     Player_CreateBodyCollider();
+
+    // ★ 帧事件播放器绑定到这个“玩家”
+// 目前你没有 Player 实例，就先传 nullptr，将来有 Player* 再改
+    s_animEventPlayer.Initialize(nullptr);
 }
 
 // ------------------ 内部：基于输入的运动（类魂/怪猎） ------------------
@@ -163,6 +170,8 @@ void Player_Update(double dt, const PlayerUpdateInput& in)
         if (AnimatorRegistry_DebugGetCurrentClipLengthSec(&clipSec)) {
             PlayerSM_OverrideCurrentStateLength(clipSec);
         }
+        // ★ 告诉帧事件播放器：当前播放的动画剪辑变成了 smOut.clip
+        s_animEventPlayer.OnClipChanged(smOut.clip);
     }
 
     // 3) 根据 FSM 的 locomotionActive 决定是否允许 WASD 驱动位移
@@ -170,6 +179,14 @@ void Player_Update(double dt, const PlayerUpdateInput& in)
 
     // 4) 动画时间推进 + RootMotion 累积
     AnimatorRegistry_Update(dt);
+
+    // ★ 4.5) 使用当前动画的归一化时间驱动帧事件系统
+    {
+        float norm = 0.0f;
+        if (AnimatorRegistry_DebugGetCurrentNormalizedTime(&norm)) {
+            s_animEventPlayer.Update(norm);
+        }
+    }
 
     // 5) 若当前状态允许使用 RootMotion，就消费动画 Δ 并同步回玩家
     if (smOut.useRootMotion) {

@@ -35,6 +35,10 @@
 #include "collider_system.h"
 #include "direct3d.h"
 
+#include "anim_event.h"
+#include "anim_event_player.h"
+#include "hitbox_system.h"
+
 using namespace DirectX;
 
 static float g_x = 0.0f;
@@ -50,6 +54,8 @@ static MODEL* g_pModelTreeTest = nullptr;
 static int g_TestTexid = -1;
 static int g_AnimPatternId = -1;
 static int g_AnimPlayId = -1;
+
+
 
 void Game_Initialize()
 {
@@ -88,6 +94,7 @@ void Game_Initialize()
 
     // 注册动画（你已有的）
     AnimRegister();
+    AnimEventRegister();   // ★ 新增：注册动画事件
 
     // 初始化玩家
     PlayerDesc pd{};
@@ -109,6 +116,7 @@ void Game_Initialize()
 
     // 相机跟随
     PlayerCamera_Initialize({});
+
 }
 
 void Game_Finalize()
@@ -122,6 +130,8 @@ void Game_Finalize()
 
 void Game_Update(double elapsed_time)
 {
+
+    HitboxSystem_Update(static_cast<float>(elapsed_time));
 
     g_AccumulatedTime += elapsed_time;
     Cube_Update(elapsed_time);
@@ -170,6 +180,9 @@ void Game_Update(double elapsed_time)
 
     Sky_SetPosition(Player_GetPosition());
     SpriteAnim_Update(elapsed_time);
+
+
+
     g_angle = g_AccumulatedTime * 3.0f;
 }
 

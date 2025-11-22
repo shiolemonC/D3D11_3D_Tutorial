@@ -18,6 +18,11 @@ static std::vector<AnimClipDesc> gClips;     // 动作注册表
 static int        gCurrent = -1;             // 当前播放索引（-1 = 无）
 static XMMATRIX   gBaseWorld = XMMatrixIdentity();
 
+
+// 当前剪辑的时间&长度（用于归一化时间）
+static float      gCurrentTimeSec = 0.0f;
+static float      gCurrentClipLengthSec = 0.0f;
+
 // 记录加载的 mesh+skel 组合（以后可做只换 anim 的优化）
 struct MeshSkelKey {
     std::wstring mesh;
@@ -101,6 +106,10 @@ bool AnimatorRegistry_Initialize(ID3D11Device* dev, ID3D11DeviceContext* ctx)
     gYawBaselineInit = false;
     gYawBaselineRad = 0.0f;
 
+    // ★ 新增
+    gCurrentTimeSec = 0.0f;
+    gCurrentClipLengthSec = 0.0f;
+
     return ModelSkinned_Initialize(dev, ctx);
 }
 
@@ -115,6 +124,10 @@ void AnimatorRegistry_Clear()
 {
     gClips.clear();
     gCurrent = -1;
+
+    // ★ 新增
+    gCurrentTimeSec = 0.0f;
+    gCurrentClipLengthSec = 0.0f;
 }
 
 static int FindIndex(const std::wstring& name)
@@ -248,6 +261,14 @@ bool AnimatorRegistry_Play(const std::wstring& name,
 
         // VelocityDriven 时：清掉根局部 XZ 平移
         ModelSkinned_SetZeroRootTranslationXZ(clip.rmType != RootMotionType::UseAnimDelta);
+
+        // ★ 新增：重置当前动画时间，并计算剪辑总长度（秒）
+        gCurrentTimeSec = 0.0f;
+        gCurrentClipLengthSec = 0.0f;
+        float lenSec = 0.0f;
+        if (AnimatorRegistry_DebugGetCurrentClipLengthSec(&lenSec)) {
+            gCurrentClipLengthSec = lenSec;
+        }
     }
 
     // 同步世界矩阵（node-fix 会在 Draw 时组合）
@@ -337,6 +358,28 @@ void AnimatorRegistry_Update(double dtSec)
     else {
         ModelSkinned_SetCrossFadeWeight(1.0f);
     }
+
+    // ★ 新增：推进当前剪辑的“归一化时间”时钟
+    if (gCurrent >= 0 && gCurrent < (int)gClips.size() && gCurrentClipLengthSec > 0.0f) {
+        const AnimClipDesc& c = gClips[gCurrent];
+        float rate = (c.playbackRate > 0.0f ? c.playbackRate : 1.0f);
+
+        // 动画时间 = ∫ dt * playbackRate
+        gCurrentTimeSec += (float)dtSec * rate;
+
+        if (c.loop) {
+            // 循环动画：时间超过长度就 wrap 回去
+            while (gCurrentTimeSec >= gCurrentClipLengthSec) {
+                gCurrentTimeSec -= gCurrentClipLengthSec;
+            }
+        }
+        else {
+            // 非循环：时间到尾就 clamp
+            if (gCurrentTimeSec > gCurrentClipLengthSec) {
+                gCurrentTimeSec = gCurrentClipLengthSec;
+            }
+        }
+    }
 }
 
 void AnimatorRegistry_Draw()
@@ -422,6 +465,21 @@ bool AnimatorRegistry_DebugGetCurrentClipLengthSec(float* outSec)
 
     const float rate = (cur.playbackRate > 0.0f ? cur.playbackRate : 1.0f);
     *outSec = (float(fc) / sr) / rate;
+    return true;
+}
+
+// ★ 新增：取得当前动画的归一化时间（0～1）
+bool AnimatorRegistry_DebugGetCurrentNormalizedTime(float* outNorm)
+{
+    if (!outNorm) return false;
+    if (gCurrent < 0 || gCurrent >= (int)gClips.size()) return false;
+    if (gCurrentClipLengthSec <= 0.0f) return false;
+
+    float t = gCurrentTimeSec / gCurrentClipLengthSec;
+    if (t < 0.0f) t = 0.0f;
+    if (t > 1.0f) t = 1.0f;
+
+    *outNorm = t;
     return true;
 }
 
