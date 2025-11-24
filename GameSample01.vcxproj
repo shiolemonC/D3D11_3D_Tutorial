@@ -149,6 +149,9 @@
     <ClCompile Include="anim_event_player.cpp" />
     <ClCompile Include="Audio.cpp" />
     <ClCompile Include="billboard.cpp" />
+    <ClCompile Include="boss.cpp" />
+    <ClCompile Include="BossAnimatorRegistry.cpp" />
+    <ClCompile Include="BossModelSkinned.cpp" />
     <ClCompile Include="camera.cpp" />
     <ClCompile Include="collider_system.cpp" />
     <ClCompile Include="collision.cpp" />
@@ -202,6 +205,9 @@
     <ClInclude Include="asset_format.h" />
     <ClInclude Include="Audio.h" />
     <ClInclude Include="billboard.h" />
+    <ClInclude Include="boss.h" />
+    <ClInclude Include="BossAnimatorRegistry.h" />
+    <ClInclude Include="BossModelSkinned.h" />
     <ClInclude Include="camera.h" />
     <ClInclude Include="collider_system.h" />
     <ClInclude Include="collision.h" />

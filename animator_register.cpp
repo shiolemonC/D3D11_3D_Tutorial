@@ -1,4 +1,5 @@
 ﻿#include "AnimatorRegistry.h"
+#include "BossAnimatorRegistry.h"
 
 // 把你素材的固定路径、默认播放策略都集中在这里注册
 void AnimRegister()
@@ -73,4 +74,62 @@ void AnimRegister()
 
     // 注册完可（可选）调用一次加载校验
     AnimatorRegistry_LoadAll();
+}
+
+void BossAnimRegister()
+{
+    BossAnimatorRegistry_Clear();
+
+    // 占位 Idle
+    {
+        AnimClipDesc c{};
+        c.name = L"Boss_Idle";
+        c.meshPath = L"resources/boss/cooked/boss_idle.mesh";
+        c.skelPath = L"resources/boss/cooked/boss_idle.skel";
+        c.animPath = L"resources/boss/cooked/boss_idle.anim";
+        c.matPath = L"resources/boss/cooked/boss_idle.mat";
+
+        c.loop = true;
+        c.playbackRate = 1.0f;
+        c.rmType = RootMotionType::None;   // Idle 不需要 RootMotion
+        c.motionRootNameUTF8 = "Armature";        // 或 "mixamorig:Hips"，看你 Boss 的骨骼名
+
+        BossAnimatorRegistry_Register(c);
+    }
+
+    // 占位 Chase（行走/跑步）
+    {
+        AnimClipDesc c{};
+        c.name = L"Boss_Chase";
+        c.meshPath = L"resources/boss/cooked/boss_chase.mesh";
+        c.skelPath = L"resources/boss/cooked/boss_chase.skel";
+        c.animPath = L"resources/boss/cooked/boss_chase.anim";
+        c.matPath = L"resources/boss/cooked/boss_chase.mat";
+
+        c.loop = true;
+        c.playbackRate = 1.0f;
+        c.rmType = RootMotionType::None;   // 先用逻辑位移追踪
+        c.motionRootNameUTF8 = "Armature";
+
+        BossAnimatorRegistry_Register(c);
+    }
+
+    // 占位 Attack（单次攻击）
+    {
+        AnimClipDesc c{};
+        c.name = L"Boss_Attack";
+        c.meshPath = L"resources/boss/cooked/boss_attack.mesh";
+        c.skelPath = L"resources/boss/cooked/boss_attack.skel";
+        c.animPath = L"resources/boss/cooked/boss_attack.anim";
+        c.matPath = L"resources/boss/cooked/boss_attack.mat";
+
+        c.loop = false;  // 攻击不循环
+        c.playbackRate = 1.0f;
+        c.rmType = RootMotionType::None; // 第一版不做冲刺 RootMotion
+        c.motionRootNameUTF8 = "Armature";
+
+        BossAnimatorRegistry_Register(c);
+    }
+
+    BossAnimatorRegistry_LoadAll();
 }

@@ -23,6 +23,12 @@
     <Filter Include="ヘッダー ファイル\player_function">
       <UniqueIdentifier>{b1d643b0-47cd-4331-ab5c-416d39b18bf7}</UniqueIdentifier>
     </Filter>
+    <Filter Include="ソース ファイル\animation">
+      <UniqueIdentifier>{5abd1eee-159b-4677-8035-c297bfad193c}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="ヘッダー ファイル\animation">
+      <UniqueIdentifier>{c49d0216-b2a2-4434-9ddd-6f2a53712165}</UniqueIdentifier>
+    </Filter>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="main.cpp">
@@ -121,15 +127,6 @@
     <ClCompile Include="light.cpp">
       <Filter>ソース ファイル</Filter>
     </ClCompile>
-    <ClCompile Include="ModelSkinned.cpp">
-      <Filter>ソース ファイル</Filter>
-    </ClCompile>
-    <ClCompile Include="AnimatorRegistry.cpp">
-      <Filter>ソース ファイル</Filter>
-    </ClCompile>
-    <ClCompile Include="animator_register.cpp">
-      <Filter>ソース ファイル</Filter>
-    </ClCompile>
     <ClCompile Include="model.cpp">
       <Filter>ソース ファイル</Filter>
     </ClCompile>
@@ -163,9 +160,6 @@
     <ClCompile Include="collider_system.cpp">
       <Filter>ソース ファイル</Filter>
     </ClCompile>
-    <ClCompile Include="anim_event.cpp">
-      <Filter>ソース ファイル</Filter>
-    </ClCompile>
     <ClCompile Include="sky.cpp">
       <Filter>ソース ファイル</Filter>
     </ClCompile>
@@ -175,7 +169,28 @@
     <ClCompile Include="hitbox_system.cpp">
       <Filter>ソース ファイル</Filter>
     </ClCompile>
+    <ClCompile Include="anim_event.cpp">
+      <Filter>ソース ファイル\animation</Filter>
+    </ClCompile>
     <ClCompile Include="anim_event_player.cpp">
+      <Filter>ソース ファイル\animation</Filter>
+    </ClCompile>
+    <ClCompile Include="animator_register.cpp">
+      <Filter>ソース ファイル\animation</Filter>
+    </ClCompile>
+    <ClCompile Include="AnimatorRegistry.cpp">
+      <Filter>ソース ファイル\animation</Filter>
+    </ClCompile>
+    <ClCompile Include="BossModelSkinned.cpp">
+      <Filter>ソース ファイル\animation</Filter>
+    </ClCompile>
+    <ClCompile Include="ModelSkinned.cpp">
+      <Filter>ソース ファイル\animation</Filter>
+    </ClCompile>
+    <ClCompile Include="BossAnimatorRegistry.cpp">
+      <Filter>ソース ファイル\animation</Filter>
+    </ClCompile>
+    <ClCompile Include="boss.cpp">
       <Filter>ソース ファイル</Filter>
     </ClCompile>
   </ItemGroup>
@@ -270,19 +285,10 @@
     <ClInclude Include="shader_field.h">
       <Filter>ヘッダー ファイル</Filter>
     </ClInclude>
-    <ClInclude Include="asset_format.h">
-      <Filter>ヘッダー ファイル</Filter>
-    </ClInclude>
     <ClInclude Include="ModelStatic.h">
       <Filter>ヘッダー ファイル</Filter>
     </ClInclude>
     <ClInclude Include="light.h">
-      <Filter>ヘッダー ファイル</Filter>
-    </ClInclude>
-    <ClInclude Include="ModelSkinned.h">
-      <Filter>ヘッダー ファイル</Filter>
-    </ClInclude>
-    <ClInclude Include="AnimatorRegistry.h">
       <Filter>ヘッダー ファイル</Filter>
     </ClInclude>
     <ClInclude Include="model.h">
@@ -321,16 +327,34 @@
     <ClInclude Include="sky.h">
       <Filter>ヘッダー ファイル</Filter>
     </ClInclude>
-    <ClInclude Include="anim_event.h">
-      <Filter>ヘッダー ファイル</Filter>
-    </ClInclude>
     <ClInclude Include="shader3d_unlit.h">
       <Filter>ヘッダー ファイル</Filter>
     </ClInclude>
     <ClInclude Include="hitbox_system.h">
       <Filter>ヘッダー ファイル</Filter>
     </ClInclude>
+    <ClInclude Include="anim_event.h">
+      <Filter>ヘッダー ファイル\animation</Filter>
+    </ClInclude>
     <ClInclude Include="anim_event_player.h">
+      <Filter>ヘッダー ファイル\animation</Filter>
+    </ClInclude>
+    <ClInclude Include="AnimatorRegistry.h">
+      <Filter>ヘッダー ファイル\animation</Filter>
+    </ClInclude>
+    <ClInclude Include="asset_format.h">
+      <Filter>ヘッダー ファイル\animation</Filter>
+    </ClInclude>
+    <ClInclude Include="BossModelSkinned.h">
+      <Filter>ヘッダー ファイル\animation</Filter>
+    </ClInclude>
+    <ClInclude Include="ModelSkinned.h">
+      <Filter>ヘッダー ファイル\animation</Filter>
+    </ClInclude>
+    <ClInclude Include="BossAnimatorRegistry.h">
+      <Filter>ヘッダー ファイル\animation</Filter>
+    </ClInclude>
+    <ClInclude Include="boss.h">
       <Filter>ヘッダー ファイル</Filter>
     </ClInclude>
   </ItemGroup>
