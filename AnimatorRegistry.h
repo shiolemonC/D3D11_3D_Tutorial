@@ -62,6 +62,7 @@ bool           AnimatorRegistry_CurrentLoop();
 
 // 供外部一次性注册用（若你有 animator_register.cpp）
 void AnimRegister();
+void BossAnimRegister();
 
 // RootMotionDelta（世界系）
 struct RootMotionDelta {

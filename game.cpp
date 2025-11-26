@@ -38,6 +38,8 @@
 #include "anim_event.h"
 #include "anim_event_player.h"
 #include "hitbox_system.h"
+#include "boss.h"
+#include "BossAnimatorRegistry.h"
 
 using namespace DirectX;
 
@@ -94,6 +96,7 @@ void Game_Initialize()
 
     // 注册动画（你已有的）
     AnimRegister();
+    BossAnimRegister();
     AnimEventRegister();   // ★ 新增：注册动画事件
 
     // 初始化玩家
@@ -103,6 +106,13 @@ void Game_Initialize()
     pd.turnSharpness = 12.0f;
     pd.scale = 1.0f;
     Player_Initialize(pd);
+
+    // 初始化 Boss 本体
+    BossDesc bd{};
+    bd.spawnPos = DirectX::XMFLOAT3(0.0f, 0.0f, 10.0f); // 比如在玩家前方 10 米
+    bd.scale = 3.0f;
+    Boss_Initialize(bd);
+
 
     Cond_Init(/*defaultTriggerBufferSec*/ 0.15f);
     if (!PlayerSM_LoadConfigJSON(L"resources/fsm_player.json")) {
@@ -174,6 +184,11 @@ void Game_Update(double elapsed_time)
 
     // 4) 把所有和玩家相关的逻辑都交给 Player_Update
     Player_Update(elapsed_time, pin);
+
+    // Boss 更新
+    BossUpdateContext bctx{};
+    bctx.playerPos = Player_GetPosition();
+    Boss_Update(elapsed_time, bctx);
 
     // 5) 让底层 Camera 模块更新 view/proj（原来就有）
     Camera_Update(elapsed_time);
@@ -268,6 +283,9 @@ void Game_Draw()
 
     //AnimatorRegistry_SetWorld(W);
     AnimatorRegistry_Draw();
+
+    // 再画 Boss
+    BossAnimatorRegistry_Draw();
 
     //Billboard_Draw(g_TestTexid, { -2.0f, 2.5f, 2.0f }, { 1.5f, 2.0f }, {140.0f * 3, 200.0f, 140.0f, 200.0f}, { 0.0f, 0.0f });
     BillboardAnim_Draw(g_AnimPlayId, { -2.0f, 2.5f, 2.0f }, { 1.5f, 2.0f },  { 0.0f, 0.0f });

@@ -2,6 +2,7 @@
 #include "boss.h"
 #include "BossAnimatorRegistry.h"
 #include "AnimatorRegistry.h"   // 为了 RootMotionDelta 等
+#include "collider_system.h"   // ★ 碰撞中台
 #include <cmath>
 
 using namespace DirectX;
@@ -10,6 +11,10 @@ using namespace DirectX;
 static XMFLOAT3 s_bossPos{ 0,0,0 };
 static float    s_bossYaw = 0.0f;
 static float    s_bossScale = 1.0f;
+
+// ---- Boss 身体 AABB collider ----
+static int      s_bossBodyColliderId = -1;               // CollisionWorld 内 ID
+static XMFLOAT3 s_bossBodyHalfSize{ 1.6f, 1.5f, 1.6f };  // 比玩家略大一点，可再调
 
 enum class BossState {
     Idle,
@@ -54,6 +59,47 @@ static void Boss_ChangeState(BossState next, const wchar_t* clipName, bool useCr
     }
 }
 
+// Boss の「体」用 AABB コライダーを作成
+static void Boss_CreateBodyCollider()
+{
+    // 先把旧的删掉（热重载之类情况下安全一点）
+    if (s_bossBodyColliderId >= 0) {
+        GetCollisionWorld().UnregisterCollider(s_bossBodyColliderId);
+        s_bossBodyColliderId = -1;
+    }
+
+    auto col = std::make_unique<ColliderBase>();
+    col->category = ColliderCategory::CharacterBody; // 先和玩家用同一类
+    col->collideMask = 0;                               // 暂时只用于 debug 可视化
+    col->userPtr = nullptr;                         // 将来也可以放 Boss* 指针
+
+    col->shape.type = ColliderShapeType::AABB;
+
+    const XMFLOAT3& c = s_bossPos;
+    const XMFLOAT3& half = s_bossBodyHalfSize;
+
+    col->shape.aabb.min = { c.x - half.x, c.y,                 c.z - half.z };
+    col->shape.aabb.max = { c.x + half.x, c.y + 2.0f * half.y, c.z + half.z };
+
+    s_bossBodyColliderId = GetCollisionWorld().RegisterCollider(std::move(col));
+}
+
+// Boss の AABB を現在位置に合わせて更新
+static void Boss_UpdateBodyCollider()
+{
+    if (s_bossBodyColliderId < 0) return;
+
+    ColliderBase* col = GetCollisionWorld().GetCollider(s_bossBodyColliderId);
+    if (!col) return;
+
+    const XMFLOAT3& c = s_bossPos;
+    const XMFLOAT3& half = s_bossBodyHalfSize;
+
+    col->shape.type = ColliderShapeType::AABB;
+    col->shape.aabb.min = { c.x - half.x, c.y,                 c.z - half.z };
+    col->shape.aabb.max = { c.x + half.x, c.y + 2.0f * half.y, c.z + half.z };
+}
+
 void Boss_Initialize(const BossDesc& d)
 {
     s_bossPos = d.spawnPos;
@@ -66,6 +112,8 @@ void Boss_Initialize(const BossDesc& d)
 
     // 初始播放 Idle
     BossAnimatorRegistry_Play(L"Boss_Idle", nullptr);
+
+    Boss_CreateBodyCollider();   // ★ 创建 Boss 身体 AABB
 }
 
 DirectX::XMFLOAT3 Boss_GetPosition() { return s_bossPos; }
@@ -74,7 +122,7 @@ float Boss_GetYaw() { return s_bossYaw; }
 DirectX::XMMATRIX Boss_GetWorld()
 {
     XMMATRIX S = XMMatrixScaling(s_bossScale, s_bossScale, s_bossScale);
-    XMMATRIX R = XMMatrixRotationY(s_bossYaw);
+    XMMATRIX R = XMMatrixRotationY(s_bossYaw + XM_PI);
     XMMATRIX T = XMMatrixTranslation(s_bossPos.x, s_bossPos.y, s_bossPos.z);
     return S * R * T;
 }
@@ -164,9 +212,19 @@ void Boss_Update(double dt, const BossUpdateContext& ctx)
     XMMATRIX W = Boss_GetWorld();
     BossAnimatorRegistry_SetWorld(W);
 
+    // 3.5) Boss 身体 AABB 同步到当前世界位置
+    Boss_UpdateBodyCollider();
+
     // ---- 4) 推进 Boss 动画（含 CrossFade / RootMotion 累计）----
     BossAnimatorRegistry_Update(dt);
 
     // 第一版不使用 Boss RootMotion（rmType 全部设为 None）
     // 如果以后要做冲刺，可以在 Attack 状态里 Consume RootMotion
+}
+
+
+
+int Boss_GetBodyColliderId()
+{
+    return s_bossBodyColliderId;
 }

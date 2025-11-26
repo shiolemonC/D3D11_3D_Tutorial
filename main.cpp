@@ -30,6 +30,7 @@
 #include "ModelStatic.h"
 #include "ModelSkinned.h"
 #include "AnimatorRegistry.h"
+#include "BossAnimatorRegistry.h"
 #pragma comment(lib, "xinput.lib")
 
 using namespace DirectX;
@@ -71,6 +72,7 @@ int APIENTRY WinMain(
 	Mouse_SetVisible(true);
 	//ModelSkinned_Initialize(Direct3D_GetDevice(), Direct3D_GetContext());
 	AnimatorRegistry_Initialize(Direct3D_GetDevice(), Direct3D_GetContext());
+	BossAnimatorRegistry_Initialize(Direct3D_GetDevice(), Direct3D_GetContext());
 	Game_Initialize();
 	Scene_Initialize();
 	Grid_Initialize(Direct3D_GetDevice(), Direct3D_GetContext());

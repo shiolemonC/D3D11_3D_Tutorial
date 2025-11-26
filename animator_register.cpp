@@ -84,10 +84,11 @@ void BossAnimRegister()
     {
         AnimClipDesc c{};
         c.name = L"Boss_Idle";
-        c.meshPath = L"resources/boss/cooked/boss_idle.mesh";
-        c.skelPath = L"resources/boss/cooked/boss_idle.skel";
-        c.animPath = L"resources/boss/cooked/boss_idle.anim";
-        c.matPath = L"resources/boss/cooked/boss_idle.mat";
+        c.meshPath = L"resources/player_anim/cooked/player_idle_test.mesh";
+        c.skelPath = L"resources/player_anim/cooked/player_idle_test.skel";
+        c.animPath = L"resources/player_anim/cooked/player_idle_test.anim";
+        c.matPath = L"resources/player_anim/cooked/player_idle_test.mat";
+        c.baseColorOverride = L"resources/player_anim/cooked/Textures/Mutant_diffuse.png";
 
         c.loop = true;
         c.playbackRate = 1.0f;
@@ -101,10 +102,12 @@ void BossAnimRegister()
     {
         AnimClipDesc c{};
         c.name = L"Boss_Chase";
-        c.meshPath = L"resources/boss/cooked/boss_chase.mesh";
-        c.skelPath = L"resources/boss/cooked/boss_chase.skel";
-        c.animPath = L"resources/boss/cooked/boss_chase.anim";
-        c.matPath = L"resources/boss/cooked/boss_chase.mat";
+        c.meshPath = L"resources/player_anim/cooked/player_move.mesh";
+        c.skelPath = L"resources/player_anim/cooked/player_move.skel";
+        c.animPath = L"resources/player_anim/cooked/player_move.anim";
+        c.matPath = L"resources/player_anim/cooked/player_move.mat";
+        // 如需强制贴图（覆盖 .mat）：
+        c.baseColorOverride = L"resources/player_anim/cooked/Textures/Mutant_diffuse.png";
 
         c.loop = true;
         c.playbackRate = 1.0f;
@@ -118,10 +121,12 @@ void BossAnimRegister()
     {
         AnimClipDesc c{};
         c.name = L"Boss_Attack";
-        c.meshPath = L"resources/boss/cooked/boss_attack.mesh";
-        c.skelPath = L"resources/boss/cooked/boss_attack.skel";
-        c.animPath = L"resources/boss/cooked/boss_attack.anim";
-        c.matPath = L"resources/boss/cooked/boss_attack.mat";
+        c.meshPath = L"resources/player_anim/cooked/player_attack.mesh";
+        c.skelPath = L"resources/player_anim/cooked/player_attack.skel";
+        c.animPath = L"resources/player_anim/cooked/player_attack.anim";
+        c.matPath = L"resources/player_anim/cooked/player_attack.mat";
+        // 如需强制贴图（覆盖 .mat）：
+        c.baseColorOverride = L"resources/player_anim/cooked/Textures/Mutant_diffuse.png";
 
         c.loop = false;  // 攻击不循环
         c.playbackRate = 1.0f;

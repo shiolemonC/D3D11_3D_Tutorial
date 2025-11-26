@@ -18,3 +18,5 @@ void Boss_Update(double dt, const BossUpdateContext& ctx);
 DirectX::XMFLOAT3 Boss_GetPosition();
 float             Boss_GetYaw();
 DirectX::XMMATRIX Boss_GetWorld();
+
+int Boss_GetBodyColliderId();
