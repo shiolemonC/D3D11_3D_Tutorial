@@ -64,4 +64,21 @@ void AnimEventRegister()
         atk.events.push_back(e);
         AnimEventRegistry_Register(atk);
     }
+
+    // ★ 在这里加 Boss 攻击事件
+    {
+        AnimEventTrack bossAtk{};
+        bossAtk.clipName = L"Boss_Attack";   // 必须和 BossAnimatorRegistry 的 clip 名字一致
+
+        AnimEvent e{};
+        e.timeNormalized = 0.35f;            // 比如 35% 处出刀（之后可以慢慢调）
+        e.type = AnimEventType::SpawnHitBox;
+        e.spawnHitBox.localOffset = { 0.0f, 1.2f, 2.0f }; // Boss 身前更远一点
+        e.spawnHitBox.halfSize = { 0.8f, 0.8f, 0.8f }; // HitBox 稍大一些
+        e.spawnHitBox.durationSec = 60.0f / 60.0f;        
+        e.spawnHitBox.damage = 20;                   // 比玩家伤害高
+
+        bossAtk.events.push_back(e);
+        AnimEventRegistry_Register(bossAtk);
+    }
 }

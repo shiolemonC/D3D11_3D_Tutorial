@@ -1,5 +1,6 @@
 ﻿#include "hitbox_system.h"
 #include "player.h"          // 先只支持 Player，之后可以扩展到 Enemy
+#include "boss.h"
 #include <algorithm>
 
 using namespace DirectX;
@@ -60,14 +61,26 @@ static void QueryOwnerTransform(void* owner,
     XMFLOAT3& outRight,
     XMFLOAT3& outUp)
 {
-    // 现在只有 Player 用这个系统：owner 可以先忽略，统一认为是 Player
-    outPos = Player_GetPosition();
-    outForward = Player_GetForward();  // 你会在 player.cpp 里实现
-    // 右向量 = forward × up
+    using namespace DirectX;
+
     outUp = XMFLOAT3{ 0.0f, 1.0f, 0.0f };
 
-    XMVECTOR f = XMLoadFloat3(&outForward);
-    XMVECTOR u = XMLoadFloat3(&outUp);
+    if (owner == Player_GetHitboxOwnerToken()) {
+        outPos = Player_GetPosition();
+        outForward = Player_GetForward();
+    }
+    else if (owner == Boss_GetHitboxOwnerToken()) {
+        outPos = Boss_GetPosition();
+        outForward = Boss_GetForward();
+    }
+    else {
+        // fallback：万一没匹配上，就随便给一个默认
+        outPos = XMFLOAT3{ 0,0,0 };
+        outForward = XMFLOAT3{ 0,0,1 };
+    }
+
+    XMVECTOR f = XMVector3Normalize(XMLoadFloat3(&outForward));
+    XMVECTOR u = XMVector3Normalize(XMLoadFloat3(&outUp));
     XMVECTOR r = XMVector3Normalize(XMVector3Cross(u, f));
 
     XMStoreFloat3(&outRight, r);

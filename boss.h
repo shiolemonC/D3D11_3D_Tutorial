@@ -16,7 +16,11 @@ void Boss_Update(double dt, const BossUpdateContext& ctx);
 
 // 查询（给相机/子弹用）
 DirectX::XMFLOAT3 Boss_GetPosition();
+DirectX::XMFLOAT3 Boss_GetForward();
 float             Boss_GetYaw();
 DirectX::XMMATRIX Boss_GetWorld();
 
 int Boss_GetBodyColliderId();
+
+// Hitbox 所属者标记
+void* Boss_GetHitboxOwnerToken();

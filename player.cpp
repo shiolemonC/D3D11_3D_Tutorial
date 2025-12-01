@@ -20,6 +20,9 @@ static XMFLOAT3 s_bodyHalfSize{ 0.4f, 0.9f, 0.4f };  // AABB 半サイズ (x,y,z
 
 static AnimEventPlayer s_animEventPlayer;  // ★ 每个玩家一份的事件播放器
 
+// HitBox owner 用的小标记（实际内容无所谓，只要地址唯一）
+static char s_playerHitboxOwnerTag;
+
 
 static inline float AngleDelta(float a, float b) {
     float d = fmodf(b - a + XM_PI, XM_2PI) - XM_PI;
@@ -82,7 +85,7 @@ void Player_Initialize(const PlayerDesc& d)
 
     // ★ 帧事件播放器绑定到这个“玩家”
 // 目前你没有 Player 实例，就先传 nullptr，将来有 Player* 再改
-    s_animEventPlayer.Initialize(nullptr);
+    s_animEventPlayer.Initialize(Player_GetHitboxOwnerToken());
 }
 
 // ------------------ 内部：基于输入的运动（类魂/怪猎） ------------------
@@ -219,4 +222,9 @@ XMFLOAT3 Player_GetForward()
 int Player_GetBodyColliderId()
 {
     return s_bodyColliderId;
+}
+
+void* Player_GetHitboxOwnerToken()
+{
+    return &s_playerHitboxOwnerTag;;
 }

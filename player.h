@@ -35,3 +35,5 @@ float                     Player_GetYaw();
 DirectX::XMFLOAT3         Player_GetForward();
 
 int Player_GetBodyColliderId();
+
+void* Player_GetHitboxOwnerToken();

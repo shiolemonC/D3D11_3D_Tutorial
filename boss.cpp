@@ -3,6 +3,7 @@
 #include "BossAnimatorRegistry.h"
 #include "AnimatorRegistry.h"   // 为了 RootMotionDelta 等
 #include "collider_system.h"   // ★ 碰撞中台
+#include "anim_event_player.h"   // ★ 新增帧事件
 #include <cmath>
 
 using namespace DirectX;
@@ -11,6 +12,10 @@ using namespace DirectX;
 static XMFLOAT3 s_bossPos{ 0,0,0 };
 static float    s_bossYaw = 0.0f;
 static float    s_bossScale = 1.0f;
+
+static char s_bossHitboxOwnerTag;
+
+static AnimEventPlayer s_bossEventPlayer;   // ★ Boss 的帧事件播放器
 
 // ---- Boss 身体 AABB collider ----
 static int      s_bossBodyColliderId = -1;               // CollisionWorld 内 ID
@@ -56,6 +61,12 @@ static void Boss_ChangeState(BossState next, const wchar_t* clipName, bool useCr
         else {
             BossAnimatorRegistry_Play(clipName, nullptr);
         }
+
+        // ★ 不论是 CrossFade 还是 Play，只要指定了 clip，就要通知帧事件播放器
+        // 如果 AnimEventPlayer::OnClipChanged 接受 std::wstring&：
+        s_bossEventPlayer.OnClipChanged(std::wstring{ clipName });
+        // 如果你把 OnClipChanged 改成 const wchar_t* 版本，就可以直接：
+        // s_bossEventPlayer.OnClipChanged(clipName);
     }
 }
 
@@ -114,9 +125,18 @@ void Boss_Initialize(const BossDesc& d)
     BossAnimatorRegistry_Play(L"Boss_Idle", nullptr);
 
     Boss_CreateBodyCollider();   // ★ 创建 Boss 身体 AABB
+
+    // ★ 帧事件播放器绑定到 Boss owner token
+    s_bossEventPlayer.Initialize(Boss_GetHitboxOwnerToken());
 }
 
 DirectX::XMFLOAT3 Boss_GetPosition() { return s_bossPos; }
+DirectX::XMFLOAT3 Boss_GetForward()
+{
+    float sy = std::sinf(s_bossYaw);
+    float cy = std::cosf(s_bossYaw);
+    return DirectX::XMFLOAT3{ sy, 0.0f, cy }; // 和 Player_GetForward 同一约定
+}
 float Boss_GetYaw() { return s_bossYaw; }
 
 DirectX::XMMATRIX Boss_GetWorld()
@@ -220,6 +240,12 @@ void Boss_Update(double dt, const BossUpdateContext& ctx)
 
     // 第一版不使用 Boss RootMotion（rmType 全部设为 None）
     // 如果以后要做冲刺，可以在 Attack 状态里 Consume RootMotion
+
+        // ---- 帧事件（Boss 出招帧）----
+    float norm = 0.0f;
+    if (BossAnimatorRegistry_DebugGetCurrentNormalizedTime(&norm)) {
+        s_bossEventPlayer.Update(norm);
+    }
 }
 
 
@@ -227,4 +253,9 @@ void Boss_Update(double dt, const BossUpdateContext& ctx)
 int Boss_GetBodyColliderId()
 {
     return s_bossBodyColliderId;
+}
+
+void* Boss_GetHitboxOwnerToken()
+{
+    return &s_bossHitboxOwnerTag;
 }
