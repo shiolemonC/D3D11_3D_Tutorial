@@ -24,6 +24,13 @@ static AnimEventPlayer s_animEventPlayer;  // ★ 每个玩家一份的事件播
 // HitBox owner 用的小标记（实际内容无所谓，只要地址唯一）
 static char s_playerHitboxOwnerTag;
 
+// ★ Player 的受击框（HurtBox）信息
+static int      s_hurtColliderId = -1;
+static XMFLOAT3 s_hurtHalfSize{ 0.5f, 1.2f, 0.5f };  // 先和 body 差不多，将来可单独调
+static bool     s_hurtEnabled = true;              // 是否可被打（无敌帧时会关）
+
+// 已有：body 的 ignore flag（如果你前面加过）
+static bool     s_ignoreBodyBlock = false;
 
 static inline float AngleDelta(float a, float b) {
     float d = fmodf(b - a + XM_PI, XM_2PI) - XM_PI;
@@ -156,6 +163,56 @@ static void Player_ResolveBodyCollisionWithBoss()
     // - 或者在玩家状态机里标记“贴脸状态”，用于锁定/特殊攻击
 }
 
+
+// ------------------ Player HurtBox：受击框 ------------------
+
+// 创建/注册 Player 的 HurtBox
+static void Player_CreateHurtCollider()
+{
+    // 先清掉旧的
+    if (s_hurtColliderId >= 0) {
+        GetCollisionWorld().UnregisterCollider(s_hurtColliderId);
+        s_hurtColliderId = -1;
+    }
+
+    auto col = std::make_unique<ColliderBase>();
+    col->category = ColliderCategory::Hurtbox;
+    col->active = s_hurtEnabled;   // ★ 简单用 mask 做启用/禁用
+    col->userPtr = nullptr;                   // TODO: 将来可以塞 Player* 或部位信息
+
+    col->shape.type = ColliderShapeType::AABB;
+
+    const XMFLOAT3& c = s_pos;
+    const XMFLOAT3& half = s_hurtHalfSize;
+
+    col->shape.aabb.min = { c.x - half.x, c.y,                 c.z - half.z };
+    col->shape.aabb.max = { c.x + half.x, c.y + 2.0f * half.y, c.z + half.z };
+
+    s_hurtColliderId = GetCollisionWorld().RegisterCollider(std::move(col));
+}
+
+// 位置/开关改变时更新 HurtBox
+static void Player_UpdateHurtCollider()
+{
+    if (s_hurtColliderId < 0) return;
+
+    ColliderBase* col = GetCollisionWorld().GetCollider(s_hurtColliderId);
+    if (!col) return;
+
+    const XMFLOAT3& c = s_pos;
+    const XMFLOAT3& half = s_hurtHalfSize;
+
+    col->shape.type = ColliderShapeType::AABB;
+    col->shape.aabb.min = { c.x - half.x, c.y,                 c.z - half.z };
+    col->shape.aabb.max = { c.x + half.x, c.y + 2.0f * half.y, c.z + half.z };
+
+    // ★ 用 collideMask 控制“是否受击”
+    col->active = s_hurtEnabled;
+
+    // TODO: 将来如果做多部位 HurtBox，可以在这里根据状态调整尺寸/位置
+}
+
+
 // ------------------ 初始化 ------------------
 void Player_Initialize(const PlayerDesc& d)
 {
@@ -165,6 +222,7 @@ void Player_Initialize(const PlayerDesc& d)
     s_scale = d.scale;
 
     Player_CreateBodyCollider();
+    Player_CreateHurtCollider();   
 
     // ★ 帧事件播放器绑定到这个“玩家”
 // 目前你没有 Player 实例，就先传 nullptr，将来有 Player* 再改
@@ -216,6 +274,7 @@ static void Player_Kinematic_Update(double dt,
 
     AnimatorRegistry_SetWorld(W);
     Player_UpdateBodyCollider();  // ★ 新增
+    Player_UpdateHurtCollider();
 }
 
 // ------------------ 内部：应用 RootMotion Δ ------------------
@@ -314,4 +373,21 @@ int Player_GetBodyColliderId()
 void* Player_GetHitboxOwnerToken()
 {
     return &s_playerHitboxOwnerTag;;
+}
+
+void Player_SetHurtEnabled(bool enabled)
+{
+    s_hurtEnabled = enabled;
+    // 立刻同步一次，避免等到下一帧
+    Player_UpdateHurtCollider();
+}
+
+bool Player_IsHurtEnabled()
+{
+    return s_hurtEnabled;
+}
+
+int Player_GetHurtColliderId()
+{
+    return s_hurtColliderId;
 }

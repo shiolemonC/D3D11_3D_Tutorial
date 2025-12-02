@@ -37,3 +37,10 @@ DirectX::XMFLOAT3         Player_GetForward();
 int Player_GetBodyColliderId();
 
 void* Player_GetHitboxOwnerToken();
+
+// HurtBox 开关（无敌帧用）
+void Player_SetHurtEnabled(bool enabled);
+bool Player_IsHurtEnabled();
+
+// Debug / 系统查询
+int  Player_GetHurtColliderId();

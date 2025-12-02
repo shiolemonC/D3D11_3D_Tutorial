@@ -21,6 +21,11 @@ static AnimEventPlayer s_bossEventPlayer;   // ★ Boss 的帧事件播放器
 static int      s_bossBodyColliderId = -1;               // CollisionWorld 内 ID
 static XMFLOAT3 s_bossBodyHalfSize{ 1.6f, 1.5f, 1.6f };  // 比玩家略大一点，可再调
 
+// ★ Boss 的 HurtBox
+static int      s_bossHurtColliderId = -1;
+static XMFLOAT3 s_bossHurtHalfSize{ 1.8f, 1.8f, 1.8f }; // 先和 body 一致
+static bool     s_bossHurtEnabled = true;
+
 enum class BossState {
     Idle,
     Chase,
@@ -111,6 +116,50 @@ static void Boss_UpdateBodyCollider()
     col->shape.aabb.max = { c.x + half.x, c.y + 2.0f * half.y, c.z + half.z };
 }
 
+//hurtBox
+static void Boss_CreateHurtCollider()
+{
+    if (s_bossHurtColliderId >= 0) {
+        GetCollisionWorld().UnregisterCollider(s_bossHurtColliderId);
+        s_bossHurtColliderId = -1;
+    }
+
+    auto col = std::make_unique<ColliderBase>();
+    col->category = ColliderCategory::Hurtbox;
+    col->collideMask = s_bossHurtEnabled ? 1u : 0u;
+    col->active = s_bossHurtEnabled;
+    col->userPtr = nullptr; // TODO: 将来可以放 Boss* 或部位信息
+
+    col->shape.type = ColliderShapeType::AABB;
+
+    const XMFLOAT3& c = s_bossPos;
+    const XMFLOAT3& half = s_bossHurtHalfSize;
+
+    col->shape.aabb.min = { c.x - half.x, c.y,                 c.z - half.z };
+    col->shape.aabb.max = { c.x + half.x, c.y + 2.0f * half.y, c.z + half.z };
+
+    s_bossHurtColliderId = GetCollisionWorld().RegisterCollider(std::move(col));
+}
+
+static void Boss_UpdateHurtCollider()
+{
+    if (s_bossHurtColliderId < 0) return;
+
+    ColliderBase* col = GetCollisionWorld().GetCollider(s_bossHurtColliderId);
+    if (!col) return;
+
+    const XMFLOAT3& c = s_bossPos;
+    const XMFLOAT3& half = s_bossHurtHalfSize;
+
+    col->shape.type = ColliderShapeType::AABB;
+    col->shape.aabb.min = { c.x - half.x, c.y,                 c.z - half.z };
+    col->shape.aabb.max = { c.x + half.x, c.y + 2.0f * half.y, c.z + half.z };
+
+    col->active = s_bossHurtEnabled;
+
+    // TODO: 将来可以根据 Boss 状态（举盾/趴下/蓄力）改变 HurtBox 尺寸
+}
+
 void Boss_Initialize(const BossDesc& d)
 {
     s_bossPos = d.spawnPos;
@@ -125,6 +174,7 @@ void Boss_Initialize(const BossDesc& d)
     BossAnimatorRegistry_Play(L"Boss_Idle", nullptr);
 
     Boss_CreateBodyCollider();   // ★ 创建 Boss 身体 AABB
+    Boss_CreateHurtCollider();   // ★ 新增
 
     // ★ 帧事件播放器绑定到 Boss owner token
     s_bossEventPlayer.Initialize(Boss_GetHitboxOwnerToken());
@@ -235,6 +285,8 @@ void Boss_Update(double dt, const BossUpdateContext& ctx)
     // 3.5) Boss 身体 AABB 同步到当前世界位置
     Boss_UpdateBodyCollider();
 
+    Boss_UpdateHurtCollider();
+
     // ---- 4) 推进 Boss 动画（含 CrossFade / RootMotion 累计）----
     BossAnimatorRegistry_Update(dt);
 
@@ -258,4 +310,20 @@ int Boss_GetBodyColliderId()
 void* Boss_GetHitboxOwnerToken()
 {
     return &s_bossHitboxOwnerTag;
+}
+
+void Boss_SetHurtEnabled(bool enabled)
+{
+    s_bossHurtEnabled = enabled;
+    Boss_UpdateHurtCollider();
+}
+
+bool Boss_IsHurtEnabled()
+{
+    return s_bossHurtEnabled;
+}
+
+int Boss_GetHurtColliderId()
+{
+    return s_bossHurtColliderId;
 }
