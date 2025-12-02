@@ -5,6 +5,7 @@
 #include "collider_system.h"   // collider
 #include <memory>              // ★ std::make_unique 用
 #include "anim_event_player.h" // ★ 新增：帧事件播放器
+#include "boss.h"
 using namespace DirectX;
 
 // ------------------ 内部状态 ------------------
@@ -71,6 +72,88 @@ static void Player_UpdateBodyCollider()
     col->shape.type = ColliderShapeType::AABB;
     col->shape.aabb.min = { c.x - half.x, c.y,                 c.z - half.z };
     col->shape.aabb.max = { c.x + half.x, c.y + 2.0f * half.y,   c.z + half.z };
+}
+
+// ★ Player vs Boss の「体」同士のめり込みを最小平行移動ベクトル(MTV)で解消
+static void Player_ResolveBodyCollisionWithBoss()
+{
+    // 将来扩展点1：被技能强制位移时可以暂时跳过 body 阻挡
+    //if (s_ignoreBodyBlock) {
+    //    return;
+    //}
+
+    auto& world = GetCollisionWorld();
+
+    const int playerId = s_bodyColliderId;
+    const int bossId = Boss_GetBodyColliderId();
+    if (playerId < 0 || bossId < 0) return;
+
+    ColliderBase* pCol = world.GetCollider(playerId);
+    ColliderBase* bCol = world.GetCollider(bossId);
+    if (!pCol || !bCol) return;
+    if (pCol->shape.type != ColliderShapeType::AABB ||
+        bCol->shape.type != ColliderShapeType::AABB) {
+        return;
+    }
+
+    const auto& A = pCol->shape.aabb; // Player
+    const auto& B = bCol->shape.aabb; // Boss
+
+    // 3D AABB 交差判定（ここでは Y 方向も見ておく）
+    if (A.max.x <= B.min.x || A.min.x >= B.max.x ||
+        A.max.y <= B.min.y || A.min.y >= B.max.y ||
+        A.max.z <= B.min.z || A.min.z >= B.max.z) {
+        // 不交差 → 无需修正
+        return;
+    }
+
+    // 计算中心与半尺寸
+    const float AxCenter = 0.5f * (A.min.x + A.max.x);
+    const float AzCenter = 0.5f * (A.min.z + A.max.z);
+    const float BxCenter = 0.5f * (B.min.x + B.max.x);
+    const float BzCenter = 0.5f * (B.min.z + B.max.z);
+
+    const float AxHalf = 0.5f * (A.max.x - A.min.x);
+    const float AzHalf = 0.5f * (A.max.z - A.min.z);
+    const float BxHalf = 0.5f * (B.max.x - B.min.x);
+    const float BzHalf = 0.5f * (B.max.z - B.min.z);
+
+    const float dx = AxCenter - BxCenter;
+    const float dz = AzCenter - BzCenter;
+
+    const float overlapX = (AxHalf + BxHalf) - std::fabs(dx);
+    const float overlapZ = (AzHalf + BzHalf) - std::fabs(dz);
+
+    if (overlapX <= 0.0f || overlapZ <= 0.0f) {
+        // 数值上应该不会走到这里（前面已经判定交差），保险起见
+        return;
+    }
+
+    // 选重叠更小的轴作为 MTV 方向（尽量少移动）
+    float mtvX = 0.0f;
+    float mtvZ = 0.0f;
+
+    if (overlapX < overlapZ) {
+        // 沿 X 轴推开
+        mtvX = (dx > 0.0f) ? overlapX : -overlapX;
+        // mtvZ = 0;
+    }
+    else {
+        // 沿 Z 轴推开
+        mtvZ = (dz > 0.0f) ? overlapZ : -overlapZ;
+        // mtvX = 0;
+    }
+
+    // 将 MTV 应用到玩家位置（Boss 视为重量级障碍物，不动）
+    s_pos.x += mtvX;
+    s_pos.z += mtvZ;
+
+    // 更新玩家身体 AABB
+    Player_UpdateBodyCollider();
+
+    // 将来扩展点2：
+    // - 在这里可以根据 MTV 方向/大小计算“被挤压感”的反馈（镜头震动/音效等）
+    // - 或者在玩家状态机里标记“贴脸状态”，用于锁定/特殊攻击
 }
 
 // ------------------ 初始化 ------------------
@@ -201,6 +284,10 @@ void Player_Update(double dt, const PlayerUpdateInput& in)
             Player_ApplyRootMotionDelta(rm);
         }
     }
+
+    // 6) Player vs Boss 身体 AABB 碰撞解決（事后 MTV 推开）
+   //    注意：确保 Boss_Update 已在本帧调用过，这样 Boss 的 AABB 是最新的。
+    Player_ResolveBodyCollisionWithBoss();
 }
 
 // ------------------ 查询接口 ------------------
