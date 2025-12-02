@@ -29,6 +29,9 @@
     <Filter Include="ヘッダー ファイル\animation">
       <UniqueIdentifier>{c49d0216-b2a2-4434-9ddd-6f2a53712165}</UniqueIdentifier>
     </Filter>
+    <Filter Include="ソース ファイル\collider">
+      <UniqueIdentifier>{d1c05856-0b26-40d0-9733-f1360c810742}</UniqueIdentifier>
+    </Filter>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="main.cpp">
@@ -74,9 +77,6 @@
       <Filter>ソース ファイル</Filter>
     </ClCompile>
     <ClCompile Include="game.cpp">
-      <Filter>ソース ファイル</Filter>
-    </ClCompile>
-    <ClCompile Include="collision.cpp">
       <Filter>ソース ファイル</Filter>
     </ClCompile>
     <ClCompile Include="Audio.cpp">
@@ -157,16 +157,10 @@
     <ClCompile Include="billboard.cpp">
       <Filter>ソース ファイル</Filter>
     </ClCompile>
-    <ClCompile Include="collider_system.cpp">
-      <Filter>ソース ファイル</Filter>
-    </ClCompile>
     <ClCompile Include="sky.cpp">
       <Filter>ソース ファイル</Filter>
     </ClCompile>
     <ClCompile Include="shader3d_unlit.cpp">
-      <Filter>ソース ファイル</Filter>
-    </ClCompile>
-    <ClCompile Include="hitbox_system.cpp">
       <Filter>ソース ファイル</Filter>
     </ClCompile>
     <ClCompile Include="anim_event.cpp">
@@ -192,6 +186,15 @@
     </ClCompile>
     <ClCompile Include="boss.cpp">
       <Filter>ソース ファイル</Filter>
+    </ClCompile>
+    <ClCompile Include="collider_system.cpp">
+      <Filter>ソース ファイル\collider</Filter>
+    </ClCompile>
+    <ClCompile Include="collision.cpp">
+      <Filter>ソース ファイル\collider</Filter>
+    </ClCompile>
+    <ClCompile Include="hitbox_system.cpp">
+      <Filter>ソース ファイル\collider</Filter>
     </ClCompile>
   </ItemGroup>
   <ItemGroup>

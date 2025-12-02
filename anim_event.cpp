@@ -53,15 +53,36 @@ void AnimEventRegister()
         AnimEventTrack atk{};
         atk.clipName = L"Attack";
 
-        AnimEvent e{};
-        e.timeNormalized = 0.30f;               // 攻击动画的 30% 处出刀（你可之后调）
-        e.type = AnimEventType::SpawnHitBox;
-        e.spawnHitBox.localOffset = { 0.0f, 1.0f, 1.0f };  // 身体前方 1m，高度 1m
-        e.spawnHitBox.halfSize = { 0.5f, 0.5f, 0.5f };  // 1x1x1 的方块
-        e.spawnHitBox.durationSec = 3.0f / 60.0f;          // 假设 60fps => 持续 3 帧
-        e.spawnHitBox.damage = 10;
+        // ① 开始就关掉 HurtBox（比如：起手无敌）
+        {
+            AnimEvent e{};
+            e.timeNormalized = 0.0f;
+            e.type = AnimEventType::SetHurtBoxEnabled;
+            e.setHurtBox.enabled = false;    // 关闭受击框 → 无敌
+            atk.events.push_back(e);
+        }
 
-        atk.events.push_back(e);
+        // ② 0.30 出刀：生成 HitBox
+        {
+            AnimEvent e{};
+            e.timeNormalized = 0.30f;               // 攻击动画的 30% 处出刀
+            e.type = AnimEventType::SpawnHitBox;
+            e.spawnHitBox.localOffset = { 0.0f, 1.0f, 1.0f };
+            e.spawnHitBox.halfSize = { 0.5f, 0.5f, 0.5f };
+            e.spawnHitBox.durationSec = 3.0f / 60.0f;
+            e.spawnHitBox.damage = 10;
+
+            atk.events.push_back(e);
+        }
+
+        // ③ 0.70 攻击收招：重新开启 HurtBox
+        {
+            AnimEvent e{};
+            e.timeNormalized = 0.70f;
+            e.type = AnimEventType::SetHurtBoxEnabled;
+            e.setHurtBox.enabled = true;     // 重新可以被打
+            atk.events.push_back(e);
+        }
         AnimEventRegistry_Register(atk);
     }
 

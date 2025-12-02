@@ -20,12 +20,7 @@ public:
     }
 
     // 切换剪辑时调用
-    void OnClipChanged(const std::wstring& newClipName)
-    {
-        m_currentClip = newClipName;
-        m_track = AnimEventRegistry_Find(newClipName);
-        m_prevTimeNorm = 0.0f;
-    }
+    void OnClipChanged(const std::wstring& newClipName);
 
     // 每帧调用：currentTimeNorm 是当前剪辑的归一化时间
     void Update(float currentTimeNorm);
