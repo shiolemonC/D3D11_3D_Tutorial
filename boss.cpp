@@ -14,6 +14,7 @@ static float    s_bossYaw = 0.0f;
 static float    s_bossScale = 1.0f;
 
 static char s_bossHitboxOwnerTag;
+static char s_bossHurtboxOwnerTag;
 
 static AnimEventPlayer s_bossEventPlayer;   // ★ Boss 的帧事件播放器
 
@@ -126,9 +127,9 @@ static void Boss_CreateHurtCollider()
 
     auto col = std::make_unique<ColliderBase>();
     col->category = ColliderCategory::Hurtbox;
-    col->collideMask = s_bossHurtEnabled ? 1u : 0u;
+    col->collideMask = CategoryBit(ColliderCategory::Hitbox);
     col->active = s_bossHurtEnabled;
-    col->userPtr = nullptr; // TODO: 将来可以放 Boss* 或部位信息
+    col->userPtr = Boss_GetHurtboxOwnerToken(); // TODO: 将来可以放 Boss* 或部位信息
 
     col->shape.type = ColliderShapeType::AABB;
 
@@ -310,6 +311,11 @@ int Boss_GetBodyColliderId()
 void* Boss_GetHitboxOwnerToken()
 {
     return &s_bossHitboxOwnerTag;
+}
+
+void* Boss_GetHurtboxOwnerToken()
+{
+    return &s_bossHurtboxOwnerTag;
 }
 
 void Boss_SetHurtEnabled(bool enabled)

@@ -54,13 +54,13 @@ void AnimEventRegister()
         atk.clipName = L"Attack";
 
         // ① 开始就关掉 HurtBox（比如：起手无敌）
-        {
-            AnimEvent e{};
-            e.timeNormalized = 0.0f;
-            e.type = AnimEventType::SetHurtBoxEnabled;
-            e.setHurtBox.enabled = false;    // 关闭受击框 → 无敌
-            atk.events.push_back(e);
-        }
+        //{
+        //    AnimEvent e{};
+        //    e.timeNormalized = 0.0f;
+        //    e.type = AnimEventType::SetHurtBoxEnabled;
+        //    e.setHurtBox.enabled = false;    // 关闭受击框 → 无敌
+        //    atk.events.push_back(e);
+        //}
 
         // ② 0.30 出刀：生成 HitBox
         {
@@ -76,13 +76,13 @@ void AnimEventRegister()
         }
 
         // ③ 0.70 攻击收招：重新开启 HurtBox
-        {
-            AnimEvent e{};
-            e.timeNormalized = 0.70f;
-            e.type = AnimEventType::SetHurtBoxEnabled;
-            e.setHurtBox.enabled = true;     // 重新可以被打
-            atk.events.push_back(e);
-        }
+        //{
+        //    AnimEvent e{};
+        //    e.timeNormalized = 0.70f;
+        //    e.type = AnimEventType::SetHurtBoxEnabled;
+        //    e.setHurtBox.enabled = true;     // 重新可以被打
+        //    atk.events.push_back(e);
+        //}
         AnimEventRegistry_Register(atk);
     }
 

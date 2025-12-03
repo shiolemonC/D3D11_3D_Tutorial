@@ -11,11 +11,11 @@ using namespace DirectX;
 //------------------------------------------------------------------------------
 namespace
 {
-    // ビットマスク用：カテゴリ → 1 << index
-    inline unsigned int CategoryBit(ColliderCategory cat)
-    {
-        return 1u << static_cast<unsigned int>(cat);
-    }
+    //// ビットマスク用：カテゴリ → 1 << index
+    //inline unsigned int CategoryBit(ColliderCategory cat)
+    //{
+    //    return 1u << static_cast<unsigned int>(cat);
+    //}
 
     // A と B が判定対象かどうか
     bool ShouldCheckPair(const ColliderBase& a, const ColliderBase& b)

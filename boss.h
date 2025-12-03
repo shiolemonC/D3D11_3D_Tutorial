@@ -24,6 +24,7 @@ int Boss_GetBodyColliderId();
 
 // Hitbox 所属者标记
 void* Boss_GetHitboxOwnerToken();
+void* Boss_GetHurtboxOwnerToken();
 
 void Boss_SetHurtEnabled(bool enabled);
 bool Boss_IsHurtEnabled();

@@ -58,6 +58,11 @@ enum class ColliderCategory : uint8_t
     Hurtbox = 3,  // 被弾判定
 };
 
+inline unsigned int CategoryBit(ColliderCategory c) noexcept
+{
+    return 1u << static_cast<unsigned int>(c);
+}
+
 //------------------------------------------------------------------------------
 // 汎用コライダー
 //------------------------------------------------------------------------------

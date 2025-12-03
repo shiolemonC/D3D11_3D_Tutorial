@@ -165,6 +165,7 @@
     <ClCompile Include="game_window.cpp" />
     <ClCompile Include="grid.cpp" />
     <ClCompile Include="hitbox_system.cpp" />
+    <ClCompile Include="hit_event.cpp" />
     <ClCompile Include="keyboard.cpp" />
     <ClCompile Include="key_logger.cpp" />
     <ClCompile Include="light.cpp" />
@@ -174,6 +175,7 @@
     <ClCompile Include="ModelSkinned.cpp" />
     <ClCompile Include="ModelStatic.cpp" />
     <ClCompile Include="mouse.cpp" />
+    <ClCompile Include="pad_logger.cpp" />
     <ClCompile Include="player.cpp" />
     <ClCompile Include="player_camera.cpp" />
     <ClCompile Include="player_camera_test.cpp" />
@@ -222,6 +224,7 @@
     <ClInclude Include="game_window.h" />
     <ClInclude Include="grid.h" />
     <ClInclude Include="hitbox_system.h" />
+    <ClInclude Include="hit_event.h" />
     <ClInclude Include="keyboard.h" />
     <ClInclude Include="key_logger.h" />
     <ClInclude Include="light.h" />
@@ -230,6 +233,7 @@
     <ClInclude Include="ModelSkinned.h" />
     <ClInclude Include="ModelStatic.h" />
     <ClInclude Include="mouse.h" />
+    <ClInclude Include="pad_logger.h" />
     <ClInclude Include="player.h" />
     <ClInclude Include="player_camera.h" />
     <ClInclude Include="player_camera_test.h" />

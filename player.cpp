@@ -23,6 +23,7 @@ static AnimEventPlayer s_animEventPlayer;  // ★ 每个玩家一份的事件播
 
 // HitBox owner 用的小标记（实际内容无所谓，只要地址唯一）
 static char s_playerHitboxOwnerTag;
+static char s_playerHurtboxOwnerTag;
 
 // ★ Player 的受击框（HurtBox）信息
 static int      s_hurtColliderId = -1;
@@ -178,7 +179,8 @@ static void Player_CreateHurtCollider()
     auto col = std::make_unique<ColliderBase>();
     col->category = ColliderCategory::Hurtbox;
     col->active = s_hurtEnabled;   // ★ 简单用 mask 做启用/禁用
-    col->userPtr = nullptr;                   // TODO: 将来可以塞 Player* 或部位信息
+    col->userPtr = Player_GetHurtboxOwnerToken();                   // TODO: 将来可以塞 Player* 或部位信息
+    col->collideMask = CategoryBit(ColliderCategory::Hitbox);
 
     col->shape.type = ColliderShapeType::AABB;
 
@@ -372,7 +374,12 @@ int Player_GetBodyColliderId()
 
 void* Player_GetHitboxOwnerToken()
 {
-    return &s_playerHitboxOwnerTag;;
+    return &s_playerHitboxOwnerTag;
+}
+
+void* Player_GetHurtboxOwnerToken()
+{
+    return &s_playerHurtboxOwnerTag;
 }
 
 void Player_SetHurtEnabled(bool enabled)

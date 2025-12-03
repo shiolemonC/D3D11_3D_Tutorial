@@ -1,17 +1,38 @@
 ﻿#include "hitbox_system.h"
 #include "player.h"          // 先只支持 Player，之后可以扩展到 Enemy
 #include "boss.h"
+#include "hit_event.h"
 #include <algorithm>
 
 using namespace DirectX;
 
 static std::vector<ActiveHitbox> g_hitboxes;
 
-// 小工具：从 ColliderCategory 得到 bit
-static unsigned int CategoryBit(ColliderCategory cat)
+// 通过 ColliderWorld 内的 colliderId 找回我们自己的 ActiveHitbox
+static ActiveHitbox* FindHitboxByCollider(const ColliderBase* col)
 {
-    return 1u << static_cast<unsigned int>(cat);
+    if (!col) return nullptr;
+
+    CollisionWorld& world = GetCollisionWorld();
+
+    for (auto& hb : g_hitboxes)
+    {
+        if (hb.colliderId < 0) continue;
+
+        ColliderBase* myCol = world.GetCollider(hb.colliderId);
+        if (myCol == col)
+        {
+            return &hb;
+        }
+    }
+    return nullptr;
 }
+
+//// 小工具：从 ColliderCategory 得到 bit
+//static unsigned int CategoryBit(ColliderCategory cat)
+//{
+//    return 1u << static_cast<unsigned int>(cat);
+//}
 
 void HitboxSystem_Clear()
 {
@@ -140,6 +161,65 @@ void HitboxSystem_Update(float dt)
         }
         else {
             ++i;
+        }
+
+        // ---- 4) 处理 Hitbox ↔ Hurtbox 命中 → 转成 HitContact → 交给 HitEvent_Dispatch ----
+        {
+            std::vector<CollisionPair> pairs;
+            world.Step(pairs);   // 这里返回的是 ColliderBase* 的组合
+
+            for (const CollisionPair& cp : pairs)
+            {
+                ColliderBase* colA = cp.a;
+                ColliderBase* colB = cp.b;
+                if (!colA || !colB) continue;
+
+                const ColliderBase* hitCol = nullptr;
+                const ColliderBase* hurtCol = nullptr;
+
+                // 判定哪一边是 Hitbox、哪一边是 Hurtbox
+                if (colA->category == ColliderCategory::Hitbox &&
+                    colB->category == ColliderCategory::Hurtbox)
+                {
+                    hitCol = colA;
+                    hurtCol = colB;
+                }
+                else if (colB->category == ColliderCategory::Hitbox &&
+                    colA->category == ColliderCategory::Hurtbox)
+                {
+                    hitCol = colB;
+                    hurtCol = colA;
+                }
+                else
+                {
+                    continue; // 其他组合一律忽略
+                }
+
+                // 通过 collider 指针找到我们自己的 ActiveHitbox
+                ActiveHitbox* hb = FindHitboxByCollider(hitCol);
+                if (!hb) continue;
+
+                // ★ 新增：已经“死亡/被消耗”的 HitBox 不再触发
+                if (hb->remainingTime <= 0.0f)
+                {
+                    continue;
+                }
+
+                // 构造 HitContact
+                HitContact contact{};
+                contact.attackerOwner = hb->owner;        // 或 hb->owner，看你 struct 的命名
+                contact.victimOwner = hurtCol->userPtr;      // HurtBox 上事先填了 Player/Boss 的 hurt-token
+                contact.damage = hb->damage;       // 目前先只带伤害
+
+                // 让 HitEvent 告诉我们，这次算不算“真正 hit”
+                const bool consumed = HitEvent_Dispatch(contact);
+
+                if (consumed)
+                {
+                    // 只有真正命中（比如 Boss→Player / Player→Boss）才消耗掉 hitbox
+                    hb->remainingTime = 0.0f;
+                }
+            }
         }
     }
 }
