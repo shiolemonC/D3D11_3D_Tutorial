@@ -168,6 +168,7 @@ void Game_Update(double elapsed_time)
     camIn.deltaX = deltaX;
     camIn.deltaY = deltaY;
     // 如果 Mouse_State 有 wheel 字段，你可以填 camIn.wheelDelta
+    camIn.lockTogglePressed = ms.middleButton;
     PlayerCamera_Update(elapsed_time, camIn);
 
     // 2) 玩家输入（WASD）

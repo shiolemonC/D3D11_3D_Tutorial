@@ -71,6 +71,26 @@ void AnimRegister()
         AnimatorRegistry_Register(c);
     }
 
+    {
+        AnimClipDesc c{};
+        c.name = L"Roll";
+        c.meshPath = L"resources/player_anim/cooked/player_roll.mesh";
+        c.skelPath = L"resources/player_anim/cooked/player_roll.skel";
+        c.animPath = L"resources/player_anim/cooked/player_roll.anim";
+        c.matPath = L"resources/player_anim/cooked/player_roll.mat";
+        // 如需强制贴图（覆盖 .mat）：
+        c.baseColorOverride = L"resources/player_anim/cooked/Textures/Mutant_diffuse.png";
+        c.loop = false;
+        c.playbackRate = 1.0f;
+        c.rmType = RootMotionType::UseAnimDelta;
+        //c.velocity = 2.0f;
+           // ★ 若希望攻击不受 Hips 摇摆影响，改用 "Root"（按你的骨骼名来）
+    //   也可以继续用 "mixamorig:Hips"，视资源而定。
+        c.motionRootNameUTF8 = "Armature";
+
+        AnimatorRegistry_Register(c);
+    }
+
 
     // 注册完可（可选）调用一次加载校验
     AnimatorRegistry_LoadAll();

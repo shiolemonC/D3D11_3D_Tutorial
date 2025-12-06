@@ -6,6 +6,7 @@
 #include <memory>              // ★ std::make_unique 用
 #include "anim_event_player.h" // ★ 新增：帧事件播放器
 #include "boss.h"
+#include "player_camera.h"
 using namespace DirectX;
 
 // ------------------ 内部状态 ------------------
@@ -254,9 +255,21 @@ static void Player_Kinematic_Update(double dt,
     }
 
     if (locomotionActive && len > 1e-4f) {
-        // 2) 计算目标朝向（世界系），并用指数趋近平滑转身
-        float targetYaw = std::atan2(v2.x, v2.y); // x=左右，z=前后
+        // 2) 计算目标朝向（世界系）
+        float targetYaw = std::atan2(v2.x, v2.y); // 默认：面向移动方向
 
+        // 如果处于锁定模式，则改为面向 Boss
+        if (PlayerCamera_IsLockOnActive()) {
+            DirectX::XMFLOAT3 bossPos = Boss_GetPosition();
+            float bdx = bossPos.x - s_pos.x;
+            float bdz = bossPos.z - s_pos.z;
+            float blen = std::sqrt(bdx * bdx + bdz * bdz);
+            if (blen > 1e-4f) {
+                targetYaw = std::atan2(bdx, bdz); // 注意和玩家 forward 约定一致：x=左右，z=前后
+            }
+        }
+
+        // 指数趋近平滑转身
         float a = ExpLerp01(s_turnK, static_cast<float>(dt));
         s_yaw += AngleDelta(s_yaw, targetYaw) * a;
 
