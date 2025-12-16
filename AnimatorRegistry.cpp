@@ -2,6 +2,7 @@
 #include "AnimatorRegistry.h"
 #include "ModelSkinned.h"
 #include "shader3d.h"
+#include "player.h"   // 为了 Player_GetForward / Player_GetYaw
 
 #include <vector>
 #include <string>
@@ -259,8 +260,32 @@ bool AnimatorRegistry_Play(const std::wstring& name,
         gRM_AccumYaw = 0.0f;
         ApplyWorldWithRootMotion();
 
+        // ★ 根据 RootMotion 模式明确指定哪些要清根平移
+        bool zeroXZ = false;
+
+        switch (clip.rmType)
+        {
+        case RootMotionType::None:
+        case RootMotionType::VelocityDriven:
+            // 这些模式完全不用动画位移 → 必须清掉根平移
+            zeroXZ = true;
+            break;
+
+        case RootMotionType::UseZDelta:
+            // ★ Roll：只拿 Z 位移做 RootMotion，视觉上不希望骨骼自己再走一遍
+            zeroXZ = true;
+            break;
+
+        case RootMotionType::UseAnimDelta:
+            // ★ 完整 RootMotion：可以先保留骨骼平移（如果以后觉得是 double，可以再一起改）
+            zeroXZ = false;
+            break;
+        }
+
         // VelocityDriven 时：清掉根局部 XZ 平移
-        ModelSkinned_SetZeroRootTranslationXZ(clip.rmType != RootMotionType::UseAnimDelta);
+        ModelSkinned_SetZeroRootTranslationXZ(
+            zeroXZ
+        );
 
         // ★ 新增：重置当前动画时间，并计算剪辑总长度（秒）
         gCurrentTimeSec = 0.0f;
@@ -319,7 +344,13 @@ void AnimatorRegistry_Update(double dtSec)
         XMFLOAT3 dLocal{};
         if (ModelSkinned_SampleRootDelta_Local((float)dtSec, &dLocal))
         {
-            XMFLOAT4X4 m; XMStoreFloat4x4(&m, gBaseWorld);
+            // ★ 关键：把 NodeYawFix 也乘进去，让 RootMotion 用和最终模型一致的坐标系
+            const float nodeFix = ModelSkinned_GetNodeYawFix();
+            XMMATRIX worldRM = XMMatrixRotationY(nodeFix) * gBaseWorld;
+
+            XMFLOAT4X4 m;
+            XMStoreFloat4x4(&m, worldRM);
+
             XMFLOAT3 right = { m._11, m._21, m._31 };
             XMFLOAT3 up = { m._12, m._22, m._32 };
             XMFLOAT3 fwd = { m._13, m._23, m._33 };
@@ -331,13 +362,41 @@ void AnimatorRegistry_Update(double dtSec)
 
         float dyaw = 0.0f;
         if (ModelSkinned_SampleRootYawDelta((float)dtSec, &dyaw)) {
-            gRM_AccumYaw += dyaw; // 如需忽略旋转，只要不加它即可
+            gRM_AccumYaw += dyaw; // 逻辑上想忽略旋转可以在外面 rm.yaw = 0
         }
 
         ApplyWorldWithRootMotion();
         break;
     }
+
+    // ★ 新增：只使用本地 Z 轴位移（前进距离）
+    case RootMotionType::UseZDelta:
+    {
+        XMFLOAT3 dLocal{};
+        if (ModelSkinned_SampleRootDelta_Local((float)dtSec, &dLocal))
+        {
+            // 1) 只关心本地 Z 位移
+            float dist = dLocal.z;
+
+            // ★ 很关键：roll 动画里“向前滚”时 dLocal.z 是正还是负？
+            //   你之前说看文件时是“向前为负”，那就取反：
+            dist = -dLocal.z;
+
+            // 2) 用玩家【逻辑】朝向来决定世界方向
+            XMFLOAT3 fwd = Player_GetForward();   // 单位向量，基于 s_yaw
+
+            gRM_AccumPos.x += fwd.x * dist;
+            gRM_AccumPos.y += fwd.y * dist;      // 一般是 0
+            gRM_AccumPos.z += fwd.z * dist;
+        }
+
+        // Roll 不吃 root 的旋转
+        // gRM_AccumYaw 保持不动，外面 rm.yaw 也不要加
+
+        ApplyWorldWithRootMotion();
+        break;
     }
+}
 
     // 先采样再推进：保持 [t, t+dt] 采样与推进时序一致
     ModelSkinned_Update(dtSec);

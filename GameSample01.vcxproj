@@ -169,6 +169,7 @@
     <ClCompile Include="keyboard.cpp" />
     <ClCompile Include="key_logger.cpp" />
     <ClCompile Include="light.cpp" />
+    <ClCompile Include="light_camera.cpp" />
     <ClCompile Include="main.cpp" />
     <ClCompile Include="meshfield.cpp" />
     <ClCompile Include="model.cpp" />
@@ -228,6 +229,7 @@
     <ClInclude Include="keyboard.h" />
     <ClInclude Include="key_logger.h" />
     <ClInclude Include="light.h" />
+    <ClInclude Include="light_camera.h" />
     <ClInclude Include="meshfield.h" />
     <ClInclude Include="model.h" />
     <ClInclude Include="ModelSkinned.h" />

@@ -17,6 +17,7 @@ struct PlayerUpdateInput {
     float moveZ = 0.0f; // -1..1 (W/S, 正向前)
 
     bool attack = false; // 本帧是否触发攻击（鼠标左键刚按下）
+    bool roll = false; // ★ 本帧是否触发翻滚（Shift 等）
 
     // 摄像机在 XZ 平面上的前/右向量（由 PlayerCamera 提供）
     DirectX::XMFLOAT3 camForwardXZ{ 0.0f, 0.0f, 1.0f };

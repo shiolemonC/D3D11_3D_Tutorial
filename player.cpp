@@ -302,6 +302,7 @@ static void Player_ApplyRootMotionDelta(const RootMotionDelta& rm)
     s_yaw += rm.yaw; // 目前 rm.yaw 在调用前可以为 0，将来需要时可以启用
 
     Player_UpdateBodyCollider();
+    Player_UpdateHurtCollider();
 }
 
 // ------------------ 对外：一帧更新 ------------------
@@ -311,6 +312,10 @@ void Player_Update(double dt, const PlayerUpdateInput& in)
     PlayerSM_SetMoveInput(in.moveX, in.moveZ);
     if (in.attack) {
         PlayerSM_FireTrigger("Attack");
+    }
+
+    if (in.roll) {
+        PlayerSM_FireTrigger("Roll");   // ★ 新增：翻滚 Trigger
     }
 
     // 2) 跑 FSM，决定当前播放的状态/动画
@@ -354,7 +359,7 @@ void Player_Update(double dt, const PlayerUpdateInput& in)
         if (AnimatorRegistry_ConsumeRootMotionDelta(&rm)) {
             rm.pos.y = 0.0f; // 一般只保留XZ
             // rm.yaw 可以按照需要启用
-            rm.yaw = 0.0f;
+            //rm.yaw = 0.0f;
             Player_ApplyRootMotionDelta(rm);
         }
     }
@@ -362,6 +367,13 @@ void Player_Update(double dt, const PlayerUpdateInput& in)
     // 6) Player vs Boss 身体 AABB 碰撞解決（事后 MTV 推开）
    //    注意：确保 Boss_Update 已在本帧调用过，这样 Boss 的 AABB 是最新的。
     Player_ResolveBodyCollisionWithBoss();
+
+    {
+        char buf[256];
+        sprintf_s(buf, "Player pos=(%.2f,%.2f,%.2f), yaw=%.2f\n",
+            s_pos.x, s_pos.y, s_pos.z, s_yaw);
+        OutputDebugStringA(buf);
+    }
 }
 
 // ------------------ 查询接口 ------------------

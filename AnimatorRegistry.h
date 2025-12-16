@@ -9,6 +9,7 @@ enum class RootMotionType : uint8_t {
     None = 0,           // 不使用动画位移
     VelocityDriven = 1, // 由逻辑速度驱动，动画只摆动
     UseAnimDelta = 2,   // 使用动画的 Δ 位移/Δ 朝向
+    UseZDelta = 3,    // ★ 只使用本地 Z 轴位移（前进距离），忽略 ΔYaw
 };
 
 // 动画资源描述（注册时提供）

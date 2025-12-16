@@ -24,6 +24,15 @@
       "length_sec": 0.00,
       "locomotion": false,
       "uninterruptible": [ [ 0.00, 0.35 ] ]
+    },
+    {
+      "name": "Roll",
+      "clip": "Roll",
+      "loop": false,
+      "root_motion": "use_delta",
+      "length_sec": 0.0, 
+      "locomotion": false, 
+      "uninterruptible": [ [ 0.0, 0.8 ] ] 
     }
   ],
   "transitions": [
@@ -76,8 +85,58 @@
     {
       "from": "Attack",
       "to": "Idle",
-      "window": [ [ 0.90, 1.00 ] ], 
+      "window": [ [ 0.90, 1.00 ] ],
       "duration": 0.08,
+      "curve": "ease_out",
+      "can_interrupt": true,
+      "priority": 5
+    },
+
+    
+    {
+      "from": "Idle",
+      "to": "Roll",
+      "trigger": "Roll",
+      "buffer": 0.15,
+      "window": [ [ 0.0, 1.0 ] ],
+      "duration": 0.05,
+      "curve": "linear",
+      "can_interrupt": true,
+      "priority": 70
+    },
+
+
+    {
+      "from": "Move",
+      "to": "Roll",
+      "trigger": "Roll",
+      "buffer": 0.15,
+      "window": [ [ 0.0, 1.0 ] ],
+      "duration": 0.05,
+      "curve": "linear",
+      "can_interrupt": true,
+      "priority": 70
+    },
+
+
+    {
+      "from": "Attack",
+      "to": "Roll",
+      "trigger": "Roll",
+      "buffer": 0.15,
+      "window": [ [ 0.85, 1.0 ] ], 
+      "duration": 0.05,
+      "curve": "ease_in_out",
+      "can_interrupt": true,
+      "priority": 80
+    },
+
+
+    {
+      "from": "Roll",
+      "to": "Idle",
+      "window": [ [ 0.90, 1.00 ] ],
+      "duration": 0.12,
       "curve": "ease_out",
       "can_interrupt": true,
       "priority": 5

@@ -57,7 +57,28 @@ static int g_TestTexid = -1;
 static int g_AnimPatternId = -1;
 static int g_AnimPlayId = -1;
 
+// 玩家输入构建辅助：把键盘 + 鼠标状态 → PlayerUpdateInput
+static PlayerUpdateInput BuildPlayerInput(const Mouse_State& ms)
+{
+    PlayerUpdateInput pin{};
 
+    // WASD 移动
+    pin.moveZ += KeyLogger_IsPressed(KK_W) ? 1.0f : 0.0f;
+    pin.moveZ -= KeyLogger_IsPressed(KK_S) ? 1.0f : 0.0f;
+    pin.moveX -= KeyLogger_IsPressed(KK_A) ? 1.0f : 0.0f;
+    pin.moveX += KeyLogger_IsPressed(KK_D) ? 1.0f : 0.0f;
+
+    // 攻击：鼠标左键“刚按下”
+    static bool s_prevLB = false;
+    bool justPressedLB = (ms.leftButton && !s_prevLB);
+    s_prevLB = ms.leftButton;
+    pin.attack = justPressedLB;
+
+    // 翻滚：左 Shift “刚按下”
+    pin.roll = KeyLogger_IsTrigger(KK_LEFTSHIFT);
+
+    return pin;
+}
 
 void Game_Initialize()
 {
@@ -172,13 +193,7 @@ void Game_Update(double elapsed_time)
     PlayerCamera_Update(elapsed_time, camIn);
 
     // 2) 玩家输入（WASD）
-    PlayerUpdateInput pin{};
-    pin.moveZ += KeyLogger_IsPressed(KK_W) ? 1.0f : 0.0f;
-    pin.moveZ -= KeyLogger_IsPressed(KK_S) ? 1.0f : 0.0f;
-    pin.moveX -= KeyLogger_IsPressed(KK_A) ? 1.0f : 0.0f;
-    pin.moveX += KeyLogger_IsPressed(KK_D) ? 1.0f : 0.0f;
-
-    pin.attack = justPressedLB; // 攻击输入交给 Player_Update 里触发 FSM
+    PlayerUpdateInput pin = BuildPlayerInput(ms);
 
     // 3) 从摄像机模块拿到「移动用坐标系」（按摄像机方向移动）
     PlayerCamera_GetMoveBasis(&pin.camForwardXZ, &pin.camRightXZ);
