@@ -205,6 +205,17 @@ void HitboxSystem_Update(float dt)
                     continue;
                 }
 
+                // 计算一个大致的命中位置：
+// 这里简单用 HurtBox AABB 的中心点（以后你可以改成更精确的 HitBox 面/点）
+                DirectX::XMFLOAT3 hitPos{};
+                if (hurtCol->shape.type == ColliderShapeType::AABB)
+                {
+                    const auto& aabb = hurtCol->shape.aabb;
+                    hitPos.x = 0.5f * (aabb.min.x + aabb.max.x);
+                    hitPos.y = 0.5f * (aabb.min.y + aabb.max.y);
+                    hitPos.z = 0.5f * (aabb.min.z + aabb.max.z);
+                }
+
                 // 构造 HitContact
                 HitContact contact{};
                 contact.attackerOwner = hb->owner;        // 或 hb->owner，看你 struct 的命名

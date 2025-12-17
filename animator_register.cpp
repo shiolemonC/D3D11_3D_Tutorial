@@ -91,6 +91,59 @@ void AnimRegister()
         AnimatorRegistry_Register(c);
     }
 
+    {
+        AnimClipDesc c{};
+        c.name = L"Hit_Light";
+        c.meshPath = L"resources/player_anim/cooked/player_attack.mesh";
+        c.skelPath = L"resources/player_anim/cooked/player_attack.skel";
+        c.animPath = L"resources/player_anim/cooked/player_attack.anim";
+        c.matPath = L"resources/player_anim/cooked/player_attack.mat";
+        // 如需强制贴图（覆盖 .mat）：
+        c.baseColorOverride = L"resources/player_anim/cooked/Textures/Mutant_diffuse.png";
+        c.loop = false;
+        c.playbackRate = 1.0f;
+        c.rmType = RootMotionType::UseZDelta;
+        c.motionRootNameUTF8 = "Armature";
+
+        AnimatorRegistry_Register(c);
+    }
+
+    {
+        AnimClipDesc c{};
+        c.name = L"Hit_Medium";
+        c.meshPath = L"resources/player_anim/cooked/player_attack.mesh";
+        c.skelPath = L"resources/player_anim/cooked/player_attack.skel";
+        c.animPath = L"resources/player_anim/cooked/player_attack.anim";
+        c.matPath = L"resources/player_anim/cooked/player_attack.mat";
+        // 如需强制贴图（覆盖 .mat）：
+        c.baseColorOverride = L"resources/player_anim/cooked/Textures/Mutant_diffuse.png";
+        c.loop = false;
+        c.playbackRate = 1.0f;
+        c.rmType = RootMotionType::UseZDelta;
+        c.motionRootNameUTF8 = "Armature";
+
+        AnimatorRegistry_Register(c);
+    }
+
+    {
+        AnimClipDesc c{};
+        c.name = L"Hit_Heavy";
+        c.meshPath = L"resources/player_anim/cooked/player_attack.mesh";
+        c.skelPath = L"resources/player_anim/cooked/player_attack.skel";
+        c.animPath = L"resources/player_anim/cooked/player_attack.anim";
+        c.matPath = L"resources/player_anim/cooked/player_attack.mat";
+        // 如需强制贴图（覆盖 .mat）：
+        c.baseColorOverride = L"resources/player_anim/cooked/Textures/Mutant_diffuse.png";
+        c.loop = false;
+        c.playbackRate = 1.0f;
+        c.rmType = RootMotionType::UseZDelta;
+        c.motionRootNameUTF8 = "Armature";
+
+        AnimatorRegistry_Register(c);
+    }
+
+
+
 
     // 注册完可（可选）调用一次加载校验
     AnimatorRegistry_LoadAll();

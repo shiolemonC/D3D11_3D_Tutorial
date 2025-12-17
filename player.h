@@ -1,6 +1,7 @@
 ﻿#pragma once
 #include <DirectXMath.h>
 #include "AnimatorRegistry.h"
+#include "hit_event.h"
 
 enum class PlayerState { Idle, Move }; // 目前没怎么用，先保留
 
@@ -46,3 +47,6 @@ bool Player_IsHurtEnabled();
 
 // Debug / 系统查询
 int  Player_GetHurtColliderId();
+
+// 受击请求（由 HitEvent_Dispatch 调用）
+void Player_RequestHitReaction(const HitParams& hit);

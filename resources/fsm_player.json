@@ -30,9 +30,36 @@
       "clip": "Roll",
       "loop": false,
       "root_motion": "use_delta",
-      "length_sec": 0.0, 
-      "locomotion": false, 
-      "uninterruptible": [ [ 0.0, 0.8 ] ] 
+      "length_sec": 0.0,
+      "locomotion": false,
+      "uninterruptible": [ [ 0.0, 0.8 ] ]
+    },
+    {
+      "name": "Hit_Light",
+      "clip": "Hit_Light",
+      "loop": false,
+      "root_motion": "none",
+      "length_sec": 0.0,
+      "locomotion": false,
+      "uninterruptible": [ [ 0.0, 0.7 ] ]
+    },
+    {
+      "name": "Hit_Medium",
+      "clip": "Hit_Medium",
+      "loop": false,
+      "root_motion": "none",
+      "length_sec": 0.0,
+      "locomotion": false,
+      "uninterruptible": [ [ 0.0, 0.8 ] ]
+    },
+    {
+      "name": "Hit_Heavy",
+      "clip": "Hit_Heavy",
+      "loop": false,
+      "root_motion": "none",
+      "length_sec": 0.0,
+      "locomotion": false,
+      "uninterruptible": [ [ 0.0, 0.9 ] ]
     }
   ],
   "transitions": [
@@ -92,7 +119,7 @@
       "priority": 5
     },
 
-    
+
     {
       "from": "Idle",
       "to": "Roll",
@@ -124,7 +151,7 @@
       "to": "Roll",
       "trigger": "Roll",
       "buffer": 0.15,
-      "window": [ [ 0.85, 1.0 ] ], 
+      "window": [ [ 0.85, 1.0 ] ],
       "duration": 0.05,
       "curve": "ease_in_out",
       "can_interrupt": true,
@@ -140,6 +167,69 @@
       "curve": "ease_out",
       "can_interrupt": true,
       "priority": 5
+    },
+    {
+      "from": "Any",
+      "to": "Hit_Light",
+      "window": [ [ 0.0, 1.0 ] ],
+      "duration": 0.05,
+      "curve": "linear",
+      "can_interrupt": true,
+      "priority": 100,
+      "conditions": [
+        "hit.trigger && hit.level < 0.5"
+      ]
+    },
+    {
+      "from": "Any",
+      "to": "Hit_Medium",
+      "window": [ [ 0.0, 1.0 ] ],
+      "duration": 0.05,
+      "curve": "linear",
+      "can_interrupt": true,
+      "priority": 110,
+      "conditions": [
+        "hit.trigger && hit.level >= 0.5 && hit.level < 1.5"
+      ]
+    },
+    {
+      "from": "Any",
+      "to": "Hit_Heavy",
+      "window": [ [ 0.0, 1.0 ] ],
+      "duration": 0.05,
+      "curve": "linear",
+      "can_interrupt": true,
+      "priority": 120,
+      "conditions": [
+        "hit.trigger && hit.level >= 1.5"
+      ]
+    },
+    {
+      "from": "Hit_Light",
+      "to": "Idle",
+      "window": [ [ 0.0, 1.0 ] ],
+      "duration": 0.05,
+      "curve": "linear",
+      "can_interrupt": false,
+      "priority": 10
+    },
+    {
+      "from": "Hit_Medium",
+      "to": "Idle",
+      "window": [ [ 0.0, 1.0 ] ],
+      "duration": 0.05,
+      "curve": "linear",
+      "can_interrupt": false,
+      "priority": 10
+    },
+    {
+      "from": "Hit_Heavy",
+      "to": "Idle",
+      "window": [ [ 0.0, 1.0 ] ],
+      "duration": 0.05,
+      "curve": "linear",
+      "can_interrupt": false,
+      "priority": 10
     }
   ],
   "defaults": {

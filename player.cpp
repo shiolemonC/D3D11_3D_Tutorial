@@ -26,6 +26,12 @@ static AnimEventPlayer s_animEventPlayer;  // ★ 每个玩家一份的事件播
 static char s_playerHitboxOwnerTag;
 static char s_playerHurtboxOwnerTag;
 
+ // ------------------ 受击缓存 ------------------
+static bool      s_hitRequested = false;        // 本帧是否收到新的受击请求
+static HitParams s_pendingHit{};                  // HitEvent_Dispatch 填写的受击信息
+static HitParams s_lastHit{};                     // 最近一次真正生效的受击（状态机可选使用）
+static HitLevel  s_lastHitLevel = HitLevel::Light;
+
 // ★ Player 的受击框（HurtBox）信息
 static int      s_hurtColliderId = -1;
 static XMFLOAT3 s_hurtHalfSize{ 0.5f, 1.2f, 0.5f };  // 先和 body 差不多，将来可单独调
@@ -308,6 +314,32 @@ static void Player_ApplyRootMotionDelta(const RootMotionDelta& rm)
 // ------------------ 对外：一帧更新 ------------------
 void Player_Update(double dt, const PlayerUpdateInput& in)
 {
+    // 0) 处理 Hit 触发（来自 HitEvent_Dispatch）
+//    每帧先清掉 hit.trigger，防止旧值残留
+    PlayerSM_SetBool("hit.trigger", false);
+
+    if (s_hitRequested)
+    {
+        s_hitRequested = false;
+
+        s_lastHit = s_pendingHit;
+        s_lastHitLevel = s_pendingHit.level;
+
+        // 把一次性的“受击触发”以及等级写入 FSM 条件系统
+        PlayerSM_SetBool("hit.trigger", true);
+
+        float levelValue = 0.0f;
+        switch (s_lastHitLevel)
+        {
+        case HitLevel::Light:  levelValue = 0.0f; break;
+        case HitLevel::Medium: levelValue = 1.0f; break;
+        case HitLevel::Heavy:  levelValue = 2.0f; break;
+        default:               levelValue = 0.0f; break;
+        }
+        PlayerSM_SetFloat("hit.level", levelValue);
+    }
+
+
     // 1) 把输入写入状态机条件
     PlayerSM_SetMoveInput(in.moveX, in.moveZ);
     if (in.attack) {
@@ -422,4 +454,17 @@ bool Player_IsHurtEnabled()
 int Player_GetHurtColliderId()
 {
     return s_hurtColliderId;
+}
+
+void Player_RequestHitReaction(const HitParams& hit)
+{
+    // 如果当前处于无敌状态（例如翻滚无敌），就直接忽略这次受击
+    if (!s_hurtEnabled)
+    {
+        return;
+    }
+
+    // 缓存受击信息，等待在 Player_Update 中写入 FSM 条件
+    s_hitRequested = true;
+    s_pendingHit = hit;
 }

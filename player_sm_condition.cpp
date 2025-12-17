@@ -349,6 +349,37 @@ static bool fetchVarB(const std::string& name, bool* have) {
     return false;
 }
 
+static bool popBool(std::vector<bool>& bs, std::vector<float>& fs)
+{
+    if (!bs.empty()) {
+        bool v = bs.back();
+        bs.pop_back();
+        return v;
+    }
+    if (!fs.empty()) {
+        float f = fs.back();
+        fs.pop_back();
+        return asBool(f); // 非零即真
+    }
+    // 理论上走不到这里，走到说明表达式编译有问题
+    return false;
+}
+
+static float popFloat(std::vector<float>& fs, std::vector<bool>& bs)
+{
+    if (!fs.empty()) {
+        float v = fs.back();
+        fs.pop_back();
+        return v;
+    }
+    if (!bs.empty()) {
+        bool b = bs.back();
+        bs.pop_back();
+        return asFloat(b); // true->1, false->0
+    }
+    return 0.0f;
+}
+
 static bool evalBool(const Compiled& c) {
     std::vector<float> fs;  fs.reserve(16);
     std::vector<bool>  bs;  bs.reserve(16);
@@ -387,62 +418,48 @@ static bool evalBool(const Compiled& c) {
             if (!bs.empty()) { fs.push_back(asFloat(bs.back())); bs.pop_back(); }
         } break;
         case Op::NOT_: {
-            bool a = !bs.back(); bs.back() = a;
+            bool v = popBool(bs, fs);
+            bs.push_back(!v);
         } break;
         case Op::AND_: {
-            bool b2 = bs.back(); bs.pop_back();
-            bool b1 = bs.back(); bs.pop_back();
+            bool b2 = popBool(bs, fs);
+            bool b1 = popBool(bs, fs);
             bs.push_back(b1 && b2);
         } break;
         case Op::OR_: {
-            bool b2 = bs.back(); bs.pop_back();
-            bool b1 = bs.back(); bs.pop_back();
+            bool b2 = popBool(bs, fs);
+            bool b1 = popBool(bs, fs);
             bs.push_back(b1 || b2);
         } break;
         case Op::GT_: {
-            float b2 = fs.back(); fs.pop_back();
-            float b1 = fs.back(); fs.pop_back();
+            float b2 = popFloat(fs, bs);
+            float b1 = popFloat(fs, bs);
             bs.push_back(b1 > b2);
         } break;
         case Op::GE_: {
-            float b2 = fs.back(); fs.pop_back();
-            float b1 = fs.back(); fs.pop_back();
+            float b2 = popFloat(fs, bs);
+            float b1 = popFloat(fs, bs);
             bs.push_back(b1 >= b2);
         } break;
         case Op::LT_: {
-            float b2 = fs.back(); fs.pop_back();
-            float b1 = fs.back(); fs.pop_back();
+            float b2 = popFloat(fs, bs);
+            float b1 = popFloat(fs, bs);
             bs.push_back(b1 < b2);
         } break;
         case Op::LE_: {
-            float b2 = fs.back(); fs.pop_back();
-            float b1 = fs.back(); fs.pop_back();
+            float b2 = popFloat(fs, bs);
+            float b1 = popFloat(fs, bs);
             bs.push_back(b1 <= b2);
         } break;
         case Op::EQ_: {
-            // EQ 支持“数值==数值”的常见用法；当需要比较布尔时也能工作
-            if (fs.size() >= 2) {
-                float b2 = fs.back(); fs.pop_back();
-                float b1 = fs.back(); fs.pop_back();
-                bs.push_back(b1 == b2);
-            }
-            else {
-                bool y2 = bs.back(); bs.pop_back();
-                bool y1 = bs.back(); bs.pop_back();
-                bs.push_back(y1 == y2);
-            }
+            float b2 = popFloat(fs, bs);
+            float b1 = popFloat(fs, bs);
+            bs.push_back(b1 == b2);
         } break;
         case Op::NE_: {
-            if (fs.size() >= 2) {
-                float b2 = fs.back(); fs.pop_back();
-                float b1 = fs.back(); fs.pop_back();
-                bs.push_back(b1 != b2);
-            }
-            else {
-                bool y2 = bs.back(); bs.pop_back();
-                bool y1 = bs.back(); bs.pop_back();
-                bs.push_back(y1 != y2);
-            }
+            float b2 = popFloat(fs, bs);
+            float b1 = popFloat(fs, bs);
+            bs.push_back(b1 != b2);
         } break;
         }
     }
