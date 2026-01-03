@@ -955,12 +955,12 @@ void  BossModelSkinned_ResolveMotionRoot() {
 #if defined(DEBUG) || defined(_DEBUG)
     if (gMotionRootIndex >= 0) {
         char buf[256];
-        sprintf_s(buf, "[Skinned] MotionRoot = #%d (%s)\n",
+        sprintf_s(buf, "[Skinned] Boss MotionRoot = #%d (%s)\n",
             gMotionRootIndex, gJoints[gMotionRootIndex].name.c_str());
         OutputDebugStringA(buf);
     }
     else {
-        OutputDebugStringA("[Skinned] MotionRoot resolve FAILED\n");
+        OutputDebugStringA("[Skinned] Boss MotionRoot resolve FAILED\n");
     }
 #endif
 }

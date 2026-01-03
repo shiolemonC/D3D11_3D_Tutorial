@@ -12,6 +12,55 @@
 
 using namespace DirectX;
 
+//临时debug用
+#if defined(_DEBUG) || defined(DEBUG)
+static const char* RMTypeToStr(RootMotionType t)
+{
+    switch (t) {
+    case RootMotionType::None:          return "None";
+    case RootMotionType::VelocityDriven:return "VelocityDriven";
+    case RootMotionType::UseAnimDelta:  return "UseAnimDelta";
+    case RootMotionType::UseZDelta:     return "UseZDelta";
+    default:                            return "Unknown";
+    }
+}
+
+static void GetTranslationFromMatrix(const DirectX::XMMATRIX& M, float* outX, float* outY, float* outZ)
+{
+    DirectX::XMFLOAT4X4 m;
+    DirectX::XMStoreFloat4x4(&m, M);
+    // DirectXMath 的 Translation 通常在 _41/_42/_43
+    *outX = m._41;
+    *outY = m._42;
+    *outZ = m._43;
+}
+
+static void Debug_LogRM(const char* tag,
+    const std::wstring& clipName,
+    RootMotionType rmType,
+    const DirectX::XMFLOAT3& rmPos,
+    float rmYaw,
+    const DirectX::XMMATRIX& baseW,
+    const DirectX::XMMATRIX& finalW)
+{
+    float bx, by, bz, fx, fy, fz;
+    GetTranslationFromMatrix(baseW, &bx, &by, &bz);
+    GetTranslationFromMatrix(finalW, &fx, &fy, &fz);
+
+    char buf[512];
+    sprintf_s(buf,
+        "[RM][%s] clip=%ls rmType=%s | accumPos(%.3f,%.3f,%.3f) yaw=%.3f | baseT(%.3f,%.3f,%.3f) -> worldT(%.3f,%.3f,%.3f)\n",
+        tag,
+        clipName.c_str(),
+        RMTypeToStr(rmType),
+        rmPos.x, rmPos.y, rmPos.z, rmYaw,
+        bx, by, bz,
+        fx, fy, fz
+    );
+    OutputDebugStringA(buf);
+}
+#endif
+
 // ---------------------------------
 // 内部数据
 // ---------------------------------
@@ -61,6 +110,17 @@ static float gYawBaselineRad = 0.0f;
 static void ApplyWorldWithRootMotion()
 {
     XMMATRIX T = XMMatrixTranslation(gRM_AccumPos.x, gRM_AccumPos.y, gRM_AccumPos.z);
+
+//#if defined(_DEBUG) || defined(DEBUG)
+//    if (gCurrent >= 0) {
+//        const auto& clip = gClips[gCurrent];
+//        Debug_LogRM("ApplyWorld",
+//            clip.name, clip.rmType,
+//            gRM_AccumPos, gRM_AccumYaw,
+//            gBaseWorld, T * gBaseWorld);
+//    }
+//#endif
+
     ModelSkinned_SetWorldMatrix(T * gBaseWorld);
 }
 
@@ -214,32 +274,32 @@ bool AnimatorRegistry_Play(const std::wstring& name,
                 const float target = gYawBaselineRad;
                 const float nodeFix = wrap(target - yawModel0);
                 ModelSkinned_SetNodeYawFix(nodeFix);
-
-#if defined(DEBUG) || defined(_DEBUG)
-                char b2[196];
-                sprintf_s(b2, "[Anim] Play %ls | yaw0(local)=%.1f°, yaw0(model)=%.1f°, nodeFix=%.1f° (target=%.1f°)\n",
-                    name.c_str(),
-                    XMConvertToDegrees(yaw0),
-                    XMConvertToDegrees(yawModel0),
-                    XMConvertToDegrees(nodeFix),
-                    XMConvertToDegrees(target));
-                OutputDebugStringA(b2);
-#endif
+//
+//#if defined(DEBUG) || defined(_DEBUG)
+//                char b2[196];
+//                sprintf_s(b2, "[Anim] Play %ls | yaw0(local)=%.1f°, yaw0(model)=%.1f°, nodeFix=%.1f° (target=%.1f°)\n",
+//                    name.c_str(),
+//                    XMConvertToDegrees(yaw0),
+//                    XMConvertToDegrees(yawModel0),
+//                    XMConvertToDegrees(nodeFix),
+//                    XMConvertToDegrees(target));
+//                OutputDebugStringA(b2);
+//#endif
             }
         }
     }
 
-#if defined(DEBUG) || defined(_DEBUG)
-    {
-        float yaw0 = 0.0f;
-        ModelSkinned_DebugGetRootYaw_F0(&yaw0);
-
-        char buf[256];
-        sprintf_s(buf, "[DEBUG] Clip: %ls, Initial Yaw: %.1f degrees\n",
-            name.c_str(), XMConvertToDegrees(yaw0));
-        OutputDebugStringA(buf);
-    }
-#endif
+//#if defined(DEBUG) || defined(_DEBUG)
+//    {
+//        float yaw0 = 0.0f;
+//        ModelSkinned_DebugGetRootYaw_F0(&yaw0);
+//
+//        char buf[256];
+//        sprintf_s(buf, "[DEBUG] Clip: %ls, Initial Yaw: %.1f degrees\n",
+//            name.c_str(), XMConvertToDegrees(yaw0));
+//        OutputDebugStringA(buf);
+//    }
+//#endif
 
     // 播放参数
     bool  loop = clip.loop;
@@ -260,12 +320,25 @@ bool AnimatorRegistry_Play(const std::wstring& name,
         gRM_AccumYaw = 0.0f;
         ApplyWorldWithRootMotion();
 
+//#if defined(_DEBUG) || defined(DEBUG)
+//        {
+//            const auto& clip = gClips[gCurrent];
+//            Debug_LogRM("Play_Reset",
+//                clip.name, clip.rmType,
+//                gRM_AccumPos, gRM_AccumYaw,
+//                gBaseWorld, gBaseWorld);
+//        }
+//#endif
+
         // ★ 根据 RootMotion 模式明确指定哪些要清根平移
         bool zeroXZ = false;
 
         switch (clip.rmType)
         {
         case RootMotionType::None:
+            zeroXZ = true;
+            break;
+
         case RootMotionType::VelocityDriven:
             // 这些模式完全不用动画位移 → 必须清掉根平移
             zeroXZ = true;
@@ -282,10 +355,17 @@ bool AnimatorRegistry_Play(const std::wstring& name,
             break;
         }
 
-        // VelocityDriven 时：清掉根局部 XZ 平移
-        ModelSkinned_SetZeroRootTranslationXZ(
-            zeroXZ
-        );
+        // 1) 清 motion-root 的 XZ（你原本就有）
+        ModelSkinned_SetZeroRootTranslationXZ(zeroXZ);
+
+        // 2) 再额外清 Hips/Pelvis 的 XZ（关键）
+        if (zeroXZ) {
+            ModelSkinned_SetZeroTranslationXZBoneByName("hips");
+        }
+        else {
+            ModelSkinned_SetZeroTranslationXZBoneByName(nullptr);
+        }
+
 
         // ★ 新增：重置当前动画时间，并计算剪辑总长度（秒）
         gCurrentTimeSec = 0.0f;
@@ -304,6 +384,13 @@ bool AnimatorRegistry_Play(const std::wstring& name,
 void AnimatorRegistry_SetWorld(const XMMATRIX& world)
 {
     gBaseWorld = world;
+
+    // ★★★ 修复：清空 RootMotion 累积 ★★★
+// 原因：新的 world 矩阵已经包含了完整的逻辑位置
+// 如果不清空，旧的累积值会被反复叠加
+    gRM_AccumPos = { 0, 0, 0 };
+    gRM_AccumYaw = 0.0f;
+
     ApplyWorldWithRootMotion(); // 让位移叠加到新 world 上
 }
 
@@ -397,6 +484,19 @@ void AnimatorRegistry_Update(double dtSec)
         break;
     }
 }
+
+//#if defined(_DEBUG) || defined(DEBUG)
+//    static int s_frame = 0;
+//    s_frame++;
+//    // 每 15 帧打一条（按需改）
+//    if ((s_frame % 15) == 0 && gCurrent >= 0) {
+//        const auto& clip = gClips[gCurrent];
+//        Debug_LogRM("Update",
+//            clip.name, clip.rmType,
+//            gRM_AccumPos, gRM_AccumYaw,
+//            gBaseWorld, gBaseWorld);
+//    }
+//#endif
 
     // 先采样再推进：保持 [t, t+dt] 采样与推进时序一致
     ModelSkinned_Update(dtSec);

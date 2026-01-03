@@ -7,6 +7,7 @@
 #include "anim_event_player.h" // ★ 新增：帧事件播放器
 #include "boss.h"
 #include "player_camera.h"
+#include "ModelSkinned.h"
 using namespace DirectX;
 
 // ------------------ 内部状态 ------------------
@@ -289,7 +290,7 @@ static void Player_Kinematic_Update(double dt,
 
     // ⚠ 这里暂时仍保留 +XM_PI，用来对齐当前 FBX 的朝向。
     //   将来如果你把资源和 nodeFix 调通，可以把 +XM_PI 删掉，让 s_yaw 真正代表模型的面对方向。
-    XMMATRIX R = XMMatrixRotationY(s_yaw + XM_PI);
+    XMMATRIX R = XMMatrixRotationY(s_yaw +XM_PI);
     XMMATRIX T = XMMatrixTranslation(s_pos.x, s_pos.y, s_pos.z);
     XMMATRIX W = S * R * T;
 
@@ -396,16 +397,33 @@ void Player_Update(double dt, const PlayerUpdateInput& in)
         }
     }
 
+#if defined(_DEBUG) || defined(DEBUG)
+    // ★ 在这里打同步日志：此时 s_pos 已经是“本帧最终逻辑位置”
+    static int s_sync = 0;
+    if ((s_sync++ % 30) == 0) {
+        DirectX::XMFLOAT3 mw{};
+        ModelSkinned_GetWorldTranslation(&mw); // 下面我会说怎么实现
+
+        char b[256];
+        sprintf_s(b,
+            "[Sync] logicPos=(%.3f,%.3f,%.3f) modelWorld=(%.3f,%.3f,%.3f) diff=(%.3f,%.3f,%.3f)\n",
+            s_pos.x, s_pos.y, s_pos.z,
+            mw.x, mw.y, mw.z,
+            mw.x - s_pos.x, mw.y - s_pos.y, mw.z - s_pos.z);
+        OutputDebugStringA(b);
+    }
+#endif
+
     // 6) Player vs Boss 身体 AABB 碰撞解決（事后 MTV 推开）
    //    注意：确保 Boss_Update 已在本帧调用过，这样 Boss 的 AABB 是最新的。
     Player_ResolveBodyCollisionWithBoss();
 
-    {
-        char buf[256];
-        sprintf_s(buf, "Player pos=(%.2f,%.2f,%.2f), yaw=%.2f\n",
-            s_pos.x, s_pos.y, s_pos.z, s_yaw);
-        OutputDebugStringA(buf);
-    }
+    //{
+    //    char buf[256];
+    //    sprintf_s(buf, "Player pos=(%.2f,%.2f,%.2f), yaw=%.2f\n",
+    //        s_pos.x, s_pos.y, s_pos.z, s_yaw);
+    //    OutputDebugStringA(buf);
+    //}
 }
 
 // ------------------ 查询接口 ------------------

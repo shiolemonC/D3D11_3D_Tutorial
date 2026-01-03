@@ -29,12 +29,16 @@ static ID3D11Buffer* gIB = nullptr;
 static UINT                  gIndexCount = 0;
 static DXGI_FORMAT           gIndexFormat = DXGI_FORMAT_R16_UINT;
 
+static UINT                  gVertexStride = 0;
+static UINT                  gVertexCount = 0;
+
 static ID3D11VertexShader* gVS = nullptr;
 static ID3D11InputLayout* gIL = nullptr;
 
 // b5：骨矩阵数组
 static ID3D11Buffer* gCBBones = nullptr;
 static const UINT            MAX_BONES = 128;
+static uint32_t               gSkelJointCount = 0;
 
 // 可选：光照常量（与现有 Shader3d 配合）
 static ID3D11Buffer* gCBAmbient = nullptr;     // VS b3
@@ -42,6 +46,9 @@ static ID3D11Buffer* gCBDirectional = nullptr; // VS b4
 
 // Velocity-Driven 开关：为“动画位移”使用时清除根的局部 XZ 平移
 static bool                  gZeroRootTransXZ = false;
+
+static std::string gZeroExtraXZ_NameUTF8;
+static int         gZeroExtraXZ_Index = -1;
 
 // 世界矩阵（由上层设置）
 static XMMATRIX              gWorld = XMMatrixIdentity();
@@ -109,6 +116,42 @@ static void EnsureD3D() {
         gDev = Direct3D_GetDevice();
         gCtx = Direct3D_GetContext();
     }
+}
+
+//
+static void ResolveZeroExtraXZ()
+{
+    gZeroExtraXZ_Index = -1;
+    if (gJoints.empty()) return;
+    if (gZeroExtraXZ_NameUTF8.empty()) return;
+
+    // 先按指定名找
+    for (size_t i = 0; i < gJoints.size(); ++i) {
+        if (gJoints[i].name == gZeroExtraXZ_NameUTF8) {
+            gZeroExtraXZ_Index = (int)i;
+            break;
+        }
+    }
+
+    // 找不到就做一点常见兜底（可选，但很实用）
+    if (gZeroExtraXZ_Index < 0) {
+        static const char* kFallback[] = { "mixamorig:Hips","Hips","hips","Pelvis","pelvis" };
+        for (auto s : kFallback) {
+            for (size_t i = 0; i < gJoints.size(); ++i) {
+                if (gJoints[i].name == s) { gZeroExtraXZ_Index = (int)i; break; }
+            }
+            if (gZeroExtraXZ_Index >= 0) break;
+        }
+    }
+
+#if defined(DEBUG) || defined(_DEBUG)
+    if (gZeroExtraXZ_Index >= 0) {
+        char buf[256];
+        sprintf_s(buf, "[Skinned] ZeroExtraXZ = #%d (%s)\n",
+            gZeroExtraXZ_Index, gJoints[gZeroExtraXZ_Index].name.c_str());
+        OutputDebugStringA(buf);
+    }
+#endif
 }
 
 // 前置
@@ -191,6 +234,28 @@ static bool LoadMeshV1(const std::wstring& meshPathW) {
     const UINT icount = mh->indexCount;
     const bool idx32 = (mh->vertexCount > 65535);
 
+    gVertexStride = stride;
+    gVertexCount = vcount;
+
+    // 如果你当前的 VS/IL 仍然是“固定格式”的（例如你写死按 56 的布局建 IL）
+    // 那么 stride 变化会导致渲染全错 —— 先直接报错退出，避免“透明人”难查。
+    if (gVertexStride == 0)
+    {
+        OutputDebugStringA("[ModelSkinned] ERROR: vertexStride==0\n");
+        return false;
+    }
+
+    // 如果你确定 shader/input-layout 只支持 56，这里建议先强约束：
+    // （等你将来支持多 layout 再删掉这段）
+    if (gVertexStride != 56)
+    {
+        char buf[256];
+        sprintf_s(buf, "[ModelSkinned] ERROR: vertexStride=%u (expected 56). Update IL/VS or recook mesh.\n",
+            gVertexStride);
+        OutputDebugStringA(buf);
+        return false;
+    }
+
     size_t vbBytes = size_t(vcount) * stride;
     if (!need(vbBytes)) return false;
     const void* vbData = p; p += vbBytes;
@@ -260,10 +325,31 @@ static bool LoadSkel(const std::wstring& skelPathW) {
     if (std::memcmp(fh->magic, "SKEL", 4) != 0) return false;
 
     if (!need(sizeof(SkeletonHeader))) return false;
+
     auto sh = (const SkeletonHeader*)p; p += sizeof(SkeletonHeader);
 
+    gSkelJointCount = sh->jointCount;
+
+    // ★ 关键：超出上限直接报错（否则后面 palette 截断会导致蒙皮错乱/透明）
+    if (gSkelJointCount == 0)
+    {
+        OutputDebugStringA("[ModelSkinned] ERROR: skel jointCount==0\n");
+        return false;
+    }
+
+    if (gSkelJointCount > MAX_BONES)
+    {
+        char buf[256];
+        sprintf_s(buf, "[ModelSkinned] ERROR: skel jointCount=%u > MAX_BONES=%u. Increase MAX_BONES and HLSL CB size.\n",
+            (unsigned)gSkelJointCount, (unsigned)MAX_BONES);
+        OutputDebugStringA(buf);
+        return false;
+    }
+
     gJoints.clear();
-    gJoints.resize(sh->jointCount);
+    gJoints.resize(gSkelJointCount);
+
+    if (!need(sizeof(JointRec) * gSkelJointCount)) return false;
     if (!need(sizeof(JointRec) * sh->jointCount)) return false;
 
     for (uint32_t i = 0; i < sh->jointCount; ++i) {
@@ -296,6 +382,7 @@ static bool LoadSkel(const std::wstring& skelPathW) {
 
     // 解析一次 MotionRoot（默认策略可解析出 Hips）
     ModelSkinned_ResolveMotionRoot();
+    ResolveZeroExtraXZ();   // ★ 新增：骨骼变化后，重解析“额外清零骨骼”
     return true;
 }
 
@@ -324,6 +411,21 @@ static bool LoadAnim(const std::wstring& animPathW) {
 
     if (ah->jointCount != gJoints.size()) {
         // 数量不匹配：先严格处理（如需容错可在此处做重映射）
+        return false;
+    }
+
+    if (gSkelJointCount == 0)
+    {
+        OutputDebugStringA("[ModelSkinned] ERROR: LoadAnim before LoadSkel (gSkelJointCount==0)\n");
+        return false;
+    }
+
+    if (ah->jointCount != gSkelJointCount)
+    {
+        char buf[256];
+        sprintf_s(buf, "[ModelSkinned] ERROR: anim jointCount=%u != skel jointCount=%u (asset mismatch / mixed cook?)\n",
+            (unsigned)ah->jointCount, (unsigned)gSkelJointCount);
+        OutputDebugStringA(buf);
         return false;
     }
 
@@ -524,7 +626,8 @@ void ModelSkinned_Update(double dtSec) {
     }
 }
 
-void ModelSkinned_SetWorldMatrix(const XMMATRIX& world) { gWorld = world; }
+void ModelSkinned_SetWorldMatrix(const XMMATRIX& world) { gWorld =  world; }
+//XMMatrixScaling(100.0f, 100.0f, 100.0f)
 void ModelSkinned_SetLoop(bool loop) { gLoop = loop; }
 void ModelSkinned_SetPlaybackRate(float rate) { gPlayback = rate; }
 void ModelSkinned_Seek(float t) { gTime = t; }
@@ -654,6 +757,8 @@ void ModelSkinned_Draw() {
 
         const AnimTRS* currentFramePose = gAnimFrames.data() + size_t(f0) * J;
 
+
+
         // 只读/可写姿态双指针
         const AnimTRS* poseRO = currentFramePose;
         std::vector<AnimTRS> tempPose;
@@ -664,12 +769,61 @@ void ModelSkinned_Draw() {
         if (root < 0) root = ModelSkinned_GetRootJointIndex();
         if (root < 0) root = 0;
 
+
+#if defined(_DEBUG) || defined(DEBUG)
+        static int sPoseLog = 0;
+        if ((sPoseLog++ % 30) == 0)
+        {
+            // motion root index（Draw 里本来就有 root 这个局部变量）
+            int dbgRoot = root;
+
+            // 取第0帧做对比基准（注意是“同一个关节”）
+            const AnimTRS* frame0Pose = gAnimFrames.data(); // f=0 的开头
+            const AnimTRS& r0 = frame0Pose[dbgRoot];
+            const AnimTRS& rN = currentFramePose[dbgRoot];
+
+            auto LogTRS = [&](const char* tag, const AnimTRS& t, const AnimTRS& base)
+                {
+                    float dx = t.T[0] - base.T[0];
+                    float dy = t.T[1] - base.T[1];
+                    float dz = t.T[2] - base.T[2];
+                    char b[256];
+                    sprintf_s(b,
+                        "[Pose][%s] root=%d(%s) T=(%.5f,%.5f,%.5f) dT0=(%.5f,%.5f,%.5f) zeroXZ=%d\n",
+                        tag,
+                        dbgRoot, gJoints[dbgRoot].name.c_str(),
+                        t.T[0], t.T[1], t.T[2],
+                        dx, dy, dz,
+                        (int)gZeroRootTransXZ
+                    );
+                    OutputDebugStringA(b);
+                };
+
+            // 1) 清零前（RAW）
+            LogTRS("RAW", rN, r0);
+
+            // 2) 如果你创建了 tempPose 并且 finalPose 指向它，就打印清零后（SKIN）
+            //    finalPose 在你函数里后面会被定义：const AnimTRS* finalPose = poseRW ? ... : poseRO;
+            //    所以你可以把下面这句挪到 finalPose 定义之后再打
+        }
+#endif
+
         // 清除根 XZ 平移（Velocity-driven 模式）
         if (gZeroRootTransXZ && J > 0) {
             tempPose.assign(currentFramePose, currentFramePose + J);
             tempPose[root].T[0] = 0.0f;
             tempPose[root].T[2] = 0.0f;
             poseRW = tempPose.data();
+        }
+
+        // ★ 新增：额外清零某骨骼 XZ（比如 mixamorig:Hips），避免“动画自带位移”叠加
+        if (gZeroExtraXZ_Index >= 0 && gZeroExtraXZ_Index < (int)J && gZeroExtraXZ_Index != root) {
+            if (!poseRW) {
+                tempPose.assign(currentFramePose, currentFramePose + J);
+                poseRW = tempPose.data();
+            }
+            poseRW[gZeroExtraXZ_Index].T[0] = 0.0f;
+            poseRW[gZeroExtraXZ_Index].T[2] = 0.0f;
         }
 
         // 根局部旋转：入场对齐（可选是否保留Δ，当前默认不保留，以便把 Δ 交给 RootMotion）
@@ -707,6 +861,28 @@ void ModelSkinned_Draw() {
 
         const AnimTRS* finalPose = poseRW ? (const AnimTRS*)poseRW : poseRO;
 
+#if defined(_DEBUG) || defined(DEBUG)
+        if ((sPoseLog % 30) == 1) // 和上面错开一下，避免重复变量问题
+        {
+            int dbgRoot = root;
+            const AnimTRS* frame0Pose = gAnimFrames.data();
+            const AnimTRS& r0 = frame0Pose[dbgRoot];
+            const AnimTRS& rF = finalPose[dbgRoot];
+
+            float dx = rF.T[0] - r0.T[0];
+            float dy = rF.T[1] - r0.T[1];
+            float dz = rF.T[2] - r0.T[2];
+
+            char b[256];
+            sprintf_s(b,
+                "[Pose][SKIN] root=%d(%s) T=(%.5f,%.5f,%.5f) dT0=(%.5f,%.5f,%.5f)\n",
+                dbgRoot, gJoints[dbgRoot].name.c_str(),
+                rF.T[0], rF.T[1], rF.T[2],
+                dx, dy, dz
+            );
+            OutputDebugStringA(b);
+        }
+#endif
         // 递归：局部→全局
 
         const AnimTRS* poseForSkinning = finalPose;
@@ -766,6 +942,22 @@ void ModelSkinned_Draw() {
             poseForSkinning = finalPose;
         }
 
+#if defined(_DEBUG) || defined(DEBUG)
+        static int sPoseLog2 = 0;
+        if ((sPoseLog2++ % 30) == 0) {
+            auto DumpT2 = [&](int idx, const char* tag, const AnimTRS* p) {
+                char b[256];
+                sprintf_s(b, "[Pose][%s] idx=%d name=%s T=(%.4f,%.4f,%.4f)\n",
+                    tag, idx, gJoints[idx].name.c_str(),
+                    p[idx].T[0], p[idx].T[1], p[idx].T[2]);
+                OutputDebugStringA(b);
+                };
+
+            DumpT2(root, "SKIN", poseForSkinning);
+            if (gZeroExtraXZ_Index >= 0) DumpT2(gZeroExtraXZ_Index, "SKIN", poseForSkinning);
+        }
+#endif
+
 
         for (size_t j = 0; j < J; ++j) {
             if (gJoints[j].parent == -1) {
@@ -806,9 +998,27 @@ void ModelSkinned_Draw() {
 
     // world 乘以 NodeYawFix（不要写回 gWorld，避免累乘）
     const float nodeFix = ModelSkinned_GetNodeYawFix();
+
+#if defined(_DEBUG) || defined(DEBUG)
+    {
+        auto GetT = [](const XMMATRIX& M) {
+            XMFLOAT4X4 m; XMStoreFloat4x4(&m, M);
+            XMFLOAT3 t{ m._41, m._42, m._43 };
+            return t;
+            };
+        XMFLOAT3 t0 = GetT(gWorld);
+        XMFLOAT3 t1 = GetT(XMMatrixRotationY(nodeFix) * gWorld);
+        char b[256];
+        sprintf_s(b, "[NodeFix] deg=%.2f | T_before=(%.3f,%.3f,%.3f) T_after=(%.3f,%.3f,%.3f)\n",
+            XMConvertToDegrees(nodeFix), t0.x, t0.y, t0.z, t1.x, t1.y, t1.z);
+        OutputDebugStringA(b);
+    }
+#endif
+
     const XMMATRIX W = XMMatrixRotationY(nodeFix) * gWorld;
-    //Shader3d_SetWorldMatrix(XMMatrixIdentity());
     Shader3d_SetWorldMatrix(W);
+    //const XMMATRIX Wfix = XMMatrixRotationX(+XM_PIDIV2); // 或 -XM_PIDIV2
+    //Shader3d_SetWorldMatrix(Wfix* W);
 
     // VS b5（避免被 Shader3d_Begin 覆盖）
     gCtx->VSSetConstantBuffers(5, 1, &gCBBones);
@@ -818,8 +1028,17 @@ void ModelSkinned_Draw() {
     Sampler_SetFillterAnisotropic();
 
     // Draw
-    UINT stride = 56, offset = 0;
+    if (!gVB || !gIB || gIndexCount == 0 || gVertexStride == 0)
+    {
+        // 可选：打一个一次性 log
+        // OutputDebugStringA("[ModelSkinned] Draw skipped: VB/IB not ready\n");
+        return;
+    }
+
+    UINT stride = gVertexStride;
+    UINT offset = 0;
     gCtx->IASetVertexBuffers(0, 1, &gVB, &stride, &offset);
+
     gCtx->IASetIndexBuffer(gIB, gIndexFormat, 0);
     gCtx->IASetPrimitiveTopology(D3D11_PRIMITIVE_TOPOLOGY_TRIANGLELIST);
     gCtx->DrawIndexed(gIndexCount, 0, 0);
@@ -901,6 +1120,18 @@ void ModelSkinned_SetZeroRootTranslationXZ(bool enable)
     gZeroRootTransXZ = enable;
 }
 
+void ModelSkinned_SetZeroTranslationXZBoneByName(const char* utf8Name)
+{
+    if (!utf8Name || utf8Name[0] == '\0') {
+        gZeroExtraXZ_NameUTF8.clear();
+        gZeroExtraXZ_Index = -1;
+        return;
+    }
+
+    gZeroExtraXZ_NameUTF8 = utf8Name;
+    ResolveZeroExtraXZ();
+}
+
 // ---------------------------------------------------------
 // MotionRoot 选择/解析
 // ---------------------------------------------------------
@@ -955,12 +1186,12 @@ void  ModelSkinned_ResolveMotionRoot() {
 #if defined(DEBUG) || defined(_DEBUG)
     if (gMotionRootIndex >= 0) {
         char buf[256];
-        sprintf_s(buf, "[Skinned] MotionRoot = #%d (%s)\n",
+        sprintf_s(buf, "[Skinned] player MotionRoot = #%d (%s)\n",
             gMotionRootIndex, gJoints[gMotionRootIndex].name.c_str());
         OutputDebugStringA(buf);
     }
     else {
-        OutputDebugStringA("[Skinned] MotionRoot resolve FAILED\n");
+        OutputDebugStringA("[Skinned] player MotionRoot resolve FAILED\n");
     }
 #endif
 }
@@ -982,6 +1213,7 @@ void ModelSkinned_CaptureCurrentLocalPose()
 
     const AnimTRS* currentFramePose = gAnimFrames.data() + size_t(f0) * J;
 
+
     const AnimTRS* poseRO = currentFramePose;
     std::vector<AnimTRS> tempPose;
     AnimTRS* poseRW = nullptr;
@@ -997,6 +1229,28 @@ void ModelSkinned_CaptureCurrentLocalPose()
         tempPose[root].T[0] = 0.0f;
         tempPose[root].T[2] = 0.0f;
         poseRW = tempPose.data();
+    }
+
+    if (gZeroExtraXZ_Index >= 0 && gZeroExtraXZ_Index < (int)J /* && gZeroExtraXZ_Index != root */) {
+        if (!poseRW) {
+            tempPose.assign(currentFramePose, currentFramePose + J);
+            poseRW = tempPose.data();
+        }
+        poseRW[gZeroExtraXZ_Index].T[0] = 0.0f;
+        poseRW[gZeroExtraXZ_Index].T[2] = 0.0f;
+
+#if defined(DEBUG) || defined(_DEBUG)
+        // 添加日志验证清除生效
+        static int sDbg = 0;
+        if ((sDbg++ % 30) == 0) {
+            char buf[256];
+            sprintf_s(buf, "[Draw] Cleared XZ for bone #%d (%s)\n",
+                gZeroExtraXZ_Index,
+                gJoints[gZeroExtraXZ_Index].name.c_str());
+            OutputDebugStringA(buf);
+        }
+#endif
+
     }
 
     // RootYawAlign（跟 Draw 中那段用的 AngleWrap / YawFromLocal 完全一致）
@@ -1049,4 +1303,14 @@ void ModelSkinned_SetCrossFadeWeight(float w)
 void ModelSkinned_ClearCrossFadeSource()
 {
     gCrossFadeSourcePose.clear();
+}
+
+void ModelSkinned_GetWorldTranslation(DirectX::XMFLOAT3* outT)
+{
+    if (!outT) return;
+    DirectX::XMFLOAT4X4 m;
+    DirectX::XMStoreFloat4x4(&m, gWorld); // 你内部保存的 world 矩阵
+    outT->x = m._41;
+    outT->y = m._42;
+    outT->z = m._43;
 }

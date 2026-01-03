@@ -204,7 +204,7 @@ void Game_Update(double elapsed_time)
     // Boss 更新
     BossUpdateContext bctx{};
     bctx.playerPos = Player_GetPosition();
-    Boss_Update(elapsed_time, bctx);
+    //Boss_Update(elapsed_time, bctx);
 
     // 5) 让底层 Camera 模块更新 view/proj（原来就有）
     Camera_Update(elapsed_time);
@@ -237,7 +237,7 @@ void Game_Draw()
 
     Sampler_SetFillterAnisotropic();
 
-    Cube_Draw(World);
+    //Cube_Draw(World);
 
     XMMATRIX kirby = XMMatrixIdentity();
 
@@ -247,7 +247,7 @@ void Game_Draw()
     kirby *= XMMatrixRotationX(90.0f);
     kirby *= XMMatrixTranslation(4.0f, 0.5f, 2.0f);
 
-    ModelDraw(g_pModelTreeTest, kirby);
+    //ModelDraw(g_pModelTreeTest, kirby);
 
     XMMATRIX tree = XMMatrixIdentity();
 
@@ -258,7 +258,7 @@ void Game_Draw()
     tree *= XMMatrixRotationY(45.0f);
     tree *= XMMatrixTranslation(-5.0f, 0.0f, 0.0f);
 
-    ModelDraw(g_pModelTreeTest, tree);
+    //ModelDraw(g_pModelTreeTest, tree);
 
     //Direct3D_SetDepthEnable(false);
     //Sky_Draw();
@@ -301,10 +301,10 @@ void Game_Draw()
     AnimatorRegistry_Draw();
 
     // 再画 Boss
-    BossAnimatorRegistry_Draw();
+    //BossAnimatorRegistry_Draw();
 
     //Billboard_Draw(g_TestTexid, { -2.0f, 2.5f, 2.0f }, { 1.5f, 2.0f }, {140.0f * 3, 200.0f, 140.0f, 200.0f}, { 0.0f, 0.0f });
-    BillboardAnim_Draw(g_AnimPlayId, { -2.0f, 2.5f, 2.0f }, { 1.5f, 2.0f },  { 0.0f, 0.0f });
+    //BillboardAnim_Draw(g_AnimPlayId, { -2.0f, 2.5f, 2.0f }, { 1.5f, 2.0f },  { 0.0f, 0.0f });
 
 #if defined(DEBUG) || defined(_DEBUG) // debug buildだけで有効
     PlayerSM_DebugDraw();

@@ -1,6 +1,8 @@
 ﻿#include "AnimatorRegistry.h"
 #include "BossAnimatorRegistry.h"
 
+// cd /d D:\AssetCooker\AssetCooker\build\msvc-x64-release\Debug
+//  AssetCooker.exe "D:\GP11Project\GameSample05_3D\resources\player_anim\player_idle.fbx" "D:\GP11Project\GameSample05_3D\resources\player_anim\cooked"
 // 把你素材的固定路径、默认播放策略都集中在这里注册
 void AnimRegister()
 {
@@ -17,18 +19,18 @@ void AnimRegister()
         //// 如需强制贴图（覆盖 .mat）：
         //c.baseColorOverride = L"D:/AssetCooker/resources/test/ninja_T.fbm/Ch24_1001_Diffuse.png";
 
-        c.meshPath = L"resources/player_anim/cooked/player_idle_test.mesh";
-        c.skelPath = L"resources/player_anim/cooked/player_idle_test.skel";
-        c.animPath = L"resources/player_anim/cooked/player_idle_test.anim";
-        c.matPath =  L"resources/player_anim/cooked/player_idle_test.mat";
+        c.meshPath = L"resources/player_anim/cooked/sword_idle_test.mesh";
+        c.skelPath = L"resources/player_anim/cooked/sword_idle_test.skel";
+        c.animPath = L"resources/player_anim/cooked/sword_idle_test.anim";
+        c.matPath  = L"resources/player_anim/cooked/sword_idle_test.mat";
         // 如需强制贴图（覆盖 .mat）：
-        c.baseColorOverride = L"resources/player_anim/cooked/Textures/Mutant_diffuse.png";
+        c.baseColorOverride = L"resources/player_anim/textures/Paladin_diffuse.png";
 
         c.loop = true;
         c.playbackRate = 1.0f;
         c.rmType = RootMotionType::None;   // Idle 其实没有位移，但作为例子
         // ★ 指定此动画用 Hips 作为 motion-root（常见于 Mixamo）
-        c.motionRootNameUTF8 = "mixamorig:Hips";
+        c.motionRootNameUTF8 = "root";
         AnimatorRegistry_Register(c);
     }
 
@@ -36,37 +38,37 @@ void AnimRegister()
     {
         AnimClipDesc c{};
         c.name = L"Walk";
-        c.meshPath = L"resources/player_anim/cooked/player_move.mesh";
-        c.skelPath = L"resources/player_anim/cooked/player_move.skel";
-        c.animPath = L"resources/player_anim/cooked/player_move.anim";
-        c.matPath =  L"resources/player_anim/cooked/player_move.mat";
+        c.meshPath = L"resources/player_anim/cooked/sword_move_test.mesh";
+        c.skelPath = L"resources/player_anim/cooked/sword_move_test.skel";
+        c.animPath = L"resources/player_anim/cooked/sword_move_test.anim";
+        c.matPath =  L"resources/player_anim/cooked/sword_move_test.mat";
         // 如需强制贴图（覆盖 .mat）：
-        c.baseColorOverride = L"resources/player_anim/cooked/Textures/Mutant_diffuse.png";
+        c.baseColorOverride = L"resources/player_anim/cooked/Textures/Paladin_diffuse.png";
         c.loop = true;
         c.playbackRate = 1.0f;
         c.rmType = RootMotionType::None;
-        c.velocity = 2.0f;
+        //c.velocity = 2.0f;
         // ★ 行走通常也用 Hips
-        c.motionRootNameUTF8 = "mixamorig:Hips";
+        c.motionRootNameUTF8 = "root";
         AnimatorRegistry_Register(c);
     }
 
     {
         AnimClipDesc c{};
         c.name = L"Attack";
-        c.meshPath = L"resources/player_anim/cooked/player_attack.mesh";
-        c.skelPath = L"resources/player_anim/cooked/player_attack.skel";
-        c.animPath = L"resources/player_anim/cooked/player_attack.anim";
-        c.matPath =  L"resources/player_anim/cooked/player_attack.mat";
+        c.meshPath = L"resources/player_anim/cooked/sword_slash.mesh";
+        c.skelPath = L"resources/player_anim/cooked/sword_slash.skel";
+        c.animPath = L"resources/player_anim/cooked/sword_slash.anim";
+        c.matPath =  L"resources/player_anim/cooked/sword_slash.mat";
         // 如需强制贴图（覆盖 .mat）：
-        c.baseColorOverride = L"resources/player_anim/cooked/Textures/Mutant_diffuse.png";
+        c.baseColorOverride = L"resources/player_anim/cooked/Textures/Paladin_diffuse.png";
         c.loop = false;
         c.playbackRate = 1.0f;
         c.rmType = RootMotionType::UseZDelta;
         //c.velocity = 2.0f;
            // ★ 若希望攻击不受 Hips 摇摆影响，改用 "Root"（按你的骨骼名来）
     //   也可以继续用 "mixamorig:Hips"，视资源而定。
-        c.motionRootNameUTF8 = "Armature";
+        c.motionRootNameUTF8 = "root";
 
         AnimatorRegistry_Register(c);
     }
@@ -74,19 +76,19 @@ void AnimRegister()
     {
         AnimClipDesc c{};
         c.name = L"Roll";
-        c.meshPath = L"resources/player_anim/cooked/player_roll.mesh";
-        c.skelPath = L"resources/player_anim/cooked/player_roll.skel";
-        c.animPath = L"resources/player_anim/cooked/player_roll.anim";
-        c.matPath = L"resources/player_anim/cooked/player_roll.mat";
+        c.meshPath = L"resources/player_anim/cooked/sword_roll.mesh";
+        c.skelPath = L"resources/player_anim/cooked/sword_roll.skel";
+        c.animPath = L"resources/player_anim/cooked/sword_roll.anim";
+        c.matPath =  L"resources/player_anim/cooked/sword_roll.mat";
         // 如需强制贴图（覆盖 .mat）：
-        c.baseColorOverride = L"resources/player_anim/cooked/Textures/Mutant_diffuse.png";
+        c.baseColorOverride = L"resources/player_anim/cooked/Textures/Paladin_diffuse.png";
         c.loop = false;
         c.playbackRate = 1.0f;
         c.rmType = RootMotionType::UseZDelta;
         //c.velocity = 5.0f;
            // ★ 若希望攻击不受 Hips 摇摆影响，改用 "Root"（按你的骨骼名来）
     //   也可以继续用 "mixamorig:Hips"，视资源而定。
-        c.motionRootNameUTF8 = "mixamorig:Hips";
+        c.motionRootNameUTF8 = "root";
 
         AnimatorRegistry_Register(c);
     }
@@ -94,12 +96,12 @@ void AnimRegister()
     {
         AnimClipDesc c{};
         c.name = L"Hit_Light";
-        c.meshPath = L"resources/player_anim/cooked/player_attack.mesh";
-        c.skelPath = L"resources/player_anim/cooked/player_attack.skel";
-        c.animPath = L"resources/player_anim/cooked/player_attack.anim";
-        c.matPath = L"resources/player_anim/cooked/player_attack.mat";
+        c.meshPath = L"resources/player_anim/cooked/sword_slash.mesh";
+        c.skelPath = L"resources/player_anim/cooked/sword_slash.skel";
+        c.animPath = L"resources/player_anim/cooked/sword_slash.anim";
+        c.matPath = L"resources/player_anim/cooked/ sword_slash.mat";
         // 如需强制贴图（覆盖 .mat）：
-        c.baseColorOverride = L"resources/player_anim/cooked/Textures/Mutant_diffuse.png";
+        c.baseColorOverride = L"resources/player_anim/cooked/Textures/Paladin_diffuse.png";
         c.loop = false;
         c.playbackRate = 1.0f;
         c.rmType = RootMotionType::UseZDelta;

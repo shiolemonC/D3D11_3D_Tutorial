@@ -52,6 +52,9 @@ bool ModelSkinned_SampleRootDelta_Local(float dt, DirectX::XMFLOAT3* outDeltaT);
 // VelocityDriven 时把 MotionRoot 局部平移的 XZ 清零（保留 Y），启/停
 void ModelSkinned_SetZeroRootTranslationXZ(bool enable);
 
+// 额外：把指定骨骼的局部平移 XZ 清零（nullptr/"" 表示关闭）
+void ModelSkinned_SetZeroTranslationXZBoneByName(const char* utf8Name);
+
 // Debug: 取得当前已加载剪辑的 MotionRoot 局部 yaw（弧度）
 // yaw0  = 第0帧（首帧）MotionRoot 局部朝向
 // yawNow= 当前时间点（内部时间）的 MotionRoot 局部朝向
@@ -95,3 +98,6 @@ void ModelSkinned_SetCrossFadeWeight(float w);
 
 // 混合结束时清掉旧姿势缓存（可选）
 void ModelSkinned_ClearCrossFadeSource();
+
+void ModelSkinned_GetWorldTranslation(DirectX::XMFLOAT3* outT);
+
