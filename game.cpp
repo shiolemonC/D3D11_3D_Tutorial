@@ -215,7 +215,7 @@ void Game_Update(double elapsed_time)
     // Boss 更新
     BossUpdateContext bctx{};
     bctx.playerPos = Player_GetPosition();
-    //Boss_Update(elapsed_time, bctx);
+    Boss_Update(elapsed_time, bctx);
 
     // 5) 让底层 Camera 模块更新 view/proj（原来就有）
     Camera_Update(elapsed_time);
@@ -312,7 +312,7 @@ void Game_Draw()
     AnimatorRegistry_Draw();
 
     // 再画 Boss
-    //BossAnimatorRegistry_Draw();
+    BossAnimatorRegistry_Draw();
 
     //Billboard_Draw(g_TestTexid, { -2.0f, 2.5f, 2.0f }, { 1.5f, 2.0f }, {140.0f * 3, 200.0f, 140.0f, 200.0f}, { 0.0f, 0.0f });
     //BillboardAnim_Draw(g_AnimPlayId, { -2.0f, 2.5f, 2.0f }, { 1.5f, 2.0f },  { 0.0f, 0.0f });

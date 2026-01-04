@@ -51,13 +51,25 @@ bool HitEvent_Dispatch(const HitContact& c)
         hp.level = ChooseHitLevelFromDamage(c.damage);
         hp.hitPos = c.hitPos;
 
-        // 把受击请求交给 Player 模块，由 Player 缓存并在 Update 中写入 FSM 条件
-        Player_RequestHitReaction(hp);
+        PlayerHitResponse r = Player_OnIncomingHit(hp);
 
         char buf[256];
-        sprintf_s(buf, "[HitEvent] BOSS hit PLAYER! dmg=%d\n", c.damage);
-        OutputDebugStringA(buf);
-        return true; // 命中成立，消耗 HitBox
+        switch (r)
+        {
+        case PlayerHitResponse::Ignored:
+            sprintf_s(buf, "[HitEvent] BOSS hit PLAYER -> IGNORED (invincible) dmg=%d\n", c.damage);
+            OutputDebugStringA(buf);
+            return true; // ★ 仍然消耗 HitBox（按你补充规则）
+        case PlayerHitResponse::Parried:
+            sprintf_s(buf, "[HitEvent] BOSS hit PLAYER -> PARRIED dmg=%d\n", c.damage);
+            OutputDebugStringA(buf);
+            return true; // ★ 消耗 HitBox
+        case PlayerHitResponse::TookHit:
+        default:
+            sprintf_s(buf, "[HitEvent] BOSS hit PLAYER! dmg=%d\n", c.damage);
+            OutputDebugStringA(buf);
+            return true; // ★ 消耗 HitBox
+        }
     }
 
     // 4) 其它组合（预留给将来小怪/友军）

@@ -146,7 +146,7 @@ void AnimEventRegister()
         // ② 窗口关闭
         {
             AnimEvent e{};
-            e.timeNormalized = 0.35f;
+            e.timeNormalized = 0.85f;
             e.type = AnimEventType::SetParryWindowEnabled;
             e.setParryWindow.enabled = false;
             parry.events.push_back(e);
