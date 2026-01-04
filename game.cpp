@@ -74,6 +74,12 @@ static PlayerUpdateInput BuildPlayerInput(const Mouse_State& ms)
     s_prevLB = ms.leftButton;
     pin.attack = justPressedLB;
 
+    // 格挡/弹反：鼠标右键“刚按下”
+    static bool s_prevRB = false;
+    bool justPressedRB = (ms.rightButton && !s_prevRB);
+    s_prevRB = ms.rightButton;
+    pin.parry = justPressedRB;
+
     // 翻滚：左 Shift “刚按下”
     pin.roll = KeyLogger_IsTrigger(KK_LEFTSHIFT);
 
@@ -183,6 +189,11 @@ void Game_Update(double elapsed_time)
     static bool s_prevLB = false;
     bool justPressedLB = (ms.leftButton && !s_prevLB);
     s_prevLB = ms.leftButton;
+
+    // 格挡/弹反：鼠标右键“刚按下”
+    static bool s_prevRB = false;
+    bool justPressedRB = (ms.rightButton && !s_prevRB);
+    s_prevRB = ms.rightButton;
 
     // 1) 摄像机：由鼠标控制绕玩家旋转
     PlayerCameraInput camIn{};

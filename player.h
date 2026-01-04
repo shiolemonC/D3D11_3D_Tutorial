@@ -5,6 +5,14 @@
 
 enum class PlayerState { Idle, Move }; // 目前没怎么用，先保留
 
+// ★ 受击处理结果：用于 HitEvent_Dispatch 分支日志/流程控制
+enum class PlayerHitResponse : uint8_t
+{
+    Ignored = 0,   // 无敌等原因忽略（但我们仍可选择消耗 hitbox）
+    Parried = 1,   // 成功格挡
+    TookHit = 2,   // 正常受击（进入 hit）
+};
+
 struct PlayerDesc {
     DirectX::XMFLOAT3 spawnPos{ 0,0,0 };
     float moveSpeed = 2.5f;        // m/s
@@ -19,6 +27,8 @@ struct PlayerUpdateInput {
 
     bool attack = false; // 本帧是否触发攻击（鼠标左键刚按下）
     bool roll = false; // ★ 本帧是否触发翻滚（Shift 等）
+    bool parry = false; // ★ 本帧是否触发格挡/弹反（鼠标右键刚按下）
+
 
     // 摄像机在 XZ 平面上的前/右向量（由 PlayerCamera 提供）
     DirectX::XMFLOAT3 camForwardXZ{ 0.0f, 0.0f, 1.0f };
@@ -50,3 +60,14 @@ int  Player_GetHurtColliderId();
 
 // 受击请求（由 HitEvent_Dispatch 调用）
 void Player_RequestHitReaction(const HitParams& hit);
+
+// ★ 新增：统一入口（Boss->Player 命中时调用）
+PlayerHitResponse Player_OnIncomingHit(const HitParams& hit);
+
+//（保留原接口也可以，内部会转调）
+// 受击请求（由 HitEvent_Dispatch 调用）
+void Player_RequestHitReaction(const HitParams& hit);
+
+// ★ 成功格挡窗口（Parry Window）
+void Player_SetParryWindowEnabled(bool enabled);
+bool Player_IsParryWindowEnabled();

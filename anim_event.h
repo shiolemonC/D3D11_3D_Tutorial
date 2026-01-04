@@ -11,6 +11,7 @@
 enum class AnimEventType {
     SpawnHitBox,  // 攻击判定生成
     SetHurtBoxEnabled,
+    SetParryWindowEnabled,
 };
 
 // SpawnHitBox 的参数
@@ -26,12 +27,18 @@ struct AnimEvent_SetHurtBoxEnabled
     bool enabled = true;   // true = 开启受击盒，false = 关闭
 };
 
+struct AnimEvent_SetParryWindowEnabled
+{
+    bool enabled = false;  // true=开启成功格挡窗口，false=关闭
+};
+
 // 通用事件
 struct AnimEvent {
     float timeNormalized = 0.0f;    // 0.0～1.0，归一化时间
     AnimEventType type = AnimEventType::SpawnHitBox;
     AnimEvent_SpawnHitBox spawnHitBox; // 目前只有这一种事件
     AnimEvent_SetHurtBoxEnabled setHurtBox;
+    AnimEvent_SetParryWindowEnabled setParryWindow; // ★ 新增
 };
 
 // 某个剪辑的事件轨道

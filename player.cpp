@@ -38,6 +38,8 @@ static int      s_hurtColliderId = -1;
 static XMFLOAT3 s_hurtHalfSize{ 0.5f, 1.2f, 0.5f };  // 先和 body 差不多，将来可单独调
 static bool     s_hurtEnabled = true;              // 是否可被打（无敌帧时会关）
 
+static bool     s_parryWindowEnabled = false;   // ★ 成功格挡窗口开关
+
 // 已有：body 的 ignore flag（如果你前面加过）
 static bool     s_ignoreBodyBlock = false;
 
@@ -351,6 +353,10 @@ void Player_Update(double dt, const PlayerUpdateInput& in)
         PlayerSM_FireTrigger("Roll");   // ★ 新增：翻滚 Trigger
     }
 
+    if (in.parry) {
+        PlayerSM_FireTrigger("Parry"); // ★ 新增：格挡/弹反 Trigger
+    }
+
     // 2) 跑 FSM，决定当前播放的状态/动画
     PlayerSMOutput smOut = PlayerSM_Update(dt);
 
@@ -397,22 +403,22 @@ void Player_Update(double dt, const PlayerUpdateInput& in)
         }
     }
 
-#if defined(_DEBUG) || defined(DEBUG)
-    // ★ 在这里打同步日志：此时 s_pos 已经是“本帧最终逻辑位置”
-    static int s_sync = 0;
-    if ((s_sync++ % 30) == 0) {
-        DirectX::XMFLOAT3 mw{};
-        ModelSkinned_GetWorldTranslation(&mw); // 下面我会说怎么实现
-
-        char b[256];
-        sprintf_s(b,
-            "[Sync] logicPos=(%.3f,%.3f,%.3f) modelWorld=(%.3f,%.3f,%.3f) diff=(%.3f,%.3f,%.3f)\n",
-            s_pos.x, s_pos.y, s_pos.z,
-            mw.x, mw.y, mw.z,
-            mw.x - s_pos.x, mw.y - s_pos.y, mw.z - s_pos.z);
-        OutputDebugStringA(b);
-    }
-#endif
+//#if defined(_DEBUG) || defined(DEBUG)
+//    // ★ 在这里打同步日志：此时 s_pos 已经是“本帧最终逻辑位置”
+//    static int s_sync = 0;
+//    if ((s_sync++ % 30) == 0) {
+//        DirectX::XMFLOAT3 mw{};
+//        ModelSkinned_GetWorldTranslation(&mw); // 下面我会说怎么实现
+//
+//        char b[256];
+//        sprintf_s(b,
+//            "[Sync] logicPos=(%.3f,%.3f,%.3f) modelWorld=(%.3f,%.3f,%.3f) diff=(%.3f,%.3f,%.3f)\n",
+//            s_pos.x, s_pos.y, s_pos.z,
+//            mw.x, mw.y, mw.z,
+//            mw.x - s_pos.x, mw.y - s_pos.y, mw.z - s_pos.z);
+//        OutputDebugStringA(b);
+//    }
+//#endif
 
     // 6) Player vs Boss 身体 AABB 碰撞解決（事后 MTV 推开）
    //    注意：确保 Boss_Update 已在本帧调用过，这样 Boss 的 AABB 是最新的。
@@ -474,15 +480,49 @@ int Player_GetHurtColliderId()
     return s_hurtColliderId;
 }
 
-void Player_RequestHitReaction(const HitParams& hit)
+void Player_SetParryWindowEnabled(bool enabled)
 {
-    // 如果当前处于无敌状态（例如翻滚无敌），就直接忽略这次受击
+    s_parryWindowEnabled = enabled;
+}
+
+bool Player_IsParryWindowEnabled()
+{
+    return s_parryWindowEnabled;
+}
+
+static void Player_OnParrySuccess_Log(const HitParams& hit)
+{
+    char buf[256];
+    sprintf_s(buf, "[Parry] SUCCESS! attacker=%p dmg=%d\n",
+        hit.attackerOwner, hit.damage);
+    OutputDebugStringA(buf);
+}
+
+// ★ 统一入口：Boss->Player 命中时只走这里
+PlayerHitResponse Player_OnIncomingHit(const HitParams& hit)
+{
+    // 1) 无敌（Roll）：忽略受击，但根据你最新规则“仍然消耗 hitbox”
     if (!s_hurtEnabled)
     {
-        return;
+        return PlayerHitResponse::Ignored;
     }
 
-    // 缓存受击信息，等待在 Player_Update 中写入 FSM 条件
+    // 2) 成功格挡窗口内：触发成功格挡事件（暂时只打 log），不进入 hit
+    if (s_parryWindowEnabled)
+    {
+        Player_OnParrySuccess_Log(hit);
+        return PlayerHitResponse::Parried;
+    }
+
+    // 3) 正常受击：缓存受击信息，等待 Player_Update 写入 FSM 条件
     s_hitRequested = true;
     s_pendingHit = hit;
+    return PlayerHitResponse::TookHit;
+}
+
+
+// 兼容旧调用点：内部转调到新入口
+void Player_RequestHitReaction(const HitParams& hit)
+{
+    (void)Player_OnIncomingHit(hit);
 }

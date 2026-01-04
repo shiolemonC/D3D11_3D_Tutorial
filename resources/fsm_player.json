@@ -35,6 +35,15 @@
       "uninterruptible": [ [ 0.0, 0.8 ] ]
     },
     {
+      "name": "Parry",
+      "clip": "Parry",
+      "loop": false,
+      "root_motion": "use_delta",
+      "length_sec": 0.0,
+      "locomotion": false,
+      "uninterruptible": [ [ 0.0, 0.95 ] ]
+    },
+    {
       "name": "Hit_Light",
       "clip": "Hit_Light",
       "loop": false,
@@ -168,6 +177,53 @@
       "can_interrupt": true,
       "priority": 5
     },
+
+    {
+      "from": "Idle",
+      "to": "Parry",
+      "trigger": "Parry",
+      "buffer": 0.15,
+      "window": [ [ 0.00, 1.00 ] ],
+      "duration": 0.05,
+      "curve": "linear",
+      "can_interrupt": true,
+      "priority": 65
+    },
+
+    {
+      "from": "Move",
+      "to": "Parry",
+      "trigger": "Parry",
+      "buffer": 0.15,
+      "window": [ [ 0.00, 1.00 ] ],
+      "duration": 0.05,
+      "curve": "linear",
+      "can_interrupt": true,
+      "priority": 66
+    },
+
+    {
+      "from": "Attack",
+      "to": "Parry",
+      "trigger": "Parry",
+      "buffer": 0.15,
+      "window": [ [ 0.90, 1.00 ] ],
+      "duration": 0.05,
+      "curve": "linear",
+      "can_interrupt": true,
+      "priority": 85
+    },
+
+    {
+      "from": "Parry",
+      "to": "Idle",
+      "window": [ [ 0.90, 1.00 ] ],
+      "duration": 0.5,
+      "curve": "ease_out",
+      "can_interrupt": true,
+      "priority": 5
+    },
+
     {
       "from": "Any",
       "to": "Hit_Light",

@@ -2,7 +2,7 @@
 #include "BossAnimatorRegistry.h"
 
 // cd /d D:\AssetCooker\AssetCooker\build\msvc-x64-release\Debug
-//  AssetCooker.exe "D:\GP11Project\GameSample05_3D\resources\player_anim\player_idle.fbx" "D:\GP11Project\GameSample05_3D\resources\player_anim\cooked"
+//  AssetCooker.exe "D:\GP11Project\AnimSourceFile\sword_roll.fbx" "D:\GP11Project\GameSample05_3D\resources\player_anim\cooked"
 // 把你素材的固定路径、默认播放策略都集中在这里注册
 void AnimRegister()
 {
@@ -60,6 +60,26 @@ void AnimRegister()
         c.skelPath = L"resources/player_anim/cooked/sword_slash.skel";
         c.animPath = L"resources/player_anim/cooked/sword_slash.anim";
         c.matPath =  L"resources/player_anim/cooked/sword_slash.mat";
+        // 如需强制贴图（覆盖 .mat）：
+        c.baseColorOverride = L"resources/player_anim/cooked/Textures/Paladin_diffuse.png";
+        c.loop = false;
+        c.playbackRate = 1.0f;
+        c.rmType = RootMotionType::UseZDelta;
+        //c.velocity = 2.0f;
+           // ★ 若希望攻击不受 Hips 摇摆影响，改用 "Root"（按你的骨骼名来）
+    //   也可以继续用 "mixamorig:Hips"，视资源而定。
+        c.motionRootNameUTF8 = "root";
+
+        AnimatorRegistry_Register(c);
+    }
+
+    {
+        AnimClipDesc c{};
+        c.name = L"Parry";
+        c.meshPath = L"resources/player_anim/cooked/sword_parry.mesh";
+        c.skelPath = L"resources/player_anim/cooked/sword_parry.skel";
+        c.animPath = L"resources/player_anim/cooked/sword_parry.anim";
+        c.matPath =  L"resources/player_anim/cooked/sword_parry.mat";
         // 如需强制贴图（覆盖 .mat）：
         c.baseColorOverride = L"resources/player_anim/cooked/Textures/Paladin_diffuse.png";
         c.loop = false;

@@ -21,6 +21,15 @@ static void ApplyHurtBoxEnabledToOwner(void* owner, bool enabled)
     }
 }
 
+static void ApplyParryWindowEnabledToOwner(void* owner, bool enabled)
+{
+    if (owner == Player_GetHitboxOwnerToken())
+    {
+        Player_SetParryWindowEnabled(enabled);
+    }
+    // Boss 如果以后也要做格挡，可在这里扩展
+}
+
 static void FireAnimEvent(const AnimEvent& ev, void* owner)
 {
     switch (ev.type)
@@ -33,6 +42,10 @@ static void FireAnimEvent(const AnimEvent& ev, void* owner)
         ApplyHurtBoxEnabledToOwner(owner, ev.setHurtBox.enabled);
         break;
 
+    case AnimEventType::SetParryWindowEnabled:
+        ApplyParryWindowEnabledToOwner(owner, ev.setParryWindow.enabled);
+        break;
+
     default:
         break;
     }
@@ -42,6 +55,18 @@ static void FireAnimEvent(const AnimEvent& ev, void* owner)
 
 void AnimEventPlayer::OnClipChanged(const std::wstring& newClipName)
 {
+    // 兜底
+    if (m_currentClip == L"Roll") {
+        ApplyHurtBoxEnabledToOwner(m_owner, true);
+    }
+
+    // ★ 兜底：任何换 clip 的瞬间，先把成功格挡窗口关掉
+    if (m_owner == Player_GetHitboxOwnerToken())
+    {
+        Player_SetParryWindowEnabled(false);
+    }
+
+
     m_currentClip = newClipName;
     m_track = AnimEventRegistry_Find(newClipName);
     m_prevTimeNorm = 0.0f;

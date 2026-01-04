@@ -102,4 +102,56 @@ void AnimEventRegister()
         bossAtk.events.push_back(e);
         AnimEventRegistry_Register(bossAtk);
     }
+
+    // 翻滚无敌事件
+    {
+        AnimEventTrack roll{};
+        roll.clipName = L"Roll";
+
+        // 进入翻滚立刻无敌
+        {
+            AnimEvent e{};
+            e.timeNormalized = 0.0f;
+            e.type = AnimEventType::SetHurtBoxEnabled;
+            e.setHurtBox.enabled = false;
+            roll.events.push_back(e);
+        }
+
+        // 无敌结束（建议别写 1.0，写 0.85/0.9 更稳）
+        {
+            AnimEvent e{};
+            e.timeNormalized = 0.85f;
+            e.type = AnimEventType::SetHurtBoxEnabled;
+            e.setHurtBox.enabled = true;
+            roll.events.push_back(e);
+        }
+
+        AnimEventRegistry_Register(roll);
+    }
+
+    // ★ Parry：成功格挡窗口事件
+    {
+        AnimEventTrack parry{};
+        parry.clipName = L"Parry";
+
+        // ① 窗口开启：比如 0.18 ~ 0.35（你之后可以根据动画帧微调）
+        {
+            AnimEvent e{};
+            e.timeNormalized = 0.05f;
+            e.type = AnimEventType::SetParryWindowEnabled;
+            e.setParryWindow.enabled = true;
+            parry.events.push_back(e);
+        }
+
+        // ② 窗口关闭
+        {
+            AnimEvent e{};
+            e.timeNormalized = 0.35f;
+            e.type = AnimEventType::SetParryWindowEnabled;
+            e.setParryWindow.enabled = false;
+            parry.events.push_back(e);
+        }
+
+        AnimEventRegistry_Register(parry);
+    }
 }
