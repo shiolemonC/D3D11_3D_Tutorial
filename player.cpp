@@ -511,7 +511,12 @@ PlayerHitResponse Player_OnIncomingHit(const HitParams& hit)
     if (s_parryWindowEnabled)
     {
         Player_OnParrySuccess_Log(hit);
+
+        // ★ 关键：触发 FSM 的成功格挡分支
+        PlayerSM_FireTrigger("ParrySuccess");
+
         return PlayerHitResponse::Parried;
+
     }
 
     // 3) 正常受击：缓存受击信息，等待 Player_Update 写入 FSM 条件

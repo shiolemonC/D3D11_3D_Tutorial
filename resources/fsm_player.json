@@ -41,7 +41,25 @@
       "root_motion": "use_delta",
       "length_sec": 0.0,
       "locomotion": false,
-      "uninterruptible": [ [ 0.0, 0.95 ] ]
+      "uninterruptible": [ [ 0.0, 0.01 ] ]
+    },
+    {
+      "name": "Block",
+      "clip": "Block",
+      "loop": false,
+      "root_motion": "use_delta",
+      "length_sec": 0.0,
+      "locomotion": false,
+      "uninterruptible": [ [ 0.0, 0.3 ] ]
+    },
+    {
+      "name": "Block_Attack",
+      "clip": "Block_Attack",
+      "loop": false,
+      "root_motion": "use_delta",
+      "length_sec": 0.0,
+      "locomotion": false,
+      "uninterruptible": [ [ 0.0, 0.35 ] ]
     },
     {
       "name": "Hit_Light",
@@ -219,6 +237,49 @@
       "to": "Idle",
       "window": [ [ 0.90, 1.00 ] ],
       "duration": 0.5,
+      "curve": "ease_out",
+      "can_interrupt": true,
+      "priority": 5
+    },
+
+    {
+      "from": "Block",
+      "to": "Block_Attack",
+      "trigger": "Attack",
+      "buffer": 0.15,
+      "window": [ [ 0.00, 1.00 ] ],
+      "duration": 0.05,
+      "curve": "linear",
+      "can_interrupt": true,
+      "priority": 150
+    },
+
+    {
+      "from": "Block",
+      "to": "Idle",
+      "window": [ [ 0.90, 1.00 ] ],
+      "duration": 0.08,
+      "curve": "ease_out",
+      "can_interrupt": true,
+      "priority": 5
+    },
+
+    {
+      "from": "Any",
+      "to": "Block",
+      "trigger": "ParrySuccess",
+      "window": [ [ 0.00, 1.00 ] ],
+      "duration": 0.03,
+      "curve": "linear",
+      "can_interrupt": true,
+      "priority": 200
+    },
+
+    {
+      "from": "Block_Attack",
+      "to": "Idle",
+      "window": [ [ 0.90, 1.00 ] ],
+      "duration": 0.08,
       "curve": "ease_out",
       "can_interrupt": true,
       "priority": 5
