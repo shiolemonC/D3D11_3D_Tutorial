@@ -156,16 +156,16 @@ void AnimRegister()
     {
         AnimClipDesc c{};
         c.name = L"Hit_Light";
-        c.meshPath = L"resources/player_anim/cooked/sword_slash.mesh";
-        c.skelPath = L"resources/player_anim/cooked/sword_slash.skel";
-        c.animPath = L"resources/player_anim/cooked/sword_slash.anim";
-        c.matPath = L"resources/player_anim/cooked/ sword_slash.mat";
+        c.meshPath = L"resources/player_anim/cooked/sword_hit_light.mesh";
+        c.skelPath = L"resources/player_anim/cooked/sword_hit_light.skel";
+        c.animPath = L"resources/player_anim/cooked/sword_hit_light.anim";
+        c.matPath =  L"resources/player_anim/cooked/sword_hit_light.mat";
         // 如需强制贴图（覆盖 .mat）：
         c.baseColorOverride = L"resources/player_anim/cooked/Textures/Paladin_diffuse.png";
         c.loop = false;
         c.playbackRate = 1.0f;
         c.rmType = RootMotionType::UseZDelta;
-        c.motionRootNameUTF8 = "Armature";
+        c.motionRootNameUTF8 = "root";
 
         AnimatorRegistry_Register(c);
     }

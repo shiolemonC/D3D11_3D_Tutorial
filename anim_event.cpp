@@ -75,14 +75,7 @@ void AnimEventRegister()
             atk.events.push_back(e);
         }
 
-        // ③ 0.70 攻击收招：重新开启 HurtBox
-        //{
-        //    AnimEvent e{};
-        //    e.timeNormalized = 0.70f;
-        //    e.type = AnimEventType::SetHurtBoxEnabled;
-        //    e.setHurtBox.enabled = true;     // 重新可以被打
-        //    atk.events.push_back(e);
-        //}
+
         AnimEventRegistry_Register(atk);
     }
 
@@ -98,6 +91,7 @@ void AnimEventRegister()
         e.spawnHitBox.halfSize = { 0.8f, 0.8f, 0.8f }; // HitBox 稍大一些
         e.spawnHitBox.durationSec = 60.0f / 60.0f;        
         e.spawnHitBox.damage = 20;                   // 比玩家伤害高
+        e.spawnHitBox.knockbackDistance = 5.0f; // 0=无击退，小=0.2，大=1.0
 
         bossAtk.events.push_back(e);
         AnimEventRegistry_Register(bossAtk);

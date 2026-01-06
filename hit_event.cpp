@@ -51,6 +51,10 @@ bool HitEvent_Dispatch(const HitContact& c)
         hp.level = ChooseHitLevelFromDamage(c.damage);
         hp.hitPos = c.hitPos;
 
+        hp.knockbackDistance = c.knockbackDistance;
+        hp.attackerPos = c.attackerPos;
+        hp.victimPos = c.victimPos;
+
         PlayerHitResponse r = Player_OnIncomingHit(hp);
 
         char buf[256];

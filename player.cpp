@@ -43,6 +43,16 @@ static bool     s_parryWindowEnabled = false;   // ★ 成功格挡窗口开关
 // 已有：body 的 ignore flag（如果你前面加过）
 static bool     s_ignoreBodyBlock = false;
 
+// ------------------ 击退 ------------------
+static bool     s_knockActive = false;
+static DirectX::XMFLOAT3 s_knockDirXZ{ 0,0,0 };
+static float    s_knockSpeed = 0.0f;
+static float    s_knockRemainDist = 0.0f;
+
+// 可调参数：减速度（越大越“猛停”）
+static float    s_knockDecel = 20.0f;
+
+
 static inline float AngleDelta(float a, float b) {
     float d = fmodf(b - a + XM_PI, XM_2PI) - XM_PI;
     return (d < -XM_PI) ? d + XM_2PI : d;
@@ -224,6 +234,67 @@ static void Player_UpdateHurtCollider()
     // TODO: 将来如果做多部位 HurtBox，可以在这里根据状态调整尺寸/位置
 }
 
+// ------------------ 击退运动 ------------------
+
+static void Player_StartKnockback(float distance,
+    const DirectX::XMFLOAT3& attackerPos,
+    const DirectX::XMFLOAT3& victimPos)
+{
+    if (distance <= 0.0f) return;
+
+    // 覆盖规则：只接受更强的击退
+    if (s_knockActive && distance <= s_knockRemainDist) return;
+
+    DirectX::XMFLOAT2 d2{ victimPos.x - attackerPos.x, victimPos.z - attackerPos.z };
+    float len = std::sqrt(d2.x * d2.x + d2.y * d2.y);
+    if (len < 1e-4f) return;
+
+    d2.x /= len; d2.y /= len;
+    s_knockDirXZ = { d2.x, 0.0f, d2.y };
+    s_knockRemainDist = distance;
+
+    const float a = std::max(1e-3f, s_knockDecel);
+    s_knockSpeed = std::sqrt(2.0f * a * distance);
+    s_knockActive = true;
+}
+
+
+static bool Player_UpdateKnockback(double dt)
+{
+    if (!s_knockActive) return false;
+
+    const float fdt = static_cast<float>(dt);
+    if (fdt <= 0.0f) return true;
+
+    if (s_knockRemainDist <= 1e-4f || s_knockSpeed <= 1e-3f)
+    {
+        s_knockActive = false;
+        s_knockSpeed = 0.0f;
+        s_knockRemainDist = 0.0f;
+        return false;
+    }
+
+    const float step = std::min(s_knockRemainDist, s_knockSpeed * fdt);
+    s_pos.x += s_knockDirXZ.x * step;
+    s_pos.z += s_knockDirXZ.z * step;
+    s_knockRemainDist -= step;
+
+    s_knockSpeed = std::max(0.0f, s_knockSpeed - s_knockDecel * fdt);
+
+    Player_UpdateBodyCollider();
+    Player_UpdateHurtCollider();
+
+    if (s_knockRemainDist <= 1e-4f || s_knockSpeed <= 1e-3f)
+    {
+        s_knockActive = false;
+        s_knockSpeed = 0.0f;
+        s_knockRemainDist = 0.0f;
+        return false;
+    }
+
+    return true;
+}
+
 
 // ------------------ 初始化 ------------------
 void Player_Initialize(const PlayerDesc& d)
@@ -379,7 +450,11 @@ void Player_Update(double dt, const PlayerUpdateInput& in)
     }
 
     // 3) 根据 FSM 的 locomotionActive 决定是否允许 WASD 驱动位移
-    Player_Kinematic_Update(dt, in, smOut.locomotionActive);
+    const bool knockActive = Player_UpdateKnockback(dt);
+
+    Player_Kinematic_Update(dt, in, smOut.locomotionActive && !knockActive);
+
+    //Player_Kinematic_Update(dt, in, smOut.locomotionActive);
 
     // 4) 动画时间推进 + RootMotion 累积
     AnimatorRegistry_Update(dt);
@@ -396,10 +471,11 @@ void Player_Update(double dt, const PlayerUpdateInput& in)
     if (smOut.useRootMotion) {
         RootMotionDelta rm{};
         if (AnimatorRegistry_ConsumeRootMotionDelta(&rm)) {
-            rm.pos.y = 0.0f; // 一般只保留XZ
-            // rm.yaw 可以按照需要启用
-            //rm.yaw = 0.0f;
-            Player_ApplyRootMotionDelta(rm);
+            rm.pos.y = 0.0f;
+            if (!knockActive) {
+                Player_ApplyRootMotionDelta(rm);
+            }
+            // else: discard
         }
     }
 
@@ -512,6 +588,10 @@ PlayerHitResponse Player_OnIncomingHit(const HitParams& hit)
     {
         Player_OnParrySuccess_Log(hit);
 
+        if (hit.knockbackDistance > 0.0f) {
+            Player_StartKnockback(hit.knockbackDistance * 0.20f, hit.attackerPos, hit.victimPos);
+        }
+
         // ★ 关键：触发 FSM 的成功格挡分支
         PlayerSM_FireTrigger("ParrySuccess");
 
@@ -522,6 +602,11 @@ PlayerHitResponse Player_OnIncomingHit(const HitParams& hit)
     // 3) 正常受击：缓存受击信息，等待 Player_Update 写入 FSM 条件
     s_hitRequested = true;
     s_pendingHit = hit;
+
+    if (hit.knockbackDistance > 0.0f) {
+        Player_StartKnockback(hit.knockbackDistance, hit.attackerPos, hit.victimPos);
+    }
+
     return PlayerHitResponse::TookHit;
 }
 

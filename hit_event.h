@@ -9,6 +9,10 @@ struct HitContact
     void* victimOwner = nullptr;              // 挨打方 ownerToken
     int   damage = 0;                    // 伤害值（先直接用 hitbox 自带的 damage）
     DirectX::XMFLOAT3 hitPos{ 0.0f,0.0f,0.0f }; // 命中点（世界坐标）
+
+    float knockbackDistance = 0.0f;          // ★ 新增
+    DirectX::XMFLOAT3 attackerPos{ 0,0,0 };    // ★ 新增（世界坐标）
+    DirectX::XMFLOAT3 victimPos{ 0,0,0 };      // ★ 新增（世界坐标）
 };
 
 // 受击等级：轻 / 中 / 重（以后可以扩展 Launch / Down 等）
@@ -32,6 +36,10 @@ struct HitParams
 
     // 3) 命中位置（世界坐标）—— 用于受击方向、特效等
     DirectX::XMFLOAT3 hitPos{ 0.0f,0.0f,0.0f };
+
+    float knockbackDistance = 0.0f;          // ★ 新增
+    DirectX::XMFLOAT3 attackerPos{ 0,0,0 };    // ★ 新增
+    DirectX::XMFLOAT3 victimPos{ 0,0,0 };      // ★ 新增
 };
 
 // 用来把命中分发到各自的业务层（Player / Boss 等）

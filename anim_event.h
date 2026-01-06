@@ -20,6 +20,8 @@ struct AnimEvent_SpawnHitBox {
     DirectX::XMFLOAT3 halfSize;     // AABB 半尺寸
     float durationSec = 0.0f;       // 持续时间（秒）
     int   damage = 0;               // 伤害数值（先简单留个 int）
+
+    float knockbackDistance = 0.0f; // ★ 新增：击退距离（米），0=不击退
 };
 
 struct AnimEvent_SetHurtBoxEnabled

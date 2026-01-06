@@ -19,6 +19,8 @@ struct ActiveHitbox
 
     float remainingTime = 0.0f;          // 剩余寿命
     int damage = 0;                      // 伤害数值
+
+    float knockbackDistance = 0.0f; // ★ 新增：击退距离（米）
 };
 
 // 简单的全局管理（先KISS）
