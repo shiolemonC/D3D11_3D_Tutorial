@@ -1,5 +1,6 @@
 ﻿// boss.h
 #pragma once
+#include "hit_event.h" 
 #include <DirectXMath.h>
 
 struct BossDesc {
@@ -30,3 +31,17 @@ void Boss_SetHurtEnabled(bool enabled);
 bool Boss_IsHurtEnabled();
 
 int  Boss_GetHurtColliderId();
+
+// ------------- HP and Damage ---------------
+void Boss_SetMaxHP(int maxHp, bool fullHeal = true);
+int  Boss_GetMaxHP();
+int  Boss_GetHP();
+bool Boss_IsDead();
+
+void Boss_ApplyDamage(int damage);
+
+using BossOnDeathFn = void(*)();
+void Boss_SetOnDeath(BossOnDeathFn fn);
+
+// 玩家->Boss 命中统一入口
+void Boss_OnIncomingHit(const HitParams& hit);

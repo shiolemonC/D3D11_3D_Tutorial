@@ -43,6 +43,11 @@ static bool     s_parryWindowEnabled = false;   // ★ 成功格挡窗口开关
 // 已有：body 的 ignore flag（如果你前面加过）
 static bool     s_ignoreBodyBlock = false;
 
+// ------------------ HP ------------------
+static int s_hpMax = 100;
+static int s_hp = 100;
+static PlayerOnDeathFn s_onDeath = nullptr;
+
 // ------------------ 击退 ------------------
 static bool     s_knockActive = false;
 static DirectX::XMFLOAT3 s_knockDirXZ{ 0,0,0 };
@@ -307,6 +312,9 @@ void Player_Initialize(const PlayerDesc& d)
     Player_CreateBodyCollider();
     Player_CreateHurtCollider();   
 
+    s_hpMax = 100;   // TODO: 以后你想做配置就从 d 里读
+    s_hp = s_hpMax;
+
     // ★ 帧事件播放器绑定到这个“玩家”
 // 目前你没有 Player 实例，就先传 nullptr，将来有 Player* 再改
     s_animEventPlayer.Initialize(Player_GetHitboxOwnerToken());
@@ -556,6 +564,51 @@ int Player_GetHurtColliderId()
     return s_hurtColliderId;
 }
 
+// ------------- HP and Damage --------------
+void Player_SetMaxHP(int maxHp, bool fullHeal)
+{
+    s_hpMax = (maxHp > 1) ? maxHp : 1;
+    if (fullHeal) s_hp = s_hpMax;
+    if (s_hp > s_hpMax) s_hp = s_hpMax;
+}
+
+int Player_GetMaxHP() { return s_hpMax; }
+int Player_GetHP() { return s_hp; }
+bool Player_IsDead() { return s_hp <= 0; }
+
+void Player_SetOnDeath(PlayerOnDeathFn fn)
+{
+    s_onDeath = fn;
+}
+
+void Player_OnDeathRequested()
+{
+    OutputDebugStringA("[Player] DEAD (stub)\n");
+}
+
+void Player_ApplyDamage(int damage)
+{
+    if (damage <= 0) return;
+
+    const int before = s_hp;
+    s_hp = std::max(0, s_hp - damage);
+
+    char buf[256];
+    std::snprintf(buf, sizeof(buf),
+        "[HP][Player] -%d  %d/%d\n", damage, s_hp, s_hpMax);
+    OutputDebugStringA(buf);
+    // 你也可以同时 printf：
+    // std::printf("%s", buf);
+
+    if (before > 0 && s_hp <= 0)
+    {
+        OutputDebugStringA("[HP][Player] DEAD (hook reserved)\n");
+        Player_OnDeathRequested();
+    }
+}
+
+
+
 void Player_SetParryWindowEnabled(bool enabled)
 {
     s_parryWindowEnabled = enabled;
@@ -600,6 +653,7 @@ PlayerHitResponse Player_OnIncomingHit(const HitParams& hit)
     }
 
     // 3) 正常受击：缓存受击信息，等待 Player_Update 写入 FSM 条件
+    Player_ApplyDamage(hit.damage);
     s_hitRequested = true;
     s_pendingHit = hit;
 

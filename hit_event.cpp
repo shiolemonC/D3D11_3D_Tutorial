@@ -36,9 +36,24 @@ bool HitEvent_Dispatch(const HitContact& c)
     if (c.attackerOwner == Player_GetHitboxOwnerToken() &&
         c.victimOwner == Boss_GetHurtboxOwnerToken())
     {
+        HitParams hp{};
+        hp.attackerOwner = c.attackerOwner;
+        hp.victimOwner = c.victimOwner;
+        hp.damage = c.damage;
+        hp.level = ChooseHitLevelFromDamage(c.damage);
+        hp.hitPos = c.hitPos;
+
+        hp.knockbackDistance = c.knockbackDistance;
+        hp.attackerPos = c.attackerPos;
+        hp.victimPos = c.victimPos;
+
+        // ★ 这里才是真正扣血入口
+        Boss_OnIncomingHit(hp);
+
         char buf[256];
         sprintf_s(buf, "[HitEvent] PLAYER hit BOSS! dmg=%d\n", c.damage);
         OutputDebugStringA(buf);
+
         return true; // 命中成立，消耗 HitBox
     }
 

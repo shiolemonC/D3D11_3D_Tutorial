@@ -3,6 +3,7 @@
 #include "AnimatorRegistry.h"
 #include "hit_event.h"
 
+
 enum class PlayerState { Idle, Move }; // 目前没怎么用，先保留
 
 // ★ 受击处理结果：用于 HitEvent_Dispatch 分支日志/流程控制
@@ -50,6 +51,20 @@ int Player_GetBodyColliderId();
 
 void* Player_GetHitboxOwnerToken();
 void* Player_GetHurtboxOwnerToken();
+
+// ------------------ HP ------------------
+void Player_SetMaxHP(int maxHp, bool fullHeal = true);
+int  Player_GetMaxHP();
+int  Player_GetHP();
+bool Player_IsDead();
+
+void Player_OnDeathRequested();
+void Player_ApplyDamage(int damage); // damage<=0 自动忽略
+
+using PlayerOnDeathFn = void(*)();
+void Player_SetOnDeath(PlayerOnDeathFn fn);
+// death hook（先留空实现，之后你再接死亡逻辑）
+
 
 // HurtBox 开关（无敌帧用）
 void Player_SetHurtEnabled(bool enabled);

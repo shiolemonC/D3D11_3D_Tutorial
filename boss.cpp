@@ -5,6 +5,7 @@
 #include "collider_system.h"   // ★ 碰撞中台
 #include "anim_event_player.h"   // ★ 新增帧事件
 #include <cmath>
+#include "hit_event.h"
 
 using namespace DirectX;
 
@@ -27,6 +28,12 @@ static int      s_bossHurtColliderId = -1;
 static XMFLOAT3 s_bossHurtHalfSize{ 1.8f, 1.8f, 1.8f }; // 先和 body 一致
 static bool     s_bossHurtEnabled = true;
 
+// ------------ HP -----------
+static int s_hpMax = 300;
+static int s_hp = 300;
+static BossOnDeathFn s_onDeath = nullptr;
+
+// ----------- state machine --------------
 enum class BossState {
     Idle,
     Chase,
@@ -51,6 +58,12 @@ static float LengthSqXZ(const XMFLOAT3& a, const XMFLOAT3& b)
     const float dx = b.x - a.x;
     const float dz = b.z - a.z;
     return dx * dx + dz * dz;
+}
+
+
+static void Boss_OnDeathStub()
+{
+    OutputDebugStringA("[Boss] DEAD (stub)\n");
 }
 
 // 工具：状态切换统一入口（方便以后加 debug）
@@ -176,6 +189,8 @@ void Boss_Initialize(const BossDesc& d)
 
     Boss_CreateBodyCollider();   // ★ 创建 Boss 身体 AABB
     Boss_CreateHurtCollider();   // ★ 新增
+
+    Boss_SetMaxHP(300, true);
 
     // ★ 帧事件播放器绑定到 Boss owner token
     s_bossEventPlayer.Initialize(Boss_GetHitboxOwnerToken());
@@ -332,4 +347,49 @@ bool Boss_IsHurtEnabled()
 int Boss_GetHurtColliderId()
 {
     return s_bossHurtColliderId;
+}
+
+void Boss_SetMaxHP(int maxHp, bool fullHeal)
+{
+    s_hpMax = (maxHp > 1) ? maxHp : 1;
+    if (fullHeal) s_hp = s_hpMax;
+    if (s_hp > s_hpMax) s_hp = s_hpMax;
+}
+
+int Boss_GetMaxHP() { return s_hpMax; }
+int Boss_GetHP() { return s_hp; }
+bool Boss_IsDead() { return s_hp <= 0; }
+
+void Boss_SetOnDeath(BossOnDeathFn fn)
+{
+    s_onDeath = fn;
+}
+
+void Boss_ApplyDamage(int damage)
+{
+    if (damage <= 0) return;
+
+    const int oldHp = s_hp;
+    s_hp -= damage;
+    if (s_hp < 0) s_hp = 0;
+
+    char buf[256];
+    sprintf_s(buf, "[Boss] ApplyDamage dmg=%d hp=%d/%d (was %d)\n",
+        damage, s_hp, s_hpMax, oldHp);
+    OutputDebugStringA(buf);
+
+    if (s_hp <= 0)
+    {
+        Boss_OnDeathStub();
+    }
+}
+
+void Boss_OnIncomingHit(const HitParams& hit)
+{
+    // 无敌/禁用受击
+    if (!s_bossHurtEnabled) return;
+
+    Boss_ApplyDamage(hit.damage);
+
+    // TODO: 以后在这里触发 Boss 受击硬直、霸体判定、状态机触发等
 }

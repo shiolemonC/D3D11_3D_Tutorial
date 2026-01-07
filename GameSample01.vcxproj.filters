@@ -199,9 +199,6 @@
     <ClCompile Include="pad_logger.cpp">
       <Filter>ソース ファイル</Filter>
     </ClCompile>
-    <ClCompile Include="hit_event.cpp">
-      <Filter>ソース ファイル</Filter>
-    </ClCompile>
     <ClCompile Include="light_camera.cpp">
       <Filter>ソース ファイル</Filter>
     </ClCompile>
@@ -216,6 +213,9 @@
     </ClCompile>
     <ClCompile Include="player_camera_test.cpp">
       <Filter>ソース ファイル\camera</Filter>
+    </ClCompile>
+    <ClCompile Include="hit_event.cpp">
+      <Filter>ソース ファイル\player_function</Filter>
     </ClCompile>
   </ItemGroup>
   <ItemGroup>
@@ -375,9 +375,6 @@
     <ClInclude Include="hitbox_system.h">
       <Filter>ヘッダー ファイル\collider</Filter>
     </ClInclude>
-    <ClInclude Include="hit_event.h">
-      <Filter>ヘッダー ファイル</Filter>
-    </ClInclude>
     <ClInclude Include="light_camera.h">
       <Filter>ヘッダー ファイル</Filter>
     </ClInclude>
@@ -392,6 +389,9 @@
     </ClInclude>
     <ClInclude Include="camera.h">
       <Filter>ヘッダー ファイル\camera</Filter>
+    </ClInclude>
+    <ClInclude Include="hit_event.h">
+      <Filter>ヘッダー ファイル\player_function</Filter>
     </ClInclude>
   </ItemGroup>
   <ItemGroup>
