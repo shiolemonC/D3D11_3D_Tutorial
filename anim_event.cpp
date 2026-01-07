@@ -91,7 +91,7 @@ void AnimEventRegister()
         e.spawnHitBox.halfSize = { 0.8f, 0.8f, 0.8f }; // HitBox 稍大一些
         e.spawnHitBox.durationSec = 60.0f / 60.0f;        
         e.spawnHitBox.damage = 20;                   // 比玩家伤害高
-        e.spawnHitBox.knockbackDistance = 5.0f; // 0=无击退，小=0.2，大=1.0
+        e.spawnHitBox.knockbackDistance = 1.0f; // 0=无击退，小=0.2，大=1.0
 
         bossAtk.events.push_back(e);
         AnimEventRegistry_Register(bossAtk);
@@ -147,5 +147,64 @@ void AnimEventRegister()
         }
 
         AnimEventRegistry_Register(parry);
+    }
+
+    // ★ Hit（受击）：进入受击动画瞬间触发镜头演出（time=0）
+//    注意：clipName 必须和 AnimatorRegistry 的 clip 名完全一致
+    {
+        auto AddHitCamEvent = [&](const wchar_t* clip)
+            {
+                AnimEventTrack tr{};
+                tr.clipName = clip;
+
+                AnimEvent e{};
+                e.timeNormalized = 0.0f;
+                e.type = AnimEventType::CameraLockOnPreset;
+                e.cameraLockOnPreset.presetId = 0;       // 0 = Hit
+                e.cameraLockOnPreset.blendInSec = 0.03f;
+                e.cameraLockOnPreset.holdSec = 0.06f;
+                e.cameraLockOnPreset.blendOutSec = 0.20f;
+                e.cameraLockOnPreset.priority = 200;
+
+                tr.events.push_back(e);
+                AnimEventRegistry_Register(tr);
+            };
+
+        AddHitCamEvent(L"Hit_Light");
+        AddHitCamEvent(L"Hit_Medium");
+        AddHitCamEvent(L"Hit_Heavy");
+    }
+
+    // ★ Block_Attack：进入瞬间触发镜头演出 + 抖动（同一个 track 注册一次）
+    {
+        AnimEventTrack t{};
+        t.clipName = L"Block_Attack";
+
+        // 1) LockOn preset
+        {
+            AnimEvent e{};
+            e.timeNormalized = 0.0f;
+            e.type = AnimEventType::CameraLockOnPreset;
+            e.cameraLockOnPreset.presetId = 1;       // 1 = Block_Attack
+            e.cameraLockOnPreset.blendInSec = 0.03f;
+            e.cameraLockOnPreset.holdSec = 0.12f;
+            e.cameraLockOnPreset.blendOutSec = 0.25f;
+            e.cameraLockOnPreset.priority = 200;
+            t.events.push_back(e);
+        }
+
+        // 2) Camera shake
+        {
+            AnimEvent e{};
+            e.timeNormalized = 0.5f;
+            e.type = AnimEventType::CameraShake;
+            e.cameraShake.magnitude = 0.58f;
+            e.cameraShake.durationSec = 1.12f;
+            e.cameraShake.mode = CameraShakeMode::Both;
+            e.cameraShake.priority = 100;
+            t.events.push_back(e);
+        }
+
+        AnimEventRegistry_Register(t);
     }
 }

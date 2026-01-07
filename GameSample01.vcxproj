@@ -153,6 +153,7 @@
     <ClCompile Include="BossAnimatorRegistry.cpp" />
     <ClCompile Include="BossModelSkinned.cpp" />
     <ClCompile Include="camera.cpp" />
+    <ClCompile Include="camera_shake.cpp" />
     <ClCompile Include="collider_system.cpp" />
     <ClCompile Include="collision.cpp" />
     <ClCompile Include="cube.cpp" />
@@ -212,6 +213,7 @@
     <ClInclude Include="BossAnimatorRegistry.h" />
     <ClInclude Include="BossModelSkinned.h" />
     <ClInclude Include="camera.h" />
+    <ClInclude Include="camera_shake.h" />
     <ClInclude Include="collider_system.h" />
     <ClInclude Include="collision.h" />
     <ClInclude Include="cube.h" />

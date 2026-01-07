@@ -3,6 +3,8 @@
 // ★ 新增：
 #include "player.h"
 #include "boss.h"
+#include "player_camera.h"
+#include "camera_shake.h"
 
 static void ApplyHurtBoxEnabledToOwner(void* owner, bool enabled)
 {
@@ -44,6 +46,31 @@ static void FireAnimEvent(const AnimEvent& ev, void* owner)
 
     case AnimEventType::SetParryWindowEnabled:
         ApplyParryWindowEnabledToOwner(owner, ev.setParryWindow.enabled);
+        break;
+
+    case AnimEventType::CameraLockOnPreset:
+        // 只要当前相机是 LockOn，PlayerCamera 内部会执行演出；Free 模式会自动忽略
+        PlayerCamera_PushLockOnPreset(
+            ev.cameraLockOnPreset.presetId,
+            ev.cameraLockOnPreset.blendInSec,
+            ev.cameraLockOnPreset.holdSec,
+            ev.cameraLockOnPreset.blendOutSec,
+            ev.cameraLockOnPreset.priority
+        );
+        break;
+
+    case AnimEventType::CameraShake: // ★ 新增
+        // 目前只有玩家相机会抖（单相机项目）
+        if (owner == Player_GetHitboxOwnerToken())
+        {
+            PlayerCamera_PushShake(
+                ev.cameraShake.magnitude,
+                ev.cameraShake.durationSec,
+                ev.cameraShake.mode,
+                0.0f,
+                ev.cameraShake.priority
+            );
+        }
         break;
 
     default:

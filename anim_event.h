@@ -4,14 +4,21 @@
     - クリップ名ごとに、時間に応じてイベントを発火させる
 ==============================================================================*/
 
+#include "camera_shake.h" // ★ 新增，用同一个 enum
 #include <vector>
 #include <string>
 #include <DirectXMath.h>
 
 enum class AnimEventType {
     SpawnHitBox,  // 攻击判定生成
+
     SetHurtBoxEnabled,
+
     SetParryWindowEnabled,
+
+    CameraLockOnPreset,
+
+    CameraShake, // ★ 新增
 };
 
 // SpawnHitBox 的参数
@@ -34,13 +41,35 @@ struct AnimEvent_SetParryWindowEnabled
     bool enabled = false;  // true=开启成功格挡窗口，false=关闭
 };
 
+struct AnimEvent_CameraLockOnPreset
+{
+    int   presetId = 0;          // 0=Hit, 1=Block_Attack ...
+    float blendInSec = 0.03f;    // 进场时间（秒）
+    float holdSec = 0.06f;    // 保持时间（秒）
+    float blendOutSec = 0.20f;    // 退场时间（秒）
+    int   priority = 200;      // 优先级（大覆盖小）
+};
+
+struct AnimEvent_CameraShake
+{
+    float magnitude = 0.0f;    // 米
+    float durationSec = 0.0f;  // 秒
+    CameraShakeMode mode = CameraShakeMode::Both;
+    int priority = 0;
+};
+
 // 通用事件
-struct AnimEvent {
+struct AnimEvent 
+{
     float timeNormalized = 0.0f;    // 0.0～1.0，归一化时间
     AnimEventType type = AnimEventType::SpawnHitBox;
     AnimEvent_SpawnHitBox spawnHitBox; // 目前只有这一种事件
     AnimEvent_SetHurtBoxEnabled setHurtBox;
     AnimEvent_SetParryWindowEnabled setParryWindow; // ★ 新增
+
+    AnimEvent_CameraLockOnPreset cameraLockOnPreset; // ★ 新增
+
+    AnimEvent_CameraShake cameraShake;
 };
 
 // 某个剪辑的事件轨道

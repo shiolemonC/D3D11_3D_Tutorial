@@ -35,6 +35,12 @@
     <Filter Include="ヘッダー ファイル\collider">
       <UniqueIdentifier>{538103b0-b61a-4e42-bb52-7c62a9977f8f}</UniqueIdentifier>
     </Filter>
+    <Filter Include="ヘッダー ファイル\camera">
+      <UniqueIdentifier>{6926a0cf-0850-467a-bf69-20afd470a7cc}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="ソース ファイル\camera">
+      <UniqueIdentifier>{2bb16c41-f056-432e-83c5-6886e22455b7}</UniqueIdentifier>
+    </Filter>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="main.cpp">
@@ -112,9 +118,6 @@
     <ClCompile Include="grid.cpp">
       <Filter>ソース ファイル</Filter>
     </ClCompile>
-    <ClCompile Include="camera.cpp">
-      <Filter>ソース ファイル</Filter>
-    </ClCompile>
     <ClCompile Include="sampler.cpp">
       <Filter>ソース ファイル</Filter>
     </ClCompile>
@@ -134,12 +137,6 @@
       <Filter>ソース ファイル</Filter>
     </ClCompile>
     <ClCompile Include="player.cpp">
-      <Filter>ソース ファイル\player_function</Filter>
-    </ClCompile>
-    <ClCompile Include="player_camera.cpp">
-      <Filter>ソース ファイル\player_function</Filter>
-    </ClCompile>
-    <ClCompile Include="player_camera_test.cpp">
       <Filter>ソース ファイル\player_function</Filter>
     </ClCompile>
     <ClCompile Include="player_state.cpp">
@@ -207,6 +204,18 @@
     </ClCompile>
     <ClCompile Include="light_camera.cpp">
       <Filter>ソース ファイル</Filter>
+    </ClCompile>
+    <ClCompile Include="camera_shake.cpp">
+      <Filter>ソース ファイル\camera</Filter>
+    </ClCompile>
+    <ClCompile Include="camera.cpp">
+      <Filter>ソース ファイル\camera</Filter>
+    </ClCompile>
+    <ClCompile Include="player_camera.cpp">
+      <Filter>ソース ファイル\camera</Filter>
+    </ClCompile>
+    <ClCompile Include="player_camera_test.cpp">
+      <Filter>ソース ファイル\camera</Filter>
     </ClCompile>
   </ItemGroup>
   <ItemGroup>
@@ -285,9 +294,6 @@
     <ClInclude Include="grid.h">
       <Filter>ヘッダー ファイル</Filter>
     </ClInclude>
-    <ClInclude Include="camera.h">
-      <Filter>ヘッダー ファイル</Filter>
-    </ClInclude>
     <ClInclude Include="sampler.h">
       <Filter>ヘッダー ファイル</Filter>
     </ClInclude>
@@ -307,12 +313,6 @@
       <Filter>ヘッダー ファイル</Filter>
     </ClInclude>
     <ClInclude Include="player.h">
-      <Filter>ヘッダー ファイル\player_function</Filter>
-    </ClInclude>
-    <ClInclude Include="player_camera.h">
-      <Filter>ヘッダー ファイル\player_function</Filter>
-    </ClInclude>
-    <ClInclude Include="player_camera_test.h">
       <Filter>ヘッダー ファイル\player_function</Filter>
     </ClInclude>
     <ClInclude Include="player_state.h">
@@ -380,6 +380,18 @@
     </ClInclude>
     <ClInclude Include="light_camera.h">
       <Filter>ヘッダー ファイル</Filter>
+    </ClInclude>
+    <ClInclude Include="player_camera.h">
+      <Filter>ヘッダー ファイル\camera</Filter>
+    </ClInclude>
+    <ClInclude Include="player_camera_test.h">
+      <Filter>ヘッダー ファイル\camera</Filter>
+    </ClInclude>
+    <ClInclude Include="camera_shake.h">
+      <Filter>ヘッダー ファイル\camera</Filter>
+    </ClInclude>
+    <ClInclude Include="camera.h">
+      <Filter>ヘッダー ファイル\camera</Filter>
     </ClInclude>
   </ItemGroup>
   <ItemGroup>

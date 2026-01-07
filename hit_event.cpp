@@ -12,23 +12,25 @@ static HitLevel ChooseHitLevelFromDamage(int dmg)
     return HitLevel::Light; // 目前全部当轻受击处理
 }
 
+static bool IsSelfHit(void* attackerOwner, void* victimOwner)
+{
+    // 注意：你用的是“HitboxOwnerToken”和“HurtboxOwnerToken”，所以 self-hit 不能直接 pointer 相等判断
+    if (attackerOwner == Player_GetHitboxOwnerToken() && victimOwner == Player_GetHurtboxOwnerToken())
+        return true;
+    if (attackerOwner == Boss_GetHitboxOwnerToken() && victimOwner == Boss_GetHurtboxOwnerToken())
+        return true;
+    return false;
+}
+
 // 这里先简单写死“谁打谁”，以后可以改成更优雅的表驱动
 bool HitEvent_Dispatch(const HitContact& c)
 {
     // 1) 先把“自己打自己”的情况全部过滤掉
-    if (c.attackerOwner == Player_GetHitboxOwnerToken() &&
-        c.victimOwner == Player_GetHurtboxOwnerToken())
-    {
-        // Player 自己的 HitBox 碰到自己的 HurtBox，直接忽略
-        return false;
-    }
+    if (!c.attackerOwner || !c.victimOwner) return false;
 
-    if (c.attackerOwner == Boss_GetHitboxOwnerToken() &&
-        c.victimOwner == Boss_GetHurtboxOwnerToken())
-    {
-        // Boss 自己打自己，同样忽略
+    // Boss 打到自己、Player 打到自己：直接忽略
+    if (IsSelfHit(c.attackerOwner, c.victimOwner))
         return false;
-    }
 
     // 2) Player → Boss 命中（以后做 Boss 受击时可以在这里扩展）
     if (c.attackerOwner == Player_GetHitboxOwnerToken() &&

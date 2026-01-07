@@ -1,6 +1,7 @@
 ﻿#include "player.h"
 #include "boss.h"
 #include "camera.h"
+#include "camera_shake.h"
 #include "player_camera.h"
 #include <DirectXMath.h>
 #include <cmath>
@@ -22,6 +23,23 @@ static float s_camDist = 5.0f; // 半径
 // 提供给玩家移动用的基向量（XZ 平面）
 static XMFLOAT3 s_moveForwardXZ{ 0.0f, 0.0f, 1.0f };
 static XMFLOAT3 s_moveRightXZ{ 1.0f, 0.0f, 0.0f };
+
+// ★ LockOn 镜头演出：预设参数（在 default 基础上微调）
+static LockOnTuning s_lockTuneHit{};
+static LockOnTuning s_lockTuneBlockAttack{};
+
+struct LockOnPresetState {
+    bool  active = false;
+    int   presetId = 0;
+    int   priority = 0;
+    float blendInSec = 0.03f;
+    float holdSec = 0.06f;
+    float blendOutSec = 0.20f;
+    float elapsedSec = 0.0f;
+};
+
+static LockOnPresetState s_preset{};
+
 
 static inline float ExpLerp01(float k, float dt) {
     return 1.0f - std::exp(-k * dt);
@@ -65,26 +83,7 @@ struct CameraTransition {
     float elapsed = 0.0f;
 };
 
-struct LockOnTuning {
-    float distNear = 3.0f;    // 距离近（压迫感区间）
-    float distFar = 15.0f;   // 距离远（overview 区间）
 
-    float sideOffsetDeg = -30.0f; // 从“中点->玩家”方向旋转多少度得到相机方向（5点钟）
-
-    float baseRadius = 7.0f;  // 相机与中点的基础半径
-
-    // 目标点高度：近→高、远→低
-    float targetHeightNear = 2.0f;
-    float targetHeightFar = 1.0f;
-
-    // 相机高度：近→略低、远→略高（和目标点方向相反一点）
-    float cameraHeightNear = 1.2f;
-    float cameraHeightFar = 2.0f;
-
-    // 模式切换：时间优先 + 速度上限
-    float transitionBaseTime = 0.35f; // 想要的切换时间
-    float transitionMaxSpeed = 25.0f; // 最大允许速度（m/s）
-};
 
 static PlayerCameraMode s_mode = PlayerCameraMode::Free;
 static CameraTransition s_transition{};
@@ -128,7 +127,7 @@ static CameraRig ComputeFreeRigImmediate()
 }
 
 // LockOn 模式下：玩家 & Boss 中点 + 距离相关高度 + 5点钟方向机位
-static CameraRig ComputeLockOnRigImmediate()
+static CameraRig ComputeLockOnRigImmediate(const LockOnTuning& tune)
 {
     XMFLOAT3 P = Player_GetPosition();
     XMFLOAT3 B = Boss_GetPosition();
@@ -145,14 +144,14 @@ static CameraRig ComputeLockOnRigImmediate()
 
     // 根据距离做 0..1 的插值因子
     float t = 0.0f;
-    if (s_lockTune.distFar > s_lockTune.distNear) {
-        t = Saturate((dXZ - s_lockTune.distNear) / (s_lockTune.distFar - s_lockTune.distNear));
+    if (tune.distFar > tune.distNear) {
+        t = Saturate((dXZ - tune.distNear) / (tune.distFar - tune.distNear));
     }
 
     // 目标点高度：近→高、远→低
     float targetHeight =
-        (1.0f - t) * s_lockTune.targetHeightNear +
-        t * s_lockTune.targetHeightFar;
+        (1.0f - t) * tune.targetHeightNear +
+        t * tune.targetHeightFar;
 
     XMFLOAT3 target{
         C.x,
@@ -174,19 +173,19 @@ static CameraRig ComputeLockOnRigImmediate()
     vz /= vlen;
 
     // 绕 Y 轴旋转 sideOffsetDeg（比如 -30°，落在 5 点钟方向）
-    float rad = s_lockTune.sideOffsetDeg * (3.14159265f / 180.0f);
+    float rad = tune.sideOffsetDeg * (3.14159265f / 180.0f);
     float cs = std::cos(rad);
     float sn = std::sin(rad);
     float cx = vx * cs - vz * sn;
     float cz = vx * sn + vz * cs;
     XMFLOAT3 camDir{ cx, 0.0f, cz };
 
-    float radius = s_lockTune.baseRadius;
+    float radius = tune.baseRadius;
 
     // 相机高度：近→略低、远→略高
     float camHeight =
-        (1.0f - t) * s_lockTune.cameraHeightNear +
-        t * s_lockTune.cameraHeightFar;
+        (1.0f - t) * tune.cameraHeightNear +
+        t * tune.cameraHeightFar;
 
     XMFLOAT3 eye{
         target.x + camDir.x * radius,
@@ -314,6 +313,20 @@ void PlayerCamera_Initialize(const PlayerCameraDesc& d)
 
     UpdateMoveBasis();
 
+    // ★ LockOn 演出预设（你之后可以根据手感继续调这些参数）
+    s_lockTuneHit = s_lockTune;
+    s_lockTuneHit.baseRadius = std::max(0.1f, s_lockTune.baseRadius * 0.85f);
+    s_lockTuneHit.cameraHeightNear = s_lockTune.cameraHeightNear * 0.90f;
+    s_lockTuneHit.cameraHeightFar = s_lockTune.cameraHeightFar * 0.90f;
+
+    s_lockTuneBlockAttack = s_lockTune;
+    s_lockTuneBlockAttack.baseRadius = std::max(0.1f, s_lockTune.baseRadius * 0.90f);
+    s_lockTuneBlockAttack.sideOffsetDeg = s_lockTune.sideOffsetDeg - 10.0f; // 更侧一点（更有“演出感”）
+    s_lockTuneBlockAttack.cameraHeightNear = s_lockTune.cameraHeightNear * 0.95f;
+    s_lockTuneBlockAttack.cameraHeightFar = s_lockTune.cameraHeightFar * 0.95f;
+
+    s_preset.active = false;
+
     // 立刻推一次到底层相机
     XMVECTOR eye = XMLoadFloat3(&s_eye);
     XMVECTOR tgt = XMLoadFloat3(&s_target);
@@ -325,35 +338,50 @@ void PlayerCamera_Initialize(const PlayerCameraDesc& d)
     XMStoreFloat3(&uOut, up);
 
     Camera_SetPose(s_eye, fOut, uOut);
+    CameraShake_Clear();
 }
 
 void PlayerCamera_Update(double dt, const PlayerCameraInput& in)
 {
+    const float dtf = static_cast<float>(dt);
+
+    //--------------------------------------------------------------------------
     // 1) 处理锁定 toggle（仅在没有过渡时响应）
-    if (in.lockTogglePressed && !s_transition.active) {
-        if (s_mode == PlayerCameraMode::Free) {
+    //--------------------------------------------------------------------------
+    if (in.lockTogglePressed && !s_transition.active)
+    {
+        if (s_mode == PlayerCameraMode::Free)
+        {
             // Free -> LockOn
-            if (Boss_CanBeLockedOn()) {
+            if (Boss_CanBeLockedOn())
+            {
                 CameraRig from{ s_eye, s_target };
-                CameraRig to = ComputeLockOnRigImmediate();
+                CameraRig to = ComputeLockOnRigImmediate(s_lockTune);
                 StartTransition(from, to, PlayerCameraMode::Free, PlayerCameraMode::LockOn);
                 s_mode = PlayerCameraMode::LockOn;
-            }
-            else {
-                // 将来可以在这里打 DebugText
+
+                // ★ 切模式时清空演出
+                s_preset.active = false;
             }
         }
-        else {
+        else
+        {
             // LockOn -> Free
             CameraRig from{ s_eye, s_target };
-            CameraRig to = ComputeFreeRigImmediate();
+            CameraRig to = ComputeFreeRigImmediate(); // ← 这里替换成你真实的 Free 参数变量
             StartTransition(from, to, PlayerCameraMode::LockOn, PlayerCameraMode::Free);
             s_mode = PlayerCameraMode::Free;
+
+            // ★ 切模式时清空演出
+            s_preset.active = false;
         }
     }
 
-    // 2) 自由相机下的鼠标控制，仅 Free 模式且非过渡中才响应
-    if (s_mode == PlayerCameraMode::Free && !s_transition.active) {
+    //--------------------------------------------------------------------------
+    // 2) 自由相机下的鼠标控制，仅 Free 且非过渡中才响应
+    //--------------------------------------------------------------------------
+    if (s_mode == PlayerCameraMode::Free && !s_transition.active)
+    {
         const float yawSpeed = 0.003f;
         const float pitchSpeed = 0.003f;
         const float pitchMin = -DirectX::XM_PIDIV2 + 0.1f;
@@ -362,43 +390,100 @@ void PlayerCamera_Update(double dt, const PlayerCameraInput& in)
         s_camYaw += in.deltaX * yawSpeed;
         s_camPitch -= in.deltaY * pitchSpeed;
 
-        // Pitch 上下限
         s_camPitch = std::min(std::max(s_camPitch, pitchMin), pitchMax);
 
-        // 滚轮缩放
-        if (in.wheelDelta != 0.0f) {
+        if (in.wheelDelta != 0.0f)
+        {
             float zoomFactor = 1.0f - in.wheelDelta * 0.1f;
             zoomFactor = std::max(0.2f, std::min(2.0f, zoomFactor));
             s_camDist *= zoomFactor;
             s_camDist = std::max(0.5f, std::min(30.0f, s_camDist));
         }
     }
-    else {
-        // LockOn 模式：当前忽略鼠标旋转/滚轮，后面如果需要可以把滚轮映射到 baseRadius
-    }
+    // else: LockOn 模式目前忽略鼠标输入（你原本的策略）
 
-    // 3) 按当前模式计算「瞬时理想机位」
+    //--------------------------------------------------------------------------
+    // 3) 按当前模式计算「瞬时理想机位」 +（LockOn 演出混合）
+    //--------------------------------------------------------------------------
+    float presetWeight = 0.0f;
     CameraRig ideal{};
-    if (s_mode == PlayerCameraMode::Free) {
-        ideal = ComputeFreeRigImmediate();
+
+    if (s_mode == PlayerCameraMode::Free)
+    {
+        ideal = ComputeFreeRigImmediate(); // ← 替换成你真实的 Free 参数变量
     }
-    else {
-        // 如果锁定中 Boss 突然不可锁（将来有死亡等逻辑），自动切回 Free
-        if (!Boss_CanBeLockedOn()) {
+    else // LockOn
+    {
+        // 如果锁定中 Boss 突然不可锁，自动切回 Free
+        if (!Boss_CanBeLockedOn())
+        {
             CameraRig from{ s_eye, s_target };
-            CameraRig toFree = ComputeFreeRigImmediate();
+            CameraRig toFree = ComputeFreeRigImmediate(); // ← 替换成你真实的 Free 参数变量
             StartTransition(from, toFree, s_mode, PlayerCameraMode::Free);
             s_mode = PlayerCameraMode::Free;
+
+            // ★ 清空演出
+            s_preset.active = false;
+
             ideal = toFree;
         }
-        else {
-            ideal = ComputeLockOnRigImmediate();
+        else
+        {
+            // base：默认 LockOn rig
+            CameraRig base = ComputeLockOnRigImmediate(s_lockTune);
+            ideal = base;
+
+            // ★ 演出：只在 LockOn 且非 transition 时生效
+            if (!s_transition.active && s_preset.active)
+            {
+                s_preset.elapsedSec += dtf;
+
+                float t = s_preset.elapsedSec;
+                const float inSec = std::max(1e-6f, s_preset.blendInSec);
+                const float holdSec = std::max(0.0f, s_preset.holdSec);
+                const float outSec = std::max(1e-6f, s_preset.blendOutSec);
+
+                if (t < inSec) {
+                    presetWeight = t / inSec;
+                }
+                else {
+                    t -= inSec;
+                    if (t < holdSec) {
+                        presetWeight = 1.0f;
+                    }
+                    else {
+                        t -= holdSec;
+                        if (t < outSec) {
+                            presetWeight = 1.0f - (t / outSec);
+                        }
+                        else {
+                            s_preset.active = false;
+                            presetWeight = 0.0f;
+                        }
+                    }
+                }
+
+                // 混合 base / fx
+                if (presetWeight > 0.0f)
+                {
+                    const LockOnTuning& fxTune =
+                        (s_preset.presetId == 1) ? s_lockTuneBlockAttack : s_lockTuneHit;
+
+                    CameraRig fx = ComputeLockOnRigImmediate(fxTune);
+
+                    ideal.eye = LerpVec3(base.eye, fx.eye, presetWeight);
+                    ideal.target = LerpVec3(base.target, fx.target, presetWeight);
+                }
+            }
         }
     }
 
+    //--------------------------------------------------------------------------
     // 4) 过渡 or 模式内部平滑
-    if (s_transition.active) {
-        s_transition.elapsed += static_cast<float>(dt);
+    //--------------------------------------------------------------------------
+    if (s_transition.active)
+    {
+        s_transition.elapsed += dtf;
         float t = (s_transition.duration > 0.0f)
             ? Saturate(s_transition.elapsed / s_transition.duration)
             : 1.0f;
@@ -410,10 +495,19 @@ void PlayerCamera_Update(double dt, const PlayerCameraInput& in)
             s_transition.active = false;
         }
     }
-    else {
-        // 没在切镜头时，用原来的 ExpLerp 做跟随平滑
-        float aF = ExpLerp01(s_desc.followSharpness, static_cast<float>(dt));
-        float aL = ExpLerp01(s_desc.lookSharpness, static_cast<float>(dt));
+    else
+    {
+        float followK = s_desc.followSharpness;
+        float lookK = s_desc.lookSharpness;
+
+        // ★ 演出期间加速跟随
+        if (presetWeight > 0.0f) {
+            followK = std::max(followK, 30.0f);
+            lookK = std::max(lookK, 40.0f);
+        }
+
+        float aF = ExpLerp01(followK, dtf);
+        float aL = ExpLerp01(lookK, dtf);
 
         s_eye.x += (ideal.eye.x - s_eye.x) * aF;
         s_eye.y += (ideal.eye.y - s_eye.y) * aF;
@@ -424,12 +518,30 @@ void PlayerCamera_Update(double dt, const PlayerCameraInput& in)
         s_target.z += (ideal.target.z - s_target.z) * aL;
     }
 
-    // 5) 更新移动基向量（Free/LockOn 不同策略）
+    //--------------------------------------------------------------------------
+    // 5) 更新移动基向量
+    //--------------------------------------------------------------------------
     UpdateMoveBasis();
 
-    // 6) 写入底层 Camera 模块
-    XMVECTOR eye = XMLoadFloat3(&s_eye);
-    XMVECTOR tgt = XMLoadFloat3(&s_target);
+    //----------------------------------------------------------------------
+    // 5.5) 相机抖动：叠加层（不写回 s_eye/s_target，防止累积漂移）
+//----------------------------------------------------------------------
+    CameraShake_Update(dtf);
+
+    XMFLOAT3 eyeOut = s_eye;
+    XMFLOAT3 tgtOut = s_target;
+
+    const XMFLOAT3 shakeOff = CameraShake_GetOffset(s_eye, s_target);
+    eyeOut.x += shakeOff.x; eyeOut.y += shakeOff.y; eyeOut.z += shakeOff.z;
+    tgtOut.x += shakeOff.x; tgtOut.y += shakeOff.y; tgtOut.z += shakeOff.z;
+
+
+    //--------------------------------------------------------------------------
+    // 6) 写入底层 Camera
+    //--------------------------------------------------------------------------
+    XMVECTOR eye = XMLoadFloat3(&eyeOut);
+    XMVECTOR tgt = XMLoadFloat3(&tgtOut);
+
     XMVECTOR f = XMVector3Normalize(tgt - eye);
     XMVECTOR up = XMVectorSet(0, 1, 0, 0);
 
@@ -437,7 +549,7 @@ void PlayerCamera_Update(double dt, const PlayerCameraInput& in)
     XMStoreFloat3(&fOut, f);
     XMStoreFloat3(&uOut, up);
 
-    Camera_SetPose(s_eye, fOut, uOut);
+    Camera_SetPose(eyeOut, fOut, uOut);
 }
 
 void PlayerCamera_GetMoveBasis(XMFLOAT3* outForwardXZ, XMFLOAT3* outRightXZ)
@@ -449,4 +561,30 @@ void PlayerCamera_GetMoveBasis(XMFLOAT3* outForwardXZ, XMFLOAT3* outRightXZ)
 bool PlayerCamera_IsLockOnActive()
 {
     return s_mode == PlayerCameraMode::LockOn;
+}
+
+void PlayerCamera_PushLockOnPreset(int presetId, float blendInSec, float holdSec, float blendOutSec, int priority)
+{
+    // 仅 LockOn 下有效
+    if (s_mode != PlayerCameraMode::LockOn) return;
+    if (s_transition.active) return;
+
+    // 低优先级不能覆盖高优先级
+    if (s_preset.active && priority < s_preset.priority) {
+        return;
+    }
+
+    s_preset.active = true;
+    s_preset.presetId = presetId;
+    s_preset.priority = priority;
+    s_preset.blendInSec = std::max(0.0f, blendInSec);
+    s_preset.holdSec = std::max(0.0f, holdSec);
+    s_preset.blendOutSec = std::max(0.0f, blendOutSec);
+    s_preset.elapsedSec = 0.0f;
+}
+
+void PlayerCamera_PushShake(float magnitude, float durationSec, CameraShakeMode mode, float blendInSec, int priority)
+{
+    // 任何模式都允许抖动叠加（Free/LockOn/transition 都可共存）
+    CameraShake_Push(magnitude, durationSec, mode, priority);
 }
