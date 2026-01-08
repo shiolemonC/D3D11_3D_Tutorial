@@ -41,6 +41,9 @@
 #include "boss.h"
 #include "BossAnimatorRegistry.h"
 
+#include "hud_hp.h"
+
+
 using namespace DirectX;
 
 static float g_x = 0.0f;
@@ -154,6 +157,8 @@ void Game_Initialize()
     // 相机跟随
     PlayerCamera_Initialize({});
 
+    HudHP_Initialize();
+
 }
 
 void Game_Finalize()
@@ -223,9 +228,7 @@ void Game_Update(double elapsed_time)
     Sky_SetPosition(Player_GetPosition());
     SpriteAnim_Update(elapsed_time);
 
-
-
-    g_angle = g_AccumulatedTime * 3.0f;
+    HudHP_Update(elapsed_time);
 }
 
 void Game_Draw()
@@ -324,6 +327,7 @@ void Game_Draw()
 
 #endif
 
+    HudHP_Draw();
 
 }
 

@@ -27,6 +27,8 @@ static ID3D11ShaderResourceView* g_pTexture = nullptr; // テクスチャ
 static ID3D11Device* g_pDevice = nullptr;
 static ID3D11DeviceContext* g_pContext = nullptr;
 
+static ID3D11ShaderResourceView* g_pWhiteTextureSRV = nullptr; // 1x1 white texture for solid-color rects
+
 
 // 頂点構造体（GPUに渡す頂点データの定義）
 // ※この構造体のメンバーや順番は、HLSL内のVS_IN構造体と一致させる必要がある。
@@ -59,12 +61,38 @@ void Sprite_Initialize(ID3D11Device* pDevice, ID3D11DeviceContext* pContext)
 	bd.CPUAccessFlags = D3D11_CPU_ACCESS_WRITE;
 
 	g_pDevice->CreateBuffer(&bd, NULL, &g_pVertexBuffer);
+
+	{
+		D3D11_TEXTURE2D_DESC td = {};
+		td.Width = 1;
+		td.Height = 1;
+		td.MipLevels = 1;
+		td.ArraySize = 1;
+		td.Format = DXGI_FORMAT_R8G8B8A8_UNORM;
+		td.SampleDesc.Count = 1;
+		td.Usage = D3D11_USAGE_IMMUTABLE;
+		td.BindFlags = D3D11_BIND_SHADER_RESOURCE;
+
+		unsigned int pixel = 0xFFFFFFFFu;
+		D3D11_SUBRESOURCE_DATA init = {};
+		init.pSysMem = &pixel;
+		init.SysMemPitch = sizeof(pixel);
+
+		ID3D11Texture2D* tex = nullptr;
+		if (SUCCEEDED(g_pDevice->CreateTexture2D(&td, &init, &tex)) && tex)
+		{
+			g_pDevice->CreateShaderResourceView(tex, nullptr, &g_pWhiteTextureSRV);
+			tex->Release();
+		}
+	}
+
 }
 
 void Sprite_Finalize(void)
 {
 	SAFE_RELEASE(g_pTexture);
 	SAFE_RELEASE(g_pVertexBuffer);
+	SAFE_RELEASE(g_pWhiteTextureSRV);
 }
 
 void Sprite_Begin()
@@ -75,6 +103,44 @@ void Sprite_Begin()
 
 	// 頂点シェーダーに変換行列を設定
 	Shader_SetProjectionMatrix(XMMatrixOrthographicOffCenterLH(0.0f, SCREEN_WIDTH, SCREEN_HEIGHT, 0.0f, 0.0f, 1.0f));
+}
+
+void Sprite_DrawRect(float dx, float dy, float dw, float dh, const DirectX::XMFLOAT4& color)
+{
+	Shader_Begin();
+
+	D3D11_MAPPED_SUBRESOURCE msr;
+	g_pContext->Map(g_pVertexBuffer, 0, D3D11_MAP_WRITE_DISCARD, 0, &msr);
+	Vertex* v = (Vertex*)msr.pData;
+
+	v[0].position = { dx,      dy,      0.0f };
+	v[1].position = { dx + dw, dy,      0.0f };
+	v[2].position = { dx,      dy + dh, 0.0f };
+	v[3].position = { dx + dw, dy + dh, 0.0f };
+
+	v[0].color = color;
+	v[1].color = color;
+	v[2].color = color;
+	v[3].color = color;
+
+	v[0].uv = { 0.0f, 0.0f };
+	v[1].uv = { 1.0f, 0.0f };
+	v[2].uv = { 0.0f, 1.0f };
+	v[3].uv = { 1.0f, 1.0f };
+
+	g_pContext->Unmap(g_pVertexBuffer, 0);
+
+	Shader_SetWorldMatrix(XMMatrixIdentity());
+
+	UINT stride = sizeof(Vertex);
+	UINT offset = 0;
+	g_pContext->IASetVertexBuffers(0, 1, &g_pVertexBuffer, &stride, &offset);
+	g_pContext->IASetPrimitiveTopology(D3D11_PRIMITIVE_TOPOLOGY_TRIANGLESTRIP);
+
+	// Bind built-in white texture to t0
+	g_pContext->PSSetShaderResources(0, 1, &g_pWhiteTextureSRV);
+
+	g_pContext->Draw(NUM_VERTEX, 0);
 }
 
 void Sprite_Draw(int texid, float dx, float dy,

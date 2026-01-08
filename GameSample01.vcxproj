@@ -167,6 +167,7 @@
     <ClCompile Include="grid.cpp" />
     <ClCompile Include="hitbox_system.cpp" />
     <ClCompile Include="hit_event.cpp" />
+    <ClCompile Include="hud_hp.cpp" />
     <ClCompile Include="keyboard.cpp" />
     <ClCompile Include="key_logger.cpp" />
     <ClCompile Include="light.cpp" />
@@ -228,6 +229,7 @@
     <ClInclude Include="grid.h" />
     <ClInclude Include="hitbox_system.h" />
     <ClInclude Include="hit_event.h" />
+    <ClInclude Include="hud_hp.h" />
     <ClInclude Include="keyboard.h" />
     <ClInclude Include="key_logger.h" />
     <ClInclude Include="light.h" />

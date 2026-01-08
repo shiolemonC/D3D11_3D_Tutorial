@@ -217,6 +217,9 @@
     <ClCompile Include="hit_event.cpp">
       <Filter>ソース ファイル\player_function</Filter>
     </ClCompile>
+    <ClCompile Include="hud_hp.cpp">
+      <Filter>ソース ファイル</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="debug_ostream.h">
@@ -392,6 +395,9 @@
     </ClInclude>
     <ClInclude Include="hit_event.h">
       <Filter>ヘッダー ファイル\player_function</Filter>
+    </ClInclude>
+    <ClInclude Include="hud_hp.h">
+      <Filter>ヘッダー ファイル</Filter>
     </ClInclude>
   </ItemGroup>
   <ItemGroup>

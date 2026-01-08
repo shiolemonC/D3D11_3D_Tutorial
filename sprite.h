@@ -18,6 +18,9 @@ void Sprite_Finalize(void);
 // 2D用カメラの設定
 void Sprite_Begin();
 
+// Draw a solid-color rectangle (uses an internal 1x1 white texture).
+void Sprite_DrawRect(float dx, float dy, float dw, float dh, const DirectX::XMFLOAT4& color);
+
 // デフォルト背景色は白（引数XMFLOAT4 color）
 // テクスチャ全表示
 void Sprite_Draw(int texid, float dx, float dy,

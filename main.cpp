@@ -73,7 +73,7 @@ int APIENTRY WinMain(
 	//ModelSkinned_Initialize(Direct3D_GetDevice(), Direct3D_GetContext());
 	AnimatorRegistry_Initialize(Direct3D_GetDevice(), Direct3D_GetContext());
 	BossAnimatorRegistry_Initialize(Direct3D_GetDevice(), Direct3D_GetContext());
-	Game_Initialize();
+	//Game_Initialize();
 	Scene_Initialize();
 	Grid_Initialize(Direct3D_GetDevice(), Direct3D_GetContext());
 	Cube_Initialize(Direct3D_GetDevice(), Direct3D_GetContext());
@@ -185,7 +185,7 @@ int APIENTRY WinMain(
 
 				Sprite_Begin();
 
-				Game_Draw();
+				//Game_Draw();
 				Scene_Draw();
 				Fade_Draw();
 
