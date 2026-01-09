@@ -47,7 +47,7 @@ bool HitEvent_Dispatch(const HitContact& c)
         hp.attackerPos = c.attackerPos;
         hp.victimPos = c.victimPos;
 
-        // ★ 这里才是真正扣血入口
+        //这里才是真正扣血入口
         Boss_OnIncomingHit(hp);
 
         char buf[256];

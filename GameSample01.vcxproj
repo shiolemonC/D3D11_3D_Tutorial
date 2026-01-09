@@ -194,6 +194,7 @@
     <ClCompile Include="shader3d_unlit.cpp" />
     <ClCompile Include="shader_billboard.cpp" />
     <ClCompile Include="shader_field.cpp" />
+    <ClCompile Include="shadow_map.cpp" />
     <ClCompile Include="sky.cpp" />
     <ClCompile Include="sprite.cpp" />
     <ClCompile Include="sprite_anim.cpp" />
@@ -255,6 +256,7 @@
     <ClInclude Include="shader3d_unlit.h" />
     <ClInclude Include="shader_billboard.h" />
     <ClInclude Include="shader_field.h" />
+    <ClInclude Include="shadow_map.h" />
     <ClInclude Include="sky.h" />
     <ClInclude Include="sprite.h" />
     <ClInclude Include="sprite_anim.h" />

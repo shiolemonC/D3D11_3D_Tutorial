@@ -111,7 +111,7 @@ void AnimEventRegister()
             roll.events.push_back(e);
         }
 
-        // 无敌结束（建议别写 1.0，写 0.85/0.9 更稳）
+        
         {
             AnimEvent e{};
             e.timeNormalized = 0.85f;
@@ -186,8 +186,8 @@ void AnimEventRegister()
             e.timeNormalized = 0.0f;
             e.type = AnimEventType::CameraLockOnPreset;
             e.cameraLockOnPreset.presetId = 1;       // 1 = Block_Attack
-            e.cameraLockOnPreset.blendInSec = 0.03f;
-            e.cameraLockOnPreset.holdSec = 0.12f;
+            e.cameraLockOnPreset.blendInSec = 0.2f;
+            e.cameraLockOnPreset.holdSec = 1.12f;
             e.cameraLockOnPreset.blendOutSec = 0.25f;
             e.cameraLockOnPreset.priority = 200;
             t.events.push_back(e);

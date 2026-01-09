@@ -345,12 +345,12 @@ bool AnimatorRegistry_Play(const std::wstring& name,
             break;
 
         case RootMotionType::UseZDelta:
-            // ★ Roll：只拿 Z 位移做 RootMotion，视觉上不希望骨骼自己再走一遍
+            //  Roll：只拿 Z 位移做 RootMotion，视觉上不希望骨骼自己再走一遍
             zeroXZ = true;
             break;
 
         case RootMotionType::UseAnimDelta:
-            // ★ 完整 RootMotion：可以先保留骨骼平移（如果以后觉得是 double，可以再一起改）
+            //  完整 RootMotion：可以先保留骨骼平移（如果以后觉得是 double，可以再一起改）
             zeroXZ = false;
             break;
         }

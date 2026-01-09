@@ -80,7 +80,6 @@ void AnimRegister()
         c.skelPath = L"resources/player_anim/cooked/sword_parry.skel";
         c.animPath = L"resources/player_anim/cooked/sword_parry.anim";
         c.matPath =  L"resources/player_anim/cooked/sword_parry.mat";
-        // 如需强制贴图（覆盖 .mat）：
         c.baseColorOverride = L"resources/player_anim/cooked/Textures/Paladin_diffuse.png";
         c.loop = false;
         c.playbackRate = 1.0f;

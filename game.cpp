@@ -42,6 +42,7 @@
 #include "BossAnimatorRegistry.h"
 
 #include "hud_hp.h"
+#include "shadow_map.h"
 
 
 using namespace DirectX;
@@ -159,6 +160,9 @@ void Game_Initialize()
 
     HudHP_Initialize();
 
+    ShadowMap_Initialize(Direct3D_GetDevice(), Direct3D_GetContext(), 2048);
+    ShadowMap_SetParams(0.0025f, 1.0f);
+
 }
 
 void Game_Finalize()
@@ -168,6 +172,7 @@ void Game_Finalize()
     Billboard_Finalize();
     Camera_Finalize();
     //PlayerCameraTest_Finalize();
+    ShadowMap_Finalize();
 }
 
 void Game_Update(double elapsed_time)
@@ -233,102 +238,64 @@ void Game_Update(double elapsed_time)
 
 void Game_Draw()
 {
-    Light_SetAmbient({0.7f, 0.7f, 0.7f});
+    //========================
+    // 0) Shadow Pass：先生成 shadow map
+    //========================
+    {
+        // 方向与 MeshField 那边保持一致（你现在 MeshField 用的是 {1,-0.6,0}）
+        DirectX::XMFLOAT3 lightDir = { 1.0f, -0.6f, 0.0f };
 
-    XMVECTOR v{ -1.0f, -1.0f, 1.0f, 0.0f };
+        // MeshField 大致范围：x=[0..50], z=[0..25]，中心大概 (25,0,12.5)
+        DirectX::XMFLOAT3 center = { 25.0f, 0.0f, 12.5f };
+        float radius = 40.0f; // 覆盖整个场地（先保守点）
 
-    v = XMVector3Normalize(v);
+        ShadowMap_BeginDirectional(lightDir, center, radius);
 
-    Light_SetDirectionWorld({1.0f, -0.6f, 0.0f, 0.0f}, {1.0f, 0.0f, 0.0f, 1.0f});
+        // Shadow pass：把 PS 关掉（只写深度）
+        Shader3d_SetShadowPass(true);
+        AnimatorRegistry_Draw();
+        BossAnimatorRegistry_Draw();
+        Shader3d_SetShadowPass(false);
 
-    Light_SetSpecularWorld(Camera_GetPosition(), 2.0f, { 0.1f, 0.1f, 0.1f, 1.0f });
-    MeshField_Draw();
+        ShadowMap_End();
 
-    XMMATRIX World = XMMatrixRotationY(g_angle * 0.0f);
+        // 还原给主相机的 view/proj（避免主 pass 玩家/Boss 的 view/proj 仍然是 light 的）
+        Shader3d_SetViewMatrix(DirectX::XMLoadFloat4x4(&Camera_GetMatrix()));
+        Shader3d_SetProjectionMatrix(DirectX::XMLoadFloat4x4(&Camera_GetPerspectiveMatrix()));
+    }
 
-    World *= XMMatrixTranslationFromVector(XMLoadFloat3(&g_CubePosition)); 
-    World *= XMMatrixTranslation(0.0f, 0.5f, 2.0f);
-
-    Sampler_SetFillterAnisotropic();
-
-    //Cube_Draw(World);
-
-    XMMATRIX kirby = XMMatrixIdentity();
-
-    //World = XMMatrixTranslation(3.0f, 20.0f, 0.0f);
-
-    kirby *= XMMatrixScaling(0.1f, 0.1f, 0.1f);
-    kirby *= XMMatrixRotationX(90.0f);
-    kirby *= XMMatrixTranslation(4.0f, 0.5f, 2.0f);
-
-    //ModelDraw(g_pModelTreeTest, kirby);
-
-    XMMATRIX tree = XMMatrixIdentity();
-
-    //tree *= XMMatrixTranslation(3.0f, 0.0f, 5.0f);
-
-    tree *= XMMatrixScaling(0.1f, 0.1f, 0.1f);
-    tree *= XMMatrixRotationX(90.0f);
-    tree *= XMMatrixRotationY(45.0f);
-    tree *= XMMatrixTranslation(-5.0f, 0.0f, 0.0f);
-
-    //ModelDraw(g_pModelTreeTest, tree);
-
-    //Direct3D_SetDepthEnable(false);
-    //Sky_Draw();
-    //Direct3D_SetDepthEnable(true);
+    //========================
+    // 1) Main Pass：画地面（绑定 shadow map 给 MeshField PS）
+    //========================
+    ShadowMap_BindForFieldPS();
 
     Light_SetAmbient({ 1.0f, 1.0f, 1.0f });
+    Light_SetDirectionWorld({ 1.0f, -0.6f, 0.0f, 0.0f }, { 1.0f, 0.0f, 0.0f, 1.0f });
+    Light_SetSpecularWorld(Camera_GetPosition(), 2.0f, { 0.1f, 0.1f, 0.1f, 1.0f });
+
+    MeshField_Draw();
+
+    // （可选）解绑，避免下一帧 BeginDirectional 绑定 DSV 前还挂着 SRV
+    ShadowMap_UnbindForFieldPS();
+
+    //========================
+    // 2) 后续你的原逻辑：画玩家/Boss 等
+    //========================
+    Light_SetAmbient({ 1.0f, 1.0f, 1.0f });
     Light_SetDirectionWorld({ 1.0f, -0.6f, 0.0f, 0.0f }, { 0.0f, 0.0f, 0.0f, 1.0f });
-    //Light_SetSpecularWorld(Camera_GetPosition(), 10.0f, {0.0f, 0.0f, 0.0f, 1.0f});
-    //Light_SetDirectionWorld({ 1.0f, -0.6f, 0.0f, 0.0f }, { 0.0f, 0.0f, 0.0f, 1.0f });
-
-    //Light_SetPointCount(3);
-    //XMVECTOR position = { 0.0f, 0.3f, -3.0f };
-    //XMMATRIX rot = XMMatrixRotationY(g_angle);
-    //position = XMVector3Transform(position, rot);
-    //XMFLOAT3 pp;
-    //XMStoreFloat3(&pp, position);
-
-    //Light_SetPointWorld(0, pp, 5.0f, { 0.0f, 1.0f, 0.0f});
-    //Light_SetPointWorld(1, { 3.0f, 0.0f, 0.0f }, 5.0f, { 1.0f, 0.0f, 0.0f});
-    //Light_SetPointWorld(2, { 0.0f, 0.0f, -2.0f }, 5.0f, { 0.0f, 0.0f, 1.0f });
 
     Sampler_SetFillterLinear();
-
-    //Cube_Draw(World);
-
-    //Grid_Draw();
-
-    XMMATRIX W = XMMatrixIdentity();
-    // 如果尺度不合适可加缩放：
-    //W = XMMatrixScaling(0.01f, 0.01f, 0.01f);
-
-    ModelStatic_SetWorld(W);
-
-    // 你已有的采样器（任选）
     Sampler_SetFillterAnisotropic();
 
-    //Player_Draw();
-
-    //AnimatorRegistry_SetWorld(W);
     AnimatorRegistry_Draw();
-
-    // 再画 Boss
     BossAnimatorRegistry_Draw();
 
-    //Billboard_Draw(g_TestTexid, { -2.0f, 2.5f, 2.0f }, { 1.5f, 2.0f }, {140.0f * 3, 200.0f, 140.0f, 200.0f}, { 0.0f, 0.0f });
-    //BillboardAnim_Draw(g_AnimPlayId, { -2.0f, 2.5f, 2.0f }, { 1.5f, 2.0f },  { 0.0f, 0.0f });
-
-#if defined(DEBUG) || defined(_DEBUG) // debug buildだけで有効
-    PlayerSM_DebugDraw();
-    //Camera_DebugDraw();
+#if defined(DEBUG) || defined(_DEBUG)
+    //PlayerSM_DebugDraw();
     GetCollisionWorld().DebugDraw3D();
-
 #endif
 
     HudHP_Draw();
-
 }
 
 

@@ -31,6 +31,8 @@ static ID3D11Buffer* g_pPSConstantBuffer0 = nullptr; // 定数バッファb0
 static ID3D11Device* g_pDevice = nullptr;
 static ID3D11DeviceContext* g_pContext = nullptr;
 
+static bool g_isShadowPass = false;
+
 
 bool Shader3d_Initialize(ID3D11Device* pDevice, ID3D11DeviceContext* pContext)
 {
@@ -199,7 +201,9 @@ void Shader3d_Begin()
 {
 	// 頂点シェーダーとピクセルシェーダーを描画パイプラインに設定
 	g_pContext->VSSetShader(g_pVertexShader, nullptr, 0);
-	g_pContext->PSSetShader(g_pPixelShader, nullptr, 0);
+	//g_pContext->PSSetShader(g_pPixelShader, nullptr, 0);
+	g_pContext->PSSetShader(g_isShadowPass ? nullptr : g_pPixelShader, nullptr, 0);
+
 
 	// 頂点レイアウトを描画パイプラインに設定
 	g_pContext->IASetInputLayout(g_pInputLayout);
@@ -213,4 +217,8 @@ void Shader3d_Begin()
 	// サンプラーステートを描画パイプラインに設定
 	//g_pContext->PSSetSamplers(0, 1, &g_pSamplerState);
 	//Sampler_SetFillterAnisotropic();
+}
+
+void Shader3d_SetShadowPass(bool enable)
+{
 }
