@@ -251,12 +251,27 @@ void Game_Draw()
 
         ShadowMap_BeginDirectional(lightDir, center, radius);
 
+//#if defined(_DEBUG)
+//        ID3D11PixelShader* ps = nullptr;
+//        Direct3D_GetContext()->PSGetShader(&ps, nullptr, nullptr);
+//        OutputDebugStringA(ps ? "[ShadowPass] PS != nullptr BEFORE draw\n"
+//            : "[ShadowPass] PS == nullptr BEFORE draw\n");
+//        if (ps) ps->Release();
+//#endif
+
         // Shadow pass：把 PS 关掉（只写深度）
         Shader3d_SetShadowPass(true);
         AnimatorRegistry_Draw();
+                   
+//#if defined(_DEBUG)
+//        Direct3D_GetContext()->PSGetShader(&ps, nullptr, nullptr);
+//        OutputDebugStringA(ps ? "[ShadowPass] PS != nullptr AFTER draw\n"
+//            : "[ShadowPass] PS == nullptr AFTER draw\n");
+//        if (ps) ps->Release();
+//#endif
+
         BossAnimatorRegistry_Draw();
         Shader3d_SetShadowPass(false);
-
         ShadowMap_End();
 
         // 还原给主相机的 view/proj（避免主 pass 玩家/Boss 的 view/proj 仍然是 light 的）
@@ -272,6 +287,7 @@ void Game_Draw()
     Light_SetAmbient({ 1.0f, 1.0f, 1.0f });
     Light_SetDirectionWorld({ 1.0f, -0.6f, 0.0f, 0.0f }, { 1.0f, 0.0f, 0.0f, 1.0f });
     Light_SetSpecularWorld(Camera_GetPosition(), 2.0f, { 0.1f, 0.1f, 0.1f, 1.0f });
+    Light_SetPointCount(0); // 即使没有点光源，也把 b4 绑定上
 
     MeshField_Draw();
 

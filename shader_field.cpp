@@ -15,6 +15,7 @@
 #include "shader.h"
 #include "shader_field.h"
 #include "sampler.h"
+#include "shader3d.h"
 using namespace DirectX;
 
 
@@ -192,7 +193,7 @@ void ShaderField_Begin()
 {
 	// 頂点シェーダーとピクセルシェーダーを描画パイプラインに設定
 	g_pContext->VSSetShader(g_pVertexShader, nullptr, 0);
-	g_pContext->PSSetShader(g_pPixelShader, nullptr, 0);
+	g_pContext->PSSetShader(Shader3d_IsShadowPass() ? nullptr : g_pPixelShader, nullptr, 0);
 
 	// 頂点レイアウトを描画パイプラインに設定
 	g_pContext->IASetInputLayout(g_pInputLayout);

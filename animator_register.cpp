@@ -3,6 +3,7 @@
 
 // cd /d D:\AssetCooker\AssetCooker\build\msvc-x64-release\Debug
 //  AssetCooker.exe "D:\GP11Project\AnimSourceFile\sword_roll.fbx" "D:\GP11Project\GameSample05_3D\resources\player_anim\cooked"
+//  AssetCooker.exe "D:\GP11Project\AnimSourceFile\mutant_idle.fbx" "D:\GP11Project\GameSample05_3D\resources\player_anim\cooked"
 // 把你素材的固定路径、默认播放策略都集中在这里注册
 void AnimRegister()
 {
@@ -19,10 +20,10 @@ void AnimRegister()
         //// 如需强制贴图（覆盖 .mat）：
         //c.baseColorOverride = L"D:/AssetCooker/resources/test/ninja_T.fbm/Ch24_1001_Diffuse.png";
 
-        c.meshPath = L"resources/player_anim/cooked/sword_idle_test.mesh";
-        c.skelPath = L"resources/player_anim/cooked/sword_idle_test.skel";
-        c.animPath = L"resources/player_anim/cooked/sword_idle_test.anim";
-        c.matPath  = L"resources/player_anim/cooked/sword_idle_test.mat";
+        c.meshPath = L"resources/player_anim/cooked/sword_idle.mesh";
+        c.skelPath = L"resources/player_anim/cooked/sword_idle.skel";
+        c.animPath = L"resources/player_anim/cooked/sword_idle.anim";
+        c.matPath  = L"resources/player_anim/cooked/sword_idle.mat";
         // 如需强制贴图（覆盖 .mat）：
         c.baseColorOverride = L"resources/player_anim/textures/Paladin_diffuse.png";
 
@@ -38,10 +39,10 @@ void AnimRegister()
     {
         AnimClipDesc c{};
         c.name = L"Walk";
-        c.meshPath = L"resources/player_anim/cooked/sword_move_test.mesh";
-        c.skelPath = L"resources/player_anim/cooked/sword_move_test.skel";
-        c.animPath = L"resources/player_anim/cooked/sword_move_test.anim";
-        c.matPath =  L"resources/player_anim/cooked/sword_move_test.mat";
+        c.meshPath = L"resources/player_anim/cooked/sword_run_60.mesh";
+        c.skelPath = L"resources/player_anim/cooked/sword_run_60.skel";
+        c.animPath = L"resources/player_anim/cooked/sword_run_60.anim";
+        c.matPath =  L"resources/player_anim/cooked/sword_run_60.mat";
         // 如需强制贴图（覆盖 .mat）：
         c.baseColorOverride = L"resources/player_anim/cooked/Textures/Paladin_diffuse.png";
         c.loop = true;
@@ -56,10 +57,10 @@ void AnimRegister()
     {
         AnimClipDesc c{};
         c.name = L"Attack";
-        c.meshPath = L"resources/player_anim/cooked/sword_slash.mesh";
-        c.skelPath = L"resources/player_anim/cooked/sword_slash.skel";
-        c.animPath = L"resources/player_anim/cooked/sword_slash.anim";
-        c.matPath =  L"resources/player_anim/cooked/sword_slash.mat";
+        c.meshPath = L"resources/player_anim/cooked/sword_attack.mesh";
+        c.skelPath = L"resources/player_anim/cooked/sword_attack.skel";
+        c.animPath = L"resources/player_anim/cooked/sword_attack.anim";
+        c.matPath =  L"resources/player_anim/cooked/sword_attack.mat";
         // 如需强制贴图（覆盖 .mat）：
         c.baseColorOverride = L"resources/player_anim/cooked/Textures/Paladin_diffuse.png";
         c.loop = false;
@@ -76,10 +77,10 @@ void AnimRegister()
     {
         AnimClipDesc c{};
         c.name = L"Parry";
-        c.meshPath = L"resources/player_anim/cooked/sword_parry.mesh";
-        c.skelPath = L"resources/player_anim/cooked/sword_parry.skel";
-        c.animPath = L"resources/player_anim/cooked/sword_parry.anim";
-        c.matPath =  L"resources/player_anim/cooked/sword_parry.mat";
+        c.meshPath = L"resources/player_anim/cooked/sword_block.mesh";
+        c.skelPath = L"resources/player_anim/cooked/sword_block.skel";
+        c.animPath = L"resources/player_anim/cooked/sword_block.anim";
+        c.matPath =  L"resources/player_anim/cooked/sword_block.mat";
         c.baseColorOverride = L"resources/player_anim/cooked/Textures/Paladin_diffuse.png";
         c.loop = false;
         c.playbackRate = 1.0f;
@@ -95,10 +96,10 @@ void AnimRegister()
     {
         AnimClipDesc c{};
         c.name = L"Block";
-        c.meshPath = L"resources/player_anim/cooked/sword_block.mesh";
-        c.skelPath = L"resources/player_anim/cooked/sword_block.skel";
-        c.animPath = L"resources/player_anim/cooked/sword_block.anim";
-        c.matPath =  L"resources/player_anim/cooked/sword_block.mat";
+        c.meshPath = L"resources/player_anim/cooked/sword_parry.mesh";
+        c.skelPath = L"resources/player_anim/cooked/sword_parry.skel";
+        c.animPath = L"resources/player_anim/cooked/sword_parry.anim";
+        c.matPath =  L"resources/player_anim/cooked/sword_parry.mat";
         // 如需强制贴图（覆盖 .mat）：
         c.baseColorOverride = L"resources/player_anim/cooked/Textures/Paladin_diffuse.png";
         c.loop = false;
@@ -218,16 +219,20 @@ void BossAnimRegister()
     {
         AnimClipDesc c{};
         c.name = L"Boss_Idle";
-        c.meshPath = L"resources/player_anim/cooked/player_idle_test.mesh";
-        c.skelPath = L"resources/player_anim/cooked/player_idle_test.skel";
-        c.animPath = L"resources/player_anim/cooked/player_idle_test.anim";
-        c.matPath = L"resources/player_anim/cooked/player_idle_test.mat";
+        //c.meshPath = L"resources/player_anim/cooked/player_idle_test.mesh";
+        //c.skelPath = L"resources/player_anim/cooked/player_idle_test.skel";
+        //c.animPath = L"resources/player_anim/cooked/player_idle_test.anim";
+        //c.matPath =  L"resources/player_anim/cooked/player_idle_test.mat";
+        c.meshPath = L"resources/player_anim/cooked/mutant_idle.mesh";
+        c.skelPath = L"resources/player_anim/cooked/mutant_idle.skel";
+        c.animPath = L"resources/player_anim/cooked/mutant_idle.anim";
+        c.matPath =  L"resources/player_anim/cooked/mutant_idle.mat";
         c.baseColorOverride = L"resources/player_anim/cooked/Textures/Mutant_diffuse.png";
 
         c.loop = true;
         c.playbackRate = 1.0f;
         c.rmType = RootMotionType::None;   // Idle 不需要 RootMotion
-        c.motionRootNameUTF8 = "Armature";        // 或 "mixamorig:Hips"，看你 Boss 的骨骼名
+        c.motionRootNameUTF8 = "root";        // 或 "mixamorig:Hips"，看你 Boss 的骨骼名
 
         BossAnimatorRegistry_Register(c);
     }
@@ -236,17 +241,17 @@ void BossAnimRegister()
     {
         AnimClipDesc c{};
         c.name = L"Boss_Chase";
-        c.meshPath = L"resources/player_anim/cooked/player_move.mesh";
-        c.skelPath = L"resources/player_anim/cooked/player_move.skel";
-        c.animPath = L"resources/player_anim/cooked/player_move.anim";
-        c.matPath = L"resources/player_anim/cooked/player_move.mat";
+        c.meshPath = L"resources/player_anim/cooked/mutant_run.mesh";
+        c.skelPath = L"resources/player_anim/cooked/mutant_run.skel";
+        c.animPath = L"resources/player_anim/cooked/mutant_run.anim";
+        c.matPath =  L"resources/player_anim/cooked/mutant_run.mat";
         // 如需强制贴图（覆盖 .mat）：
         c.baseColorOverride = L"resources/player_anim/cooked/Textures/Mutant_diffuse.png";
 
         c.loop = true;
         c.playbackRate = 1.0f;
         c.rmType = RootMotionType::None;   // 先用逻辑位移追踪
-        c.motionRootNameUTF8 = "Armature";
+        c.motionRootNameUTF8 = "root";
 
         BossAnimatorRegistry_Register(c);
     }
@@ -255,17 +260,17 @@ void BossAnimRegister()
     {
         AnimClipDesc c{};
         c.name = L"Boss_Attack";
-        c.meshPath = L"resources/player_anim/cooked/player_attack.mesh";
-        c.skelPath = L"resources/player_anim/cooked/player_attack.skel";
-        c.animPath = L"resources/player_anim/cooked/player_attack.anim";
-        c.matPath = L"resources/player_anim/cooked/player_attack.mat";
+        c.meshPath = L"resources/player_anim/cooked/mutant_swipe.mesh";
+        c.skelPath = L"resources/player_anim/cooked/mutant_swipe.skel";
+        c.animPath = L"resources/player_anim/cooked/mutant_swipe.anim";
+        c.matPath =  L"resources/player_anim/cooked/mutant_swipe.mat";
         // 如需强制贴图（覆盖 .mat）：
         c.baseColorOverride = L"resources/player_anim/cooked/Textures/Mutant_diffuse.png";
 
         c.loop = false;  // 攻击不循环
         c.playbackRate = 1.0f;
-        c.rmType = RootMotionType::None; // 第一版不做冲刺 RootMotion
-        c.motionRootNameUTF8 = "Armature";
+        c.rmType = RootMotionType::UseZDelta; // 第一版不做冲刺 RootMotion
+        c.motionRootNameUTF8 = "root";
 
         BossAnimatorRegistry_Register(c);
     }

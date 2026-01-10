@@ -1041,6 +1041,14 @@ void ModelSkinned_Draw() {
 
     gCtx->IASetIndexBuffer(gIB, gIndexFormat, 0);
     gCtx->IASetPrimitiveTopology(D3D11_PRIMITIVE_TOPOLOGY_TRIANGLELIST);
+
+    // 在 shadow pass 中，强制保证 PS 为空（任何人绑回去都没用）
+    if (Shader3d_IsShadowPass())   // 你加个getter返回 g_isShadowPass
+    {
+        ID3D11DeviceContext* ctx = Direct3D_GetContext();
+        ctx->PSSetShader(nullptr, nullptr, 0);
+    }
+
     gCtx->DrawIndexed(gIndexCount, 0, 0);
 }
 

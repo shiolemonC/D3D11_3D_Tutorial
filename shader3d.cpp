@@ -219,6 +219,11 @@ void Shader3d_Begin()
 	//Sampler_SetFillterAnisotropic();
 }
 
+bool Shader3d_IsShadowPass()
+{
+	return g_isShadowPass;
+}
+
 void Shader3d_SetShadowPass(bool enable)
 {
 }

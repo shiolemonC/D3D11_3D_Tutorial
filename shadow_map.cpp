@@ -34,6 +34,16 @@ static ID3D11RasterizerState* gPrevRS = nullptr;
 static D3D11_VIEWPORT          gPrevVP{};
 static bool                    gHasPrevVP = false;
 
+// Dummy Resource
+static ID3D11Texture2D* gDummyColorTex = nullptr;
+static ID3D11RenderTargetView* gDummyRTV = nullptr;
+
+// 可选：完全关闭颜色写入（即使绑了 RTV 也不写）
+static ID3D11BlendState* gNoColorWriteBS = nullptr;
+static ID3D11BlendState* gPrevBS = nullptr;
+static float                   gPrevBlendFactor[4] = {};
+static UINT                    gPrevSampleMask = 0xffffffff;
+
 static XMMATRIX BuildLightView(const XMFLOAT3& lightDirW, const XMFLOAT3& centerW, float radius)
 {
     XMVECTOR dir = XMVector3Normalize(XMLoadFloat3(&lightDirW));
@@ -137,17 +147,50 @@ bool ShadowMap_Initialize(ID3D11Device* dev, ID3D11DeviceContext* ctx, int shado
     // 默认参数
     gShadowCBData.params = XMFLOAT4(0.0025f, 1.0f, 0, 0);
 
+    // Dummy
+    // 1x1 dummy color target
+    // Dummy color target (MUST match shadow map size)
+    D3D11_TEXTURE2D_DESC cd{};
+    cd.Width = (UINT)gShadowSize;
+    cd.Height = (UINT)gShadowSize;
+    cd.MipLevels = 1;
+    cd.ArraySize = 1;
+    cd.Format = DXGI_FORMAT_R8G8B8A8_UNORM;
+    cd.SampleDesc.Count = 1;
+    cd.SampleDesc.Quality = 0;
+    cd.Usage = D3D11_USAGE_DEFAULT;
+    cd.BindFlags = D3D11_BIND_RENDER_TARGET;
+
+    HRESULT hr = gDev->CreateTexture2D(&cd, nullptr, &gDummyColorTex);
+    if (FAILED(hr)) return false;
+
+    hr = gDev->CreateRenderTargetView(gDummyColorTex, nullptr, &gDummyRTV);
+    if (FAILED(hr)) return false;
+
+    // no color write blend state (RenderTargetWriteMask = 0)
+    D3D11_BLEND_DESC bd{};
+    bd.RenderTarget[0].BlendEnable = FALSE;
+    bd.RenderTarget[0].RenderTargetWriteMask = 0;
+    gDev->CreateBlendState(&bd, &gNoColorWriteBS);
+
     return true;
 }
 
 void ShadowMap_Finalize()
 {
+    // Shadow resources
     SAFE_RELEASE(gShadowCB);
     SAFE_RELEASE(gShadowRS);
     SAFE_RELEASE(gShadowCmpSamp);
     SAFE_RELEASE(gShadowSRV);
     SAFE_RELEASE(gShadowDSV);
     SAFE_RELEASE(gShadowTex);
+
+    // Dummy + BlendState（只在这里释放一次）
+    SAFE_RELEASE(gNoColorWriteBS);
+    SAFE_RELEASE(gDummyRTV);
+    SAFE_RELEASE(gDummyColorTex);
+
     gDev = nullptr;
     gCtx = nullptr;
 }
@@ -188,8 +231,16 @@ void ShadowMap_BeginDirectional(const XMFLOAT3& lightDirW, const XMFLOAT3& cente
     gCtx->RSSetViewports(1, &gShadowVP);
     gCtx->RSSetState(gShadowRS);
 
-    // 只绑定 DSV（不输出颜色）
-    gCtx->OMSetRenderTargets(0, nullptr, gShadowDSV);
+    // 保存并设置“禁止颜色写入”
+    gCtx->OMGetBlendState(&gPrevBS, gPrevBlendFactor, &gPrevSampleMask);
+    gCtx->OMSetBlendState(gNoColorWriteBS, nullptr, 0xffffffff);
+
+    // 绑定 dummy RTV + shadow DSV（这样 PS 即使不小心被绑定也不会 warning）
+    gCtx->OMSetRenderTargets(1, &gDummyRTV, gShadowDSV);
+
+    // 你仍然可以关 PS（对性能更好）
+    gCtx->PSSetShader(nullptr, nullptr, 0);
+
     gCtx->ClearDepthStencilView(gShadowDSV, D3D11_CLEAR_DEPTH, 1.0f, 0);
 
     // 计算 Light View/Proj，并写到 Shader3d（让你现有 skinned VS 直接输出到 shadow clip）
@@ -213,22 +264,21 @@ void ShadowMap_End()
 
     // 还原 RT/DSV
     if (gPrevRTV || gPrevDSV)
-    {
         gCtx->OMSetRenderTargets(1, &gPrevRTV, gPrevDSV);
-    }
 
     // 还原 viewport
     if (gHasPrevVP)
-    {
         gCtx->RSSetViewports(1, &gPrevVP);
-    }
 
     // 还原 RS state
     if (gPrevRS)
-    {
         gCtx->RSSetState(gPrevRS);
-    }
 
+    // 还原 BlendState（注意：这是“备份的 gPrevBS”，每帧要 release）
+    gCtx->OMSetBlendState(gPrevBS, gPrevBlendFactor, gPrevSampleMask);
+    SAFE_RELEASE(gPrevBS);
+
+    // 释放“备份的 prev”（这些是 Get* 得到的引用，每帧要 release）
     SAFE_RELEASE(gPrevRTV);
     SAFE_RELEASE(gPrevDSV);
     SAFE_RELEASE(gPrevRS);
@@ -247,3 +297,5 @@ void ShadowMap_BindForFieldPS()
     // PS: b5
     gCtx->PSSetConstantBuffers(5, 1, &gShadowCB);
 }
+
+

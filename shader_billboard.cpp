@@ -187,7 +187,7 @@ void ShaderBillboard_Begin()
 {
 	// 頂点シェーダーとピクセルシェーダーを描画パイプラインに設定
 	Direct3D_GetContext()->VSSetShader(g_pVertexShader, nullptr, 0);
-	Direct3D_GetContext()->PSSetShader(g_pPixelShader, nullptr, 0);
+	Direct3D_GetContext()->PSSetShader(Shader3d_IsShadowPass() ? nullptr : g_pPixelShader, nullptr, 0);
 
 	// 頂点レイアウトを描画パイプラインに設定
 	Direct3D_GetContext()->IASetInputLayout(g_pInputLayout);

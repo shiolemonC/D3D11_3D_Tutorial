@@ -10,6 +10,7 @@
 #include "WICTextureLoader11.h"
 using namespace DirectX;
 #include <D3Dcompiler.h>
+#include "shader3d.h"
 using namespace Microsoft::WRL;
 
 #pragma comment(lib, "d3dcompiler.lib")
@@ -365,7 +366,8 @@ namespace hal
 		m_pContext->IASetInputLayout(m_pInputLayout.Get());
 
 		// ピクセルシェーダーとテクスチャとサンプラーステートを描画パイプラインに設定
-		m_pContext->PSSetShader(m_pPixelShader.Get(), nullptr, 0);
+
+		m_pContext->PSSetShader(Shader3d_IsShadowPass() ? nullptr : m_pPixelShader.Get(), nullptr, 0);
 		m_pContext->PSSetShaderResources(0, 1, &m_pTextureView);
 		m_pContext->PSSetSamplers(0, 1, m_pSamplerState.GetAddressOf());
 

@@ -64,6 +64,11 @@ void Light_Initialize(ID3D11Device* pDevice, ID3D11DeviceContext* pContext)
 	g_pDevice->CreateBuffer(&buffer_desc, nullptr, &g_pPSConstantBuffer4);
 
 	//g_pContext->PSSetConstantBuffers(4, 1, &g_pPSConstantBuffer4);
+	g_PointLights = {};
+	g_PointLights.count = 0;
+
+	g_pContext->UpdateSubresource(g_pPSConstantBuffer4, 0, nullptr, &g_PointLights, 0, 0);
+	g_pContext->PSSetConstantBuffers(4, 1, &g_pPSConstantBuffer4);
 
 }
 
