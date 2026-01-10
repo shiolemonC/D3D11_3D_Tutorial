@@ -20,6 +20,8 @@ struct ActiveHitbox
     float remainingTime = 0.0f;          // 剩余寿命
     int damage = 0;                      // 伤害数值
 
+    HitLevel hitLevel = HitLevel::Light;
+
     float knockbackDistance = 0.0f; // ★ 新增：击退距离（米）
 };
 

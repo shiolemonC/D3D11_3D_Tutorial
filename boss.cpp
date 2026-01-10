@@ -32,12 +32,15 @@ static bool     s_bossHurtEnabled = true;
 static int s_hpMax = 300;
 static int s_hp = 300;
 static BossOnDeathFn s_onDeath = nullptr;
+static bool s_dead = false;
 
 // ----------- state machine --------------
 enum class BossState {
     Idle,
     Chase,
     Attack,
+    Hit,    
+    Dead,   
 };
 
 static BossState s_state = BossState::Idle;
@@ -183,6 +186,7 @@ void Boss_Initialize(const BossDesc& d)
     s_state = BossState::Idle;
     s_timeInState = 0.0;
     s_attackCooldown = 0.0;
+    s_dead = false;
 
     // 初始播放 Idle
     BossAnimatorRegistry_Play(L"Boss_Idle", nullptr);
@@ -269,6 +273,30 @@ void Boss_Update(double dt, const BossUpdateContext& ctx)
         }
         break;
     }
+
+    case BossState::Hit:
+    {
+        float norm = 0.0f;
+        BossAnimatorRegistry_DebugGetCurrentNormalizedTime(&norm);
+        if (norm >= 1.0f)
+        {
+            if (distSq > chaseRangeSq) {
+                Boss_ChangeState(BossState::Idle, L"Boss_Idle");
+            }
+            else if (distSq > attackRangeSq) {
+                Boss_ChangeState(BossState::Chase, L"Boss_Chase");
+            }
+            else {
+                if (s_attackCooldown <= 0.0) Boss_ChangeState(BossState::Attack, L"Boss_Attack");
+                else                         Boss_ChangeState(BossState::Idle, L"Boss_Idle");
+            }
+        }
+        break;
+    }
+
+    case BossState::Dead:
+        // 死亡状态：不再做 AI 状态切换
+        break;
     }
 
     // ---- 2) 逻辑位移 & 朝向（Chase 状态） ----
@@ -284,7 +312,7 @@ void Boss_Update(double dt, const BossUpdateContext& ctx)
             s_bossYaw = std::atan2(dx, dz);
         }
     }
-    else if (s_state == BossState::Idle || s_state == BossState::Attack) {
+    else if (s_state == BossState::Idle || s_state == BossState::Attack || s_state == BossState::Hit) {
         // Idle / Attack 时也可以让 Boss 面向玩家（看你喜好）
         float dx = ctx.playerPos.x - s_bossPos.x;
         float dz = ctx.playerPos.z - s_bossPos.z;
@@ -358,7 +386,7 @@ void Boss_SetMaxHP(int maxHp, bool fullHeal)
 
 int Boss_GetMaxHP() { return s_hpMax; }
 int Boss_GetHP() { return s_hp; }
-bool Boss_IsDead() { return s_hp <= 0; }
+bool Boss_IsDead() { return s_dead; }
 
 void Boss_SetOnDeath(BossOnDeathFn fn)
 {
@@ -368,28 +396,42 @@ void Boss_SetOnDeath(BossOnDeathFn fn)
 void Boss_ApplyDamage(int damage)
 {
     if (damage <= 0) return;
-
-    const int oldHp = s_hp;
     s_hp -= damage;
     if (s_hp < 0) s_hp = 0;
 
     char buf[256];
-    sprintf_s(buf, "[Boss] ApplyDamage dmg=%d hp=%d/%d (was %d)\n",
-        damage, s_hp, s_hpMax, oldHp);
+    sprintf_s(buf, "[Boss] ApplyDamage dmg=%d => hp=%d/%d\n", damage, s_hp, s_hpMax);
     OutputDebugStringA(buf);
 
-    if (s_hp <= 0)
+    if (s_hp <= 0 && !s_dead)
     {
-        Boss_OnDeathStub();
+        s_dead = true;
+
+        // 死亡瞬间：关闭 HurtBox，切到死亡动画
+        s_bossHurtEnabled = false;
+        Boss_UpdateHurtCollider();
+
+        Boss_ChangeState(BossState::Dead, L"Boss_Die", false);
+
+        Boss_OnDeathStub(); // 你原本预留的死亡接口
     }
 }
 
 void Boss_OnIncomingHit(const HitParams& hit)
 {
-    // 无敌/禁用受击
+    if (s_dead || s_state == BossState::Dead) return;
     if (!s_bossHurtEnabled) return;
 
     Boss_ApplyDamage(hit.damage);
 
-    // TODO: 以后在这里触发 Boss 受击硬直、霸体判定、状态机触发等
+    // Boss_ApplyDamage 里已经处理了死亡瞬间切 Dead
+    if (s_dead) return;
+
+    // ★ 只有 Heavy 才进入受击
+    if (hit.level == HitLevel::Heavy)
+    {
+        OutputDebugStringA("[Boss] Enter HIT state (heavy hit)\n");
+        Boss_ChangeState(BossState::Hit, L"Boss_Hit", true);
+        return;
+    }
 }

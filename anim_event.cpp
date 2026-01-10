@@ -205,6 +205,17 @@ void AnimEventRegister()
             t.events.push_back(e);
         }
 
+        {
+            AnimEvent e{};
+            e.timeNormalized = 0.45f;               // 攻击动画的 30% 处出刀
+            e.type = AnimEventType::SpawnHitBox;
+            e.spawnHitBox.localOffset = { 0.0f, 1.0f, 1.0f };
+            e.spawnHitBox.halfSize = { 0.5f, 0.5f, 0.5f };
+            e.spawnHitBox.durationSec = 3.0f / 60.0f;
+            e.spawnHitBox.damage = 10;
+            e.spawnHitBox.hitLevel = HitLevel::Heavy;
+            t.events.push_back(e);
+        }
         AnimEventRegistry_Register(t);
     }
 }

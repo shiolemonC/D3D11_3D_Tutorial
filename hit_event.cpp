@@ -42,6 +42,7 @@ bool HitEvent_Dispatch(const HitContact& c)
         hp.damage = c.damage;
         hp.level = ChooseHitLevelFromDamage(c.damage);
         hp.hitPos = c.hitPos;
+        hp.level = c.level;     // ★ 来自 SpawnHitBox
 
         hp.knockbackDistance = c.knockbackDistance;
         hp.attackerPos = c.attackerPos;

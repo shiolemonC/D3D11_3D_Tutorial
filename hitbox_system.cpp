@@ -145,6 +145,8 @@ void HitboxSystem_Spawn(const AnimEvent_SpawnHitBox& param, void* owner)
     hb.remainingTime = param.durationSec;
     hb.damage = param.damage;
 
+    hb.hitLevel = param.hitLevel; // ★
+
     hb.knockbackDistance = param.knockbackDistance; // ★ 新增
 
     g_hitboxes.push_back(hb);
@@ -269,6 +271,8 @@ void HitboxSystem_Update(float dt)
         c.hitPos        = hitPos;
         c.attackerPos   = atkPos;
         c.victimPos     = vicPos;
+        c.level         = hb.hitLevel;
+
 
         const bool consumed = HitEvent_Dispatch(c);
         if (consumed)

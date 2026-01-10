@@ -8,6 +8,7 @@
 #include <vector>
 #include <string>
 #include <DirectXMath.h>
+#include "hit_event.h" // ★ 为了使用 HitLevel
 
 enum class AnimEventType {
     SpawnHitBox,  // 攻击判定生成
@@ -27,6 +28,9 @@ struct AnimEvent_SpawnHitBox {
     DirectX::XMFLOAT3 halfSize;     // AABB 半尺寸
     float durationSec = 0.0f;       // 持续时间（秒）
     int   damage = 0;               // 伤害数值（先简单留个 int）
+
+    // ★ 新增：该攻击的受击等级
+    HitLevel hitLevel = HitLevel::Light;
 
     float knockbackDistance = 0.0f; // ★ 新增：击退距离（米），0=不击退
 };

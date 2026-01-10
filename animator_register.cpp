@@ -275,5 +275,62 @@ void BossAnimRegister()
         BossAnimatorRegistry_Register(c);
     }
 
+    // 强力Attack
+    {
+        AnimClipDesc c{};
+        c.name = L"Boss_Combo";
+        c.meshPath = L"resources/player_anim/cooked/mutant_combo.mesh";
+        c.skelPath = L"resources/player_anim/cooked/mutant_combo.skel";
+        c.animPath = L"resources/player_anim/cooked/mutant_combo.anim";
+        c.matPath  = L"resources/player_anim/cooked/mutant_combo.mat";
+        // 如需强制贴图（覆盖 .mat）：
+        c.baseColorOverride = L"resources/player_anim/cooked/Textures/Mutant_diffuse.png";
+
+        c.loop = false;  // 攻击不循环
+        c.playbackRate = 1.0f;
+        c.rmType = RootMotionType::UseZDelta; // 第一版不做冲刺 RootMotion
+        c.motionRootNameUTF8 = "root";
+
+        BossAnimatorRegistry_Register(c);
+    }
+
+    // 受击动作
+    {
+        AnimClipDesc c{};
+        c.name = L"Boss_Hit";
+        c.meshPath = L"resources/player_anim/cooked/mutant_hit.mesh";
+        c.skelPath = L"resources/player_anim/cooked/mutant_hit.skel";
+        c.animPath = L"resources/player_anim/cooked/mutant_hit.anim";
+        c.matPath =  L"resources/player_anim/cooked/mutant_hit.mat";
+        // 如需强制贴图（覆盖 .mat）：
+        c.baseColorOverride = L"resources/player_anim/cooked/Textures/Mutant_diffuse.png";
+
+        c.loop = false;  // 攻击不循环
+        c.playbackRate = 1.0f;
+        c.rmType = RootMotionType::UseZDelta; // 第一版不做冲刺 RootMotion
+        c.motionRootNameUTF8 = "root";
+
+        BossAnimatorRegistry_Register(c);
+    }
+
+    // 死亡动作
+    {
+        AnimClipDesc c{};
+        c.name = L"Boss_Die";
+        c.meshPath = L"resources/player_anim/cooked/mutant_die.mesh";
+        c.skelPath = L"resources/player_anim/cooked/mutant_die.skel";
+        c.animPath = L"resources/player_anim/cooked/mutant_die.anim";
+        c.matPath  = L"resources/player_anim/cooked/mutant_die.mat";
+        // 如需强制贴图（覆盖 .mat）：
+        c.baseColorOverride = L"resources/player_anim/cooked/Textures/Mutant_diffuse.png";
+
+        c.loop = false;  // 攻击不循环
+        c.playbackRate = 1.0f;
+        c.rmType = RootMotionType::UseZDelta; // 第一版不做冲刺 RootMotion
+        c.motionRootNameUTF8 = "root";
+
+        BossAnimatorRegistry_Register(c);
+    }
+
     BossAnimatorRegistry_LoadAll();
 }
