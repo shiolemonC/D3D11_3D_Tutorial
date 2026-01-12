@@ -373,6 +373,24 @@ void Boss_Update(double dt, const BossUpdateContext& ctx)
     // ---- 4) 推进 Boss 动画（含 CrossFade / RootMotion 累计）----
     BossAnimatorRegistry_Update(dt);
 
+
+    // ---- 4.5) 把 RootMotion 同步到逻辑坐标（关键）----
+    RootMotionDelta rm{};
+    if (BossAnimatorRegistry_ConsumeRootMotionDelta(&rm))
+    {
+        // 这里必须是 +=，不要再乘 forward / 不要再取反
+        s_bossPos.x += -rm.pos.x;
+        s_bossPos.y += rm.pos.y;
+        s_bossPos.z += -rm.pos.z;
+
+        // 如果你也希望逻辑 yaw 跟着动画转（可选）
+        // s_bossYaw += rm.yaw;
+    }
+
+    // 现在再更新一次世界矩阵/碰撞盒（让 collider 跟上）
+    BossAnimatorRegistry_SetWorld(Boss_GetWorld());
+    Boss_UpdateBodyCollider();
+    Boss_UpdateHurtCollider();
     // 第一版不使用 Boss RootMotion（rmType 全部设为 None）
     // 如果以后要做冲刺，可以在 Attack 状态里 Consume RootMotion
 

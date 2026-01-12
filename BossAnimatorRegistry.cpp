@@ -260,7 +260,24 @@ bool BossAnimatorRegistry_Play(const std::wstring& name,
         ApplyWorldWithRootMotion();
 
         // VelocityDriven 时：清掉根局部 XZ 平移
-        BossModelSkinned_SetZeroRootTranslationXZ(clip.rmType != RootMotionType::UseAnimDelta);
+        //BossModelSkinned_SetZeroRootTranslationXZ(clip.rmType != RootMotionType::UseAnimDelta);
+
+        bool zeroXZ = false;
+        switch (clip.rmType)
+        {
+        case RootMotionType::None:
+        case RootMotionType::VelocityDriven:
+        case RootMotionType::UseZDelta:
+            zeroXZ = true;
+            break;
+        case RootMotionType::UseAnimDelta:
+        default:
+            zeroXZ = false;
+            break;
+        }
+
+        BossModelSkinned_SetZeroRootTranslationXZ(zeroXZ);
+        BossModelSkinned_SetZeroTranslationXZBoneByName(zeroXZ ? "hips" : nullptr);
 
         // ★ 新增：重置当前动画时间，并计算剪辑总长度（秒）
         gCurrentTimeSec = 0.0f;
@@ -319,7 +336,13 @@ void BossAnimatorRegistry_Update(double dtSec)
         XMFLOAT3 dLocal{};
         if (BossModelSkinned_SampleRootDelta_Local((float)dtSec, &dLocal))
         {
-            XMFLOAT4X4 m; XMStoreFloat4x4(&m, gBaseWorld);
+            // ★ 关键：把 NodeYawFix 也乘进去，让 RootMotion 用和最终模型一致的坐标系
+            const float nodeFix = BossModelSkinned_GetNodeYawFix();
+            XMMATRIX worldRM = XMMatrixRotationY(nodeFix) * gBaseWorld;
+
+            XMFLOAT4X4 m;
+            XMStoreFloat4x4(&m, worldRM);
+
             XMFLOAT3 right = { m._11, m._21, m._31 };
             XMFLOAT3 up = { m._12, m._22, m._32 };
             XMFLOAT3 fwd = { m._13, m._23, m._33 };
@@ -337,6 +360,29 @@ void BossAnimatorRegistry_Update(double dtSec)
         ApplyWorldWithRootMotion();
         break;
     }
+
+    case RootMotionType::UseZDelta:
+    {
+        XMFLOAT3 dLocal{};
+        if (BossModelSkinned_SampleRootDelta_Local((float)dtSec, &dLocal))
+        {
+            const float dist = -dLocal.z; // 和玩家保持一致（你的模型轴约定如此）
+            XMFLOAT4X4 m;
+            XMStoreFloat4x4(&m, gBaseWorld);
+
+            XMFLOAT3 fwd = { m._13, m._23, m._33 };
+            // 可选：normalize（如果你 baseWorld 可能带缩放）
+            const float len = std::sqrt(fwd.x * fwd.x + fwd.y * fwd.y + fwd.z * fwd.z);
+            if (len > 1e-6f) { fwd.x /= len; fwd.y /= len; fwd.z /= len; }
+
+            gRM_AccumPos.x += fwd.x * dist;
+            gRM_AccumPos.y += fwd.y * dist;
+            gRM_AccumPos.z += fwd.z * dist;
+        }
+        ApplyWorldWithRootMotion();
+        break;
+    }
+
     }
 
     // 先采样再推进：保持 [t, t+dt] 采样与推进时序一致

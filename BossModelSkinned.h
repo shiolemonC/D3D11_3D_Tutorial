@@ -95,3 +95,7 @@ void BossModelSkinned_SetCrossFadeWeight(float w);
 
 // 混合结束时清掉旧姿势缓存（可选）
 void BossModelSkinned_ClearCrossFadeSource();
+
+void BossModelSkinned_SetZeroTranslationXZBoneByName(const char* utf8Name);
+
+void BossModelSkinned_GetWorldTranslation(DirectX::XMFLOAT3* outT);

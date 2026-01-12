@@ -43,6 +43,10 @@ static ID3D11Buffer* gCBDirectional = nullptr; // VS b4
 // Velocity-Driven 开关：为“动画位移”使用时清除根的局部 XZ 平移
 static bool                  gZeroRootTransXZ = false;
 
+
+static std::string gZeroExtraXZ_NameUTF8;
+static int         gZeroExtraXZ_Index = -1;
+
 // 世界矩阵（由上层设置）
 static XMMATRIX              gWorld = XMMatrixIdentity();
 
@@ -109,6 +113,41 @@ static void EnsureD3D() {
         gDev = Direct3D_GetDevice();
         gCtx = Direct3D_GetContext();
     }
+}
+
+static void ResolveZeroExtraXZ()
+{
+    gZeroExtraXZ_Index = -1;
+    if (gJoints.empty()) return;
+    if (gZeroExtraXZ_NameUTF8.empty()) return;
+
+    // 先按指定名找
+    for (size_t i = 0; i < gJoints.size(); ++i) {
+        if (gJoints[i].name == gZeroExtraXZ_NameUTF8) {
+            gZeroExtraXZ_Index = (int)i;
+            break;
+        }
+    }
+
+    // 找不到就做一点常见兜底（可选，但很实用）
+    if (gZeroExtraXZ_Index < 0) {
+        static const char* kFallback[] = { "mixamorig:Hips","Hips","hips","Pelvis","pelvis" };
+        for (auto s : kFallback) {
+            for (size_t i = 0; i < gJoints.size(); ++i) {
+                if (gJoints[i].name == s) { gZeroExtraXZ_Index = (int)i; break; }
+            }
+            if (gZeroExtraXZ_Index >= 0) break;
+        }
+    }
+
+#if defined(DEBUG) || defined(_DEBUG)
+    if (gZeroExtraXZ_Index >= 0) {
+        char buf[256];
+        sprintf_s(buf, "[Skinned] ZeroExtraXZ = #%d (%s)\n",
+            gZeroExtraXZ_Index, gJoints[gZeroExtraXZ_Index].name.c_str());
+        OutputDebugStringA(buf);
+    }
+#endif
 }
 
 // 前置
@@ -296,6 +335,7 @@ static bool LoadSkel(const std::wstring& skelPathW) {
 
     // 解析一次 MotionRoot（默认策略可解析出 Hips）
     BossModelSkinned_ResolveMotionRoot();
+    ResolveZeroExtraXZ();
     return true;
 }
 
@@ -1057,4 +1097,26 @@ void BossModelSkinned_SetCrossFadeWeight(float w)
 void BossModelSkinned_ClearCrossFadeSource()
 {
     gCrossFadeSourcePose.clear();
+}
+
+void BossModelSkinned_SetZeroTranslationXZBoneByName(const char* utf8Name)
+{
+    if (!utf8Name || utf8Name[0] == '\0') {
+        gZeroExtraXZ_NameUTF8.clear();
+        gZeroExtraXZ_Index = -1;
+        return;
+    }
+
+    gZeroExtraXZ_NameUTF8 = utf8Name;
+    ResolveZeroExtraXZ();
+}
+
+void BossModelSkinned_GetWorldTranslation(DirectX::XMFLOAT3* outT)
+{
+    if (!outT) return;
+    DirectX::XMFLOAT4X4 m;
+    DirectX::XMStoreFloat4x4(&m, gWorld); // 你内部保存的 world 矩阵
+    outT->x = m._41;
+    outT->y = m._42;
+    outT->z = m._43;
 }
