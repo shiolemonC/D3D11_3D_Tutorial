@@ -8,6 +8,7 @@
 #include "boss.h"
 #include "player_camera.h"
 #include "ModelSkinned.h"
+#include "sprite_effect.h"
 using namespace DirectX;
 
 // ------------------ 内部状态 ------------------
@@ -645,6 +646,10 @@ PlayerHitResponse Player_OnIncomingHit(const HitParams& hit)
             Player_StartKnockback(hit.knockbackDistance * 0.20f, hit.attackerPos, hit.victimPos);
         }
 
+        XMFLOAT3 p = Player_GetPosition();
+        p.y += 1.0f;
+        SpriteEffect_SpawnParry(p, { 2.6f, 2.6f });
+
         // ★ 关键：触发 FSM 的成功格挡分支
         PlayerSM_FireTrigger("ParrySuccess");
 
@@ -656,6 +661,10 @@ PlayerHitResponse Player_OnIncomingHit(const HitParams& hit)
     Player_ApplyDamage(hit.damage);
     s_hitRequested = true;
     s_pendingHit = hit;
+
+    XMFLOAT3 p = hit.hitPos;
+    p.y += 1.0f; // 让特效离地一点
+    SpriteEffect_SpawnHit(p, { 1.2f, 1.2f });
 
     if (hit.knockbackDistance > 0.0f) {
         Player_StartKnockback(hit.knockbackDistance, hit.attackerPos, hit.victimPos);

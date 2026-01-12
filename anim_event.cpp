@@ -97,6 +97,26 @@ void AnimEventRegister()
         AnimEventRegistry_Register(bossAtk);
     }
 
+    // ★ Boss_Combo：更强攻击
+    {
+        AnimEventTrack bossCombo{};
+        bossCombo.clipName = L"Boss_Combo"; // 必须和 BossAnimatorRegistry 的 clip 名一致
+
+        AnimEvent e{};
+        e.timeNormalized = 0.40f;           // 你按动画出手帧微调
+        e.type = AnimEventType::SpawnHitBox;
+        e.spawnHitBox.localOffset = { 0.0f, 1.2f, 2.3f };
+        e.spawnHitBox.halfSize = { 0.9f, 0.9f, 0.9f };
+        e.spawnHitBox.durationSec = 6.0f / 60.0f;
+        e.spawnHitBox.damage = 35;      // ★ 更高伤害
+        e.spawnHitBox.knockbackDistance = 1.6f; // ★ 更强击退
+
+        e.spawnHitBox.hitLevel = HitLevel::Light;
+
+        bossCombo.events.push_back(e);
+        AnimEventRegistry_Register(bossCombo);
+    }
+
     // 翻滚无敌事件
     {
         AnimEventTrack roll{};

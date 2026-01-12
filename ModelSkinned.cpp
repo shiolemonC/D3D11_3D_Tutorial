@@ -861,30 +861,6 @@ void ModelSkinned_Draw() {
 
         const AnimTRS* finalPose = poseRW ? (const AnimTRS*)poseRW : poseRO;
 
-//#if defined(_DEBUG) || defined(DEBUG)
-//        if ((sPoseLog % 30) == 1) // 和上面错开一下，避免重复变量问题
-//        {
-//            int dbgRoot = root;
-//            const AnimTRS* frame0Pose = gAnimFrames.data();
-//            const AnimTRS& r0 = frame0Pose[dbgRoot];
-//            const AnimTRS& rF = finalPose[dbgRoot];
-//
-//            float dx = rF.T[0] - r0.T[0];
-//            float dy = rF.T[1] - r0.T[1];
-//            float dz = rF.T[2] - r0.T[2];
-//
-//            char b[256];
-//            sprintf_s(b,
-//                "[Pose][SKIN] root=%d(%s) T=(%.5f,%.5f,%.5f) dT0=(%.5f,%.5f,%.5f)\n",
-//                dbgRoot, gJoints[dbgRoot].name.c_str(),
-//                rF.T[0], rF.T[1], rF.T[2],
-//                dx, dy, dz
-//            );
-//            OutputDebugStringA(b);
-//        }
-//#endif
-        // 递归：局部→全局
-
         const AnimTRS* poseForSkinning = finalPose;
 
         // 有快照 & 权重不是1，就做混合
@@ -942,22 +918,6 @@ void ModelSkinned_Draw() {
             poseForSkinning = finalPose;
         }
 
-//#if defined(_DEBUG) || defined(DEBUG)
-//        static int sPoseLog2 = 0;
-//        if ((sPoseLog2++ % 30) == 0) {
-//            auto DumpT2 = [&](int idx, const char* tag, const AnimTRS* p) {
-//                char b[256];
-//                sprintf_s(b, "[Pose][%s] idx=%d name=%s T=(%.4f,%.4f,%.4f)\n",
-//                    tag, idx, gJoints[idx].name.c_str(),
-//                    p[idx].T[0], p[idx].T[1], p[idx].T[2]);
-//                OutputDebugStringA(b);
-//                };
-//
-//            DumpT2(root, "SKIN", poseForSkinning);
-//            if (gZeroExtraXZ_Index >= 0) DumpT2(gZeroExtraXZ_Index, "SKIN", poseForSkinning);
-//        }
-//#endif
-
 
         for (size_t j = 0; j < J; ++j) {
             if (gJoints[j].parent == -1) {
@@ -999,21 +959,6 @@ void ModelSkinned_Draw() {
     // world 乘以 NodeYawFix（不要写回 gWorld，避免累乘）
     const float nodeFix = ModelSkinned_GetNodeYawFix();
 
-//#if defined(_DEBUG) || defined(DEBUG)
-//    {
-//        auto GetT = [](const XMMATRIX& M) {
-//            XMFLOAT4X4 m; XMStoreFloat4x4(&m, M);
-//            XMFLOAT3 t{ m._41, m._42, m._43 };
-//            return t;
-//            };
-//        XMFLOAT3 t0 = GetT(gWorld);
-//        XMFLOAT3 t1 = GetT(XMMatrixRotationY(nodeFix) * gWorld);
-//        char b[256];
-//        sprintf_s(b, "[NodeFix] deg=%.2f | T_before=(%.3f,%.3f,%.3f) T_after=(%.3f,%.3f,%.3f)\n",
-//            XMConvertToDegrees(nodeFix), t0.x, t0.y, t0.z, t1.x, t1.y, t1.z);
-//        OutputDebugStringA(b);
-//    }
-//#endif
 
     const XMMATRIX W = XMMatrixRotationY(nodeFix) * gWorld;
     Shader3d_SetWorldMatrix(W);

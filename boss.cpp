@@ -6,6 +6,9 @@
 #include "anim_event_player.h"   // ★ 新增帧事件
 #include <cmath>
 #include "hit_event.h"
+#include "sprite_effect.h"
+#include "player.h"
+#include "camera.h"
 
 using namespace DirectX;
 
@@ -39,6 +42,7 @@ enum class BossState {
     Idle,
     Chase,
     Attack,
+    Combo,
     Hit,    
     Dead,   
 };
@@ -48,12 +52,16 @@ static double    s_timeInState = 0.0;
 
 // 攻击冷却
 static double s_attackCooldown = 0.0;
+static double s_comboCooldown = 0.0;
 
 // 常量参数（之后你可以抽到配置里）
 static const float kBossMoveSpeed = 3.0f;  // 追击速度
 static const float kBossChaseRange = 20.0f;  // 超过这个距离才开始追（可选视作“感知范围”）
 static const float kBossAttackRange = 4.0f;   // 进入这个距离可以攻击
-static const double kAttackCooldownSec = 2.0;   // 攻击冷却时间
+
+static const float  kBossComboRange = 4.5f;     // 你可以调成 4.0f/5.0f
+static const double kAttackCooldownSec = 4.0;   // 攻击冷却时间
+static const double kComboCooldownSec = 8.0;     // ★ Combo 自己的 CD（比如 6 秒）
 
 // 工具函数：向量长度²
 static float LengthSqXZ(const XMFLOAT3& a, const XMFLOAT3& b)
@@ -186,6 +194,7 @@ void Boss_Initialize(const BossDesc& d)
     s_state = BossState::Idle;
     s_timeInState = 0.0;
     s_attackCooldown = 0.0;
+    s_comboCooldown = 0.0;
     s_dead = false;
 
     // 初始播放 Idle
@@ -227,33 +236,48 @@ void Boss_Update(double dt, const BossUpdateContext& ctx)
         if (s_attackCooldown < 0.0) s_attackCooldown = 0.0;
     }
 
+    // ★ Combo 冷却
+    if (s_comboCooldown > 0.0) {
+        s_comboCooldown -= dt;
+        if (s_comboCooldown < 0.0) s_comboCooldown = 0.0;
+    }
+
     // ---- 1) 根据状态 + 玩家距离决策，下一个状态 ----
     const float distSq = LengthSqXZ(s_bossPos, ctx.playerPos);
     const float chaseRangeSq = kBossChaseRange * kBossChaseRange;
     const float attackRangeSq = kBossAttackRange * kBossAttackRange;
+    const float comboRangeSq = kBossComboRange * kBossComboRange; // ★
 
     switch (s_state)
     {
     case BossState::Idle:
     {
-        // 玩家远 → 追击
-        if (distSq > attackRangeSq && distSq <= chaseRangeSq) {
-            Boss_ChangeState(BossState::Chase, L"Boss_Chase");
+        // ★ 1) 优先 Combo
+        if (distSq <= comboRangeSq && s_comboCooldown <= 0.0) {
+            Boss_ChangeState(BossState::Combo, L"Boss_Combo");
         }
-        // 玩家很近且冷却结束 → 攻击
+        // 2) Combo 不可用再普通 Attack
         else if (distSq <= attackRangeSq && s_attackCooldown <= 0.0) {
             Boss_ChangeState(BossState::Attack, L"Boss_Attack");
+        }
+        // 3) 追击
+        else if (distSq > attackRangeSq && distSq <= chaseRangeSq) {
+            Boss_ChangeState(BossState::Chase, L"Boss_Chase");
         }
         break;
     }
 
     case BossState::Chase:
     {
-        // 距离够近且冷却结束 → 攻击
-        if (distSq <= attackRangeSq && s_attackCooldown <= 0.0) {
+        // ★ 1) 优先 Combo
+        if (distSq <= comboRangeSq && s_comboCooldown <= 0.0) {
+            Boss_ChangeState(BossState::Combo, L"Boss_Combo");
+        }
+        // 2) Combo 不可用再普通 Attack
+        else if (distSq <= attackRangeSq && s_attackCooldown <= 0.0) {
             Boss_ChangeState(BossState::Attack, L"Boss_Attack");
         }
-        // 玩家太远/离开感知范围 → 回 Idle
+        // 3) 玩家离开感知范围 → 回 Idle
         else if (distSq > chaseRangeSq) {
             Boss_ChangeState(BossState::Idle, L"Boss_Idle");
         }
@@ -268,6 +292,21 @@ void Boss_Update(double dt, const BossUpdateContext& ctx)
             if (norm >= 1.0f) {
                 // 一次攻击结束
                 s_attackCooldown = kAttackCooldownSec;
+                Boss_ChangeState(BossState::Idle, L"Boss_Idle");
+            }
+        }
+        break;
+    }
+
+    case BossState::Combo:
+    {
+        float norm = 0.0f;
+        if (BossAnimatorRegistry_DebugGetCurrentNormalizedTime(&norm)) {
+            if (norm >= 1.0f) {
+                s_comboCooldown = kComboCooldownSec;
+
+                s_attackCooldown = std::max(s_attackCooldown, 1.5); // 或直接 = kAttackCooldownSec;
+
                 Boss_ChangeState(BossState::Idle, L"Boss_Idle");
             }
         }
@@ -423,6 +462,28 @@ void Boss_OnIncomingHit(const HitParams& hit)
     if (!s_bossHurtEnabled) return;
 
     Boss_ApplyDamage(hit.damage);
+
+    XMFLOAT3 p = hit.hitPos;
+    p.y += 1.0f; // 让特效离地一点
+
+    // 让特效朝玩家方向“突出”一点，避免被 Boss 身体挡住
+    {
+        XMFLOAT3 camPos = Camera_GetPosition();
+        XMFLOAT3 playerPos = Player_GetPosition(); // 或者用 bossPos
+
+        // 相机朝向：这里用“相机指向玩家”的近似 forward（你也可以从 camera 模块直接拿 forward）
+        XMVECTOR vCam = XMLoadFloat3(&camPos);
+        XMVECTOR vTarget = XMLoadFloat3(&playerPos);
+        XMVECTOR camForward = XMVector3Normalize(vTarget - vCam);
+
+        float push = 1.1f;
+        XMVECTOR vP = XMLoadFloat3(&p);
+        vP += camForward * push;
+        XMStoreFloat3(&p, vP);
+    }
+
+
+    SpriteEffect_SpawnHit(p, { 2.2f, 2.2f });
 
     // Boss_ApplyDamage 里已经处理了死亡瞬间切 Dead
     if (s_dead) return;

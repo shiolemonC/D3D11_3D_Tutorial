@@ -198,6 +198,7 @@
     <ClCompile Include="sky.cpp" />
     <ClCompile Include="sprite.cpp" />
     <ClCompile Include="sprite_anim.cpp" />
+    <ClCompile Include="sprite_effect.cpp" />
     <ClCompile Include="system_timer.cpp" />
     <ClCompile Include="texture.cpp" />
     <ClCompile Include="title.cpp" />
@@ -260,6 +261,7 @@
     <ClInclude Include="sky.h" />
     <ClInclude Include="sprite.h" />
     <ClInclude Include="sprite_anim.h" />
+    <ClInclude Include="sprite_effect.h" />
     <ClInclude Include="system_timer.h" />
     <ClInclude Include="texture.h" />
     <ClInclude Include="title.h" />

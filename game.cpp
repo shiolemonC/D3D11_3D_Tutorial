@@ -32,6 +32,7 @@
 #include "billboard.h"
 #include "texture.h"
 #include "sprite_anim.h"
+#include "sprite_effect.h"
 #include "collider_system.h"
 #include "direct3d.h"
 
@@ -112,18 +113,23 @@ void Game_Initialize()
 
     g_AnimPlayId = SpriteAnim_CreatePlayer(g_AnimPatternId);
 
+    SpriteSheetDesc hit{};
+    hit.path = L"resources/fx/hit_effect.png";
+    hit.cols = 11;
+    hit.rows = 1;
+    hit.frameCount = 0;          // 0=cols*rows
+    hit.secondsPerFrame = 0.04;
+    hit.looped = false;
 
-    g_pModelTest = ModelLoad("resources/fbx/larva.fbx", true);
-    g_pModelTreeTest = ModelLoad("resources/fbx/larva.fbx", true);
+    SpriteSheetDesc parry{};
+    parry.path = L"resources/fx/parry_success_effect.png";
+    parry.cols = 1;
+    parry.rows = 6;
+    parry.secondsPerFrame = 0.05;
+    parry.looped = false;
 
-    if (!g_pModelTreeTest)
-    {
-        OutputDebugStringA("[DRAW TREE] Failed to load.\n");
-    }
-    else
-    {
-        OutputDebugStringA("[DRAW TREE] Successed to load.\n");
-    }
+    SpriteEffect_Initialize(hit, parry);
+
 
     // 注册动画（你已有的）
     AnimRegister();
@@ -159,6 +165,7 @@ void Game_Initialize()
     PlayerCamera_Initialize({});
 
     HudHP_Initialize();
+    Sky_SetScale(100.0f);   // 想大就调大
 
     ShadowMap_Initialize(Direct3D_GetDevice(), Direct3D_GetContext(), 2048);
     ShadowMap_SetParams(0.0025f, 1.0f);
@@ -167,7 +174,7 @@ void Game_Initialize()
 
 void Game_Finalize()
 {
-    ModelRelease(g_pModelTest);
+    //ModelRelease(g_pModelTest);
     Sky_Finalize();
     Billboard_Finalize();
     Camera_Finalize();
@@ -230,8 +237,10 @@ void Game_Update(double elapsed_time)
     // 5) 让底层 Camera 模块更新 view/proj（原来就有）
     Camera_Update(elapsed_time);
 
-    Sky_SetPosition(Player_GetPosition());
+    //Sky_SetPosition(Player_GetPosition());//
+    Sky_SetPosition(Camera_GetPosition());
     SpriteAnim_Update(elapsed_time);
+    SpriteEffect_Update(elapsed_time);
 
     HudHP_Update(elapsed_time);
 }
@@ -277,6 +286,11 @@ void Game_Draw()
         // 还原给主相机的 view/proj（避免主 pass 玩家/Boss 的 view/proj 仍然是 light 的）
         Shader3d_SetViewMatrix(DirectX::XMLoadFloat4x4(&Camera_GetMatrix()));
         Shader3d_SetProjectionMatrix(DirectX::XMLoadFloat4x4(&Camera_GetPerspectiveMatrix()));
+
+        // ★在这里插入 Sky 的 View/Proj + Sky_Draw
+        Shader3d_Unlit_SetViewMatrix(DirectX::XMLoadFloat4x4(&Camera_GetMatrix()));
+        Shader3d_Unlit_SetProjectionMatrix(DirectX::XMLoadFloat4x4(&Camera_GetPerspectiveMatrix()));
+        Sky_Draw();
     }
 
     //========================
@@ -310,7 +324,7 @@ void Game_Draw()
     //PlayerSM_DebugDraw();
     GetCollisionWorld().DebugDraw3D();
 #endif
-
+    SpriteEffect_Draw();   // ★特效在这里画
     HudHP_Draw();
 }
 
