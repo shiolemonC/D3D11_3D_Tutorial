@@ -231,6 +231,17 @@
       "can_interrupt": true,
       "priority": 85
     },
+    {
+      "from": "Parry",
+      "to": "Parry",
+      "trigger": "Parry",
+      "buffer": 0.15,
+      "window": [ [ 0.40, 1.00 ] ],
+      "duration": 0.05,
+      "curve": "linear",
+      "can_interrupt": true,
+      "priority": 85
+    },
 
     {
       "from": "Parry",
@@ -242,6 +253,17 @@
       "priority": 5
     },
 
+    {
+      "from": "Block",
+      "to": "Parry",
+      "trigger": "Parry",
+      "buffer": 0.15,
+      "window": [ [ 0.00, 1.00 ] ],
+      "duration": 0.05,
+      "curve": "linear",
+      "can_interrupt": true,
+      "priority": 75
+    },
     {
       "from": "Block",
       "to": "Block_Attack",

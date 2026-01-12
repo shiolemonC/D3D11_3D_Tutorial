@@ -21,7 +21,7 @@ enum Scene
     SCENE_TITLE,
     SCENE_GAME,
     SCENE_RESULT,
-    SCENE_MAX
+    SCENE_OVER
 };
 
 void Scene_Change(Scene scene);

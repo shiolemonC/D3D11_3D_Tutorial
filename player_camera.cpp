@@ -315,16 +315,18 @@ void PlayerCamera_Initialize(const PlayerCameraDesc& d)
 
     // ★ LockOn 演出预设（你之后可以根据手感继续调这些参数）
     s_lockTuneHit = s_lockTune;
-    s_lockTuneHit.baseRadius = std::max(0.1f, s_lockTune.baseRadius * 0.85f);
+    s_lockTuneHit.baseRadius = std::max(0.1f, s_lockTune.baseRadius * 0.75f);
     s_lockTuneHit.cameraHeightNear = s_lockTune.cameraHeightNear * 0.90f;
     s_lockTuneHit.cameraHeightFar = s_lockTune.cameraHeightFar * 0.90f;
 
     s_lockTuneBlockAttack = s_lockTune;
-    s_lockTuneBlockAttack.baseRadius = std::max(0.1f, s_lockTune.baseRadius * 0.90f);
-    s_lockTuneBlockAttack.sideOffsetDeg = s_lockTune.sideOffsetDeg - 10.0f; // 更侧一点（更有“演出感”）
-    s_lockTuneBlockAttack.cameraHeightNear = s_lockTune.cameraHeightNear * 0.95f;
-    s_lockTuneBlockAttack.cameraHeightFar = s_lockTune.cameraHeightFar * 0.95f;
+    s_lockTuneBlockAttack.baseRadius = std::max(0.1f, s_lockTune.baseRadius * 0.8f);
+    s_lockTuneBlockAttack.sideOffsetDeg = s_lockTune.sideOffsetDeg - 5.0f; // 更侧一点（更有“演出感”）
 
+    s_lockTuneBlockAttack.cameraHeightNear = s_lockTune.cameraHeightNear + 3.5f;
+    s_lockTuneBlockAttack.cameraHeightFar = s_lockTune.cameraHeightFar + 4.7f;
+    s_lockTuneBlockAttack.targetHeightNear = s_lockTune.targetHeightNear - 0.5f;
+    s_lockTuneBlockAttack.targetHeightFar = s_lockTune.targetHeightFar - 0.5f;
     s_preset.active = false;
 
     // 立刻推一次到底层相机

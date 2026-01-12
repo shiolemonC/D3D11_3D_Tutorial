@@ -9,6 +9,7 @@
 #include "player_camera.h"
 #include "ModelSkinned.h"
 #include "sprite_effect.h"
+#include "scene.h"
 using namespace DirectX;
 
 // ------------------ 内部状态 ------------------
@@ -584,6 +585,7 @@ void Player_SetOnDeath(PlayerOnDeathFn fn)
 
 void Player_OnDeathRequested()
 {
+    Scene_Change(SCENE_OVER);
     OutputDebugStringA("[Player] DEAD (stub)\n");
 }
 

@@ -9,23 +9,21 @@
 #include "scene.h"
 #include "game.h"
 #include "title.h"
+#include "result.h"
+#include "over.h"
 
 //static Scene g_Scene = SCENE_TITLE; // 今のシーン
-static Scene g_Scene = SCENE_GAME; // debugしたいのシーン
+static Scene g_Scene = SCENE_TITLE; // debugしたいのシーン
 static Scene g_SceneNext = g_Scene; // 次のシーン
 
 void Scene_Initialize()
 {
     switch (g_Scene)
     {
-    case SCENE_TITLE:
-        Title_Initialize();
-        break;
-    case SCENE_GAME:
-        Game_Initialize();
-        break;
-    case SCENE_RESULT:
-        break;
+    case SCENE_TITLE:  Title_Initialize();  break;
+    case SCENE_GAME:   Game_Initialize();   break;
+    case SCENE_RESULT: Result_Initialize(); break;
+    case SCENE_OVER:   Over_Initialize();   break;
     }
 }
 
@@ -33,14 +31,10 @@ void Scene_Finalize()
 {
     switch (g_Scene)
     {
-    case SCENE_TITLE:
-        Title_Finalize();
-        break;
-    case SCENE_GAME:
-        Game_Finalize();
-        break;
-    case SCENE_RESULT:
-        break;
+    case SCENE_TITLE:  Title_Finalize();  break;
+    case SCENE_GAME:   Game_Finalize();   break;
+    case SCENE_RESULT: Result_Finalize(); break;
+    case SCENE_OVER:   Over_Finalize();   break;
     }
 }
 
@@ -48,14 +42,10 @@ void Scene_Update(double elapsed_time)
 {
     switch (g_Scene)
     {
-    case SCENE_TITLE:
-        Title_Update(elapsed_time);
-        break;
-    case SCENE_GAME:
-        Game_Update(elapsed_time);
-        break;
-    case SCENE_RESULT:
-        break;
+    case SCENE_TITLE:  Title_Update(elapsed_time);  break;
+    case SCENE_GAME:   Game_Update(elapsed_time);   break;
+    case SCENE_RESULT: Result_Update(elapsed_time); break;
+    case SCENE_OVER:   Over_Update(elapsed_time);   break;
     }
 }
 
@@ -63,14 +53,10 @@ void Scene_Draw()
 {
     switch (g_Scene)
     {
-    case SCENE_TITLE:
-        Title_Draw();
-        break;
-    case SCENE_GAME:
-        Game_Draw();
-        break;
-    case SCENE_RESULT:
-        break;
+    case SCENE_TITLE:  Title_Draw();  break;
+    case SCENE_GAME:   Game_Draw();   break;
+    case SCENE_RESULT: Result_Draw(); break;
+    case SCENE_OVER:   Over_Draw();   break;
     }
 }
 

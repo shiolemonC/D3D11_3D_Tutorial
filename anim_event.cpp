@@ -65,7 +65,7 @@ void AnimEventRegister()
         // ② 0.30 出刀：生成 HitBox
         {
             AnimEvent e{};
-            e.timeNormalized = 0.30f;               // 攻击动画的 30% 处出刀
+            e.timeNormalized = 0.415f;               // 攻击动画的 30% 处出刀
             e.type = AnimEventType::SpawnHitBox;
             e.spawnHitBox.localOffset = { 0.0f, 1.0f, 1.0f };
             e.spawnHitBox.halfSize = { 0.5f, 0.5f, 0.5f };
@@ -85,13 +85,13 @@ void AnimEventRegister()
         bossAtk.clipName = L"Boss_Attack";   // 必须和 BossAnimatorRegistry 的 clip 名字一致
 
         AnimEvent e{};
-        e.timeNormalized = 0.35f;            // 比如 35% 处出刀（之后可以慢慢调）
+        e.timeNormalized = 0.50f;            // 比如 35% 处出刀（之后可以慢慢调）
         e.type = AnimEventType::SpawnHitBox;
         e.spawnHitBox.localOffset = { 0.0f, 1.2f, 2.0f }; // Boss 身前更远一点
-        e.spawnHitBox.halfSize = { 0.8f, 0.8f, 0.8f }; // HitBox 稍大一些
-        e.spawnHitBox.durationSec = 60.0f / 60.0f;        
+        e.spawnHitBox.halfSize = { 2.8f, 1.8f, 1.8f }; // HitBox 稍大一些
+        e.spawnHitBox.durationSec = 4.0f / 60.0f;        
         e.spawnHitBox.damage = 20;                   // 比玩家伤害高
-        e.spawnHitBox.knockbackDistance = 1.0f; // 0=无击退，小=0.2，大=1.0
+        e.spawnHitBox.knockbackDistance = 2.0f; // 0=无击退，小=0.2，大=1.0
 
         bossAtk.events.push_back(e);
         AnimEventRegistry_Register(bossAtk);
@@ -101,19 +101,55 @@ void AnimEventRegister()
     {
         AnimEventTrack bossCombo{};
         bossCombo.clipName = L"Boss_Combo"; // 必须和 BossAnimatorRegistry 的 clip 名一致
+        {
 
-        AnimEvent e{};
-        e.timeNormalized = 0.40f;           // 你按动画出手帧微调
-        e.type = AnimEventType::SpawnHitBox;
-        e.spawnHitBox.localOffset = { 0.0f, 1.2f, 2.3f };
-        e.spawnHitBox.halfSize = { 0.9f, 0.9f, 0.9f };
-        e.spawnHitBox.durationSec = 6.0f / 60.0f;
-        e.spawnHitBox.damage = 35;      // ★ 更高伤害
-        e.spawnHitBox.knockbackDistance = 1.6f; // ★ 更强击退
+            AnimEvent e{};
+            e.timeNormalized = 0.31f;           // 你按动画出手帧微调
+            e.type = AnimEventType::SpawnHitBox;
+            e.spawnHitBox.localOffset = { 0.0f, 1.2f, 2.3f };
+            e.spawnHitBox.halfSize = { 1.9f, 1.9f, 0.9f };
+            e.spawnHitBox.durationSec = 3.0f / 60.0f;
+            e.spawnHitBox.damage = 25;      // ★ 更高伤害
+            e.spawnHitBox.knockbackDistance = 0.6f; // ★ 更强击退
 
-        e.spawnHitBox.hitLevel = HitLevel::Light;
+            e.spawnHitBox.hitLevel = HitLevel::Light;
 
-        bossCombo.events.push_back(e);
+            bossCombo.events.push_back(e);
+        }
+
+        {
+
+            AnimEvent e{};
+            e.timeNormalized = 0.50f;           // 你按动画出手帧微调
+            e.type = AnimEventType::SpawnHitBox;
+            e.spawnHitBox.localOffset = { 0.0f, 1.2f, 2.3f };
+            e.spawnHitBox.halfSize = { 1.9f, 1.9f, 0.9f };
+            e.spawnHitBox.durationSec = 3.0f / 60.0f;
+            e.spawnHitBox.damage = 30;      // ★ 更高伤害
+            e.spawnHitBox.knockbackDistance = 2.0f; // ★ 更强击退
+
+            e.spawnHitBox.hitLevel = HitLevel::Light;
+
+            bossCombo.events.push_back(e);
+        }
+
+        {
+
+            AnimEvent e{};
+            e.timeNormalized = 0.73f;           // 你按动画出手帧微调
+            e.type = AnimEventType::SpawnHitBox;
+            e.spawnHitBox.localOffset = { 0.0f, 1.2f, 2.3f };
+            e.spawnHitBox.halfSize = { 1.9f, 1.9f, 0.9f };
+            e.spawnHitBox.durationSec = 3.0f / 60.0f;
+            e.spawnHitBox.damage = 40;      // ★ 更高伤害
+            e.spawnHitBox.knockbackDistance = 1.6f; // ★ 更强击退
+
+            e.spawnHitBox.hitLevel = HitLevel::Light;
+
+            bossCombo.events.push_back(e);
+        }
+
+
         AnimEventRegistry_Register(bossCombo);
     }
 
@@ -194,6 +230,26 @@ void AnimEventRegister()
         AddHitCamEvent(L"Hit_Medium");
         AddHitCamEvent(L"Hit_Heavy");
     }
+    // ★ Block_Attack：进入瞬间触发镜头演出 + 抖动（同一个 track 注册一次）
+    {
+        AnimEventTrack t{};
+        t.clipName = L"Block";
+
+
+        // 2) Camera shake
+        {
+            AnimEvent e{};
+            e.timeNormalized = 0.0f;
+            e.type = AnimEventType::CameraShake;
+            e.cameraShake.magnitude = 0.12f;
+            e.cameraShake.durationSec = 0.12f;
+            e.cameraShake.mode = CameraShakeMode::Both;
+            e.cameraShake.priority = 100;
+            t.events.push_back(e);
+        }
+
+        AnimEventRegistry_Register(t);
+    }
 
     // ★ Block_Attack：进入瞬间触发镜头演出 + 抖动（同一个 track 注册一次）
     {
@@ -208,7 +264,7 @@ void AnimEventRegister()
             e.cameraLockOnPreset.presetId = 1;       // 1 = Block_Attack
             e.cameraLockOnPreset.blendInSec = 0.2f;
             e.cameraLockOnPreset.holdSec = 1.12f;
-            e.cameraLockOnPreset.blendOutSec = 0.25f;
+            e.cameraLockOnPreset.blendOutSec = 0.5f;
             e.cameraLockOnPreset.priority = 200;
             t.events.push_back(e);
         }
@@ -227,12 +283,12 @@ void AnimEventRegister()
 
         {
             AnimEvent e{};
-            e.timeNormalized = 0.45f;               // 攻击动画的 30% 处出刀
+            e.timeNormalized = 0.55f;               // 攻击动画的 30% 处出刀
             e.type = AnimEventType::SpawnHitBox;
             e.spawnHitBox.localOffset = { 0.0f, 1.0f, 1.0f };
-            e.spawnHitBox.halfSize = { 0.5f, 0.5f, 0.5f };
-            e.spawnHitBox.durationSec = 3.0f / 60.0f;
-            e.spawnHitBox.damage = 10;
+            e.spawnHitBox.halfSize = { 0.8f, 0.8f, 0.8f };
+            e.spawnHitBox.durationSec = 4.0f / 60.0f;
+            e.spawnHitBox.damage = 15;
             e.spawnHitBox.hitLevel = HitLevel::Heavy;
             t.events.push_back(e);
         }

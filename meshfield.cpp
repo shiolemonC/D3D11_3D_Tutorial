@@ -6,10 +6,10 @@
 #include "camera.h"
 using namespace DirectX;
 
-static constexpr float FIELD_MESH_SIZE = 1.0f; //一格的size
+static constexpr float FIELD_MESH_SIZE = 2.0f; //一格的size
 
-static constexpr int FIELD_MESH_H_COUNT = 50; //mesh horizontal
-static constexpr int FIELD_MESH_V_COUNT = 25; // mesh vertical
+static constexpr int FIELD_MESH_H_COUNT = 100; //mesh horizontal
+static constexpr int FIELD_MESH_V_COUNT = 100; // mesh vertical
 static constexpr int FIELD_MESH_H_VERTEX_COUNT = FIELD_MESH_H_COUNT + 1;
 static constexpr int FIELD_MESH_V_VERTEX_COUNT = FIELD_MESH_V_COUNT + 1;
 
@@ -19,6 +19,7 @@ static constexpr int NUM_INDEX = 3 * 2 * FIELD_MESH_H_COUNT * FIELD_MESH_V_COUNT
 static ID3D11Buffer* g_pVertexBuffer = nullptr; // 頂点バッファ
 static ID3D11Buffer* g_pIndexBuffer = nullptr;
 
+static int g_TexId = -1;
 static int g_Tex0Id = -1;
 static int g_Tex1Id = -1;
 
@@ -118,6 +119,7 @@ void MeshField_Initialize(ID3D11Device* pDevice, ID3D11DeviceContext* pContext)
 	sd.pSysMem = g_MeshFieldIndex;
 
 	g_pDevice->CreateBuffer(&bd, &sd, &g_pIndexBuffer);
+	g_TexId = Texture_Load(L"resources/ground_texture/Ground_Gravel_ukxmacclw_1K_BaseColor.jpg");
 
 	g_Tex0Id = Texture_Load(L"resources/ground_texture/Ground_Gravel_ukxmacclw_1K_BaseColor.jpg");
 	g_Tex1Id = Texture_Load(L"resources/country_farwoods.png");
@@ -135,8 +137,8 @@ void MeshField_Draw()
 {
 	ShaderField_Begin();
 
-	Texture_SetTexture(g_Tex0Id, 0);
-	Texture_SetTexture(g_Tex1Id, 1);
+	// 只绑定一张
+	Texture_SetTexture(g_TexId, 0);
 
 	// 頂点バッファを描画パイプラインに設定
 	UINT stride = sizeof(Vertex3d);

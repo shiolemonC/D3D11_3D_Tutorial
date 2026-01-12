@@ -9,6 +9,7 @@
 #include "sprite_effect.h"
 #include "player.h"
 #include "camera.h"
+#include "scene.h"
 
 using namespace DirectX;
 
@@ -334,7 +335,13 @@ void Boss_Update(double dt, const BossUpdateContext& ctx)
     }
 
     case BossState::Dead:
-        // 死亡状态：不再做 AI 状态切换
+        float norm = 0.0f;
+        if (BossAnimatorRegistry_DebugGetCurrentNormalizedTime(&norm)) {
+            if (norm >= 1.0f) {
+                // 一次攻击结束
+                Scene_Change(SCENE_RESULT);
+            }
+        }
         break;
     }
 

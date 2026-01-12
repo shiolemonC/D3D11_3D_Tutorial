@@ -146,7 +146,7 @@ void Game_Initialize()
 
     // 初始化 Boss 本体
     BossDesc bd{};
-    bd.spawnPos = DirectX::XMFLOAT3(0.0f, 0.0f, 10.0f); // 比如在玩家前方 10 米
+    bd.spawnPos = DirectX::XMFLOAT3(0.0f, 0.0f, 20.0f); // 比如在玩家前方 10 米
     bd.scale = 3.0f;
     Boss_Initialize(bd);
 

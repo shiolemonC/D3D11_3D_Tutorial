@@ -64,7 +64,7 @@ struct PS_IN
 };
 
 Texture2D tex0 : register(t0);
-Texture2D tex1 : register(t1);
+//Texture2D tex1 : register(t1);
 
 // Shadow map (NEW)
 Texture2D g_shadowMap : register(t2);
@@ -112,14 +112,14 @@ float4 main(PS_IN pi) : SV_TARGET
 {
     // UV handle, sample of rotating (NOTE: you compute 'uv' but original samples used pi.uv.
     // Keep original behavior to avoid changing visuals.)
-    float2 uv;
-    float angle = 3.14159f * 45.0f / 180.0f;
-    uv.x = pi.uv.x * cos(angle) + pi.uv.y * sin(angle);
-    uv.y = -pi.uv.x * sin(angle) + pi.uv.y * cos(angle);
+    //float2 uv;
+    //float angle = 3.14159f * 45.0f / 180.0f;
+    //uv.x = pi.uv.x * cos(angle) + pi.uv.y * sin(angle);
+    //uv.y = -pi.uv.x * sin(angle) + pi.uv.y * cos(angle);
 
     // color handle, sample of color blending (original behavior: sample by pi.uv)
-    float4 tex_color = tex0.Sample(samp, pi.uv) * pi.blend.g
-                     + tex1.Sample(samp, pi.uv) * pi.blend.r;
+    float4 tex_color = tex0.Sample(samp, pi.uv);// * pi.blend.g;
+                     //+ tex1.Sample(samp, pi.uv) * pi.blend.r;
 
     // material color
     float3 material_color = tex_color.rgb * diffuse_color.rgb;
