@@ -46,8 +46,8 @@ static bool     s_parryWindowEnabled = false;   // ★ 成功格挡窗口开关
 static bool     s_ignoreBodyBlock = false;
 
 // ------------------ HP ------------------
-static int s_hpMax = 100;
-static int s_hp = 100;
+static int s_hpMax = 300;
+static int s_hp = 300;
 static PlayerOnDeathFn s_onDeath = nullptr;
 
 // ------------------ 击退 ------------------
@@ -314,7 +314,7 @@ void Player_Initialize(const PlayerDesc& d)
     Player_CreateBodyCollider();
     Player_CreateHurtCollider();   
 
-    s_hpMax = 100;   // TODO: 以后你想做配置就从 d 里读
+    //s_hpMax = 300;   // TODO: 以后你想做配置就从 d 里读
     s_hp = s_hpMax;
 
     // ★ 帧事件播放器绑定到这个“玩家”

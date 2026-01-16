@@ -381,17 +381,13 @@ void Boss_Update(double dt, const BossUpdateContext& ctx)
     BossAnimatorRegistry_Update(dt);
 
 
-    // ---- 4.5) 把 RootMotion 同步到逻辑坐标（关键）----
+    // ---- 4.5) 把 RootMotion 同步到逻辑坐标（rm.pos 已是世界系）----
     RootMotionDelta rm{};
     if (BossAnimatorRegistry_ConsumeRootMotionDelta(&rm))
     {
-        // 这里必须是 +=，不要再乘 forward / 不要再取反
-        s_bossPos.x += -rm.pos.x;
-        s_bossPos.y += rm.pos.y;
-        s_bossPos.z += -rm.pos.z;
-
-        // 如果你也希望逻辑 yaw 跟着动画转（可选）
-        // s_bossYaw += rm.yaw;
+        s_bossPos.x -= rm.pos.x;
+        //s_bossPos.y += rm.pos.y;   // 不需要Y就删掉
+        s_bossPos.z -= rm.pos.z;
     }
 
     // 现在再更新一次世界矩阵/碰撞盒（让 collider 跟上）

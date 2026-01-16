@@ -31,13 +31,9 @@ void Over_Update(double elapsed_time)
 {
     if (KeyLogger_IsTrigger(KK_ENTER))
     {
-        Fade_Start(1.0, true);
-    }
-
-    if (Fade_GetState() == FADE_STATE_FINISHED_OUT)
-    {
         Scene_Change(SCENE_TITLE);
     }
+
 }
 
 void Over_Draw()

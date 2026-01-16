@@ -33,13 +33,9 @@ void Result_Update(double elapsed_time)
     // 回到 Title（或你想改成 SCENE_GAME 重新开始也行）
     if (KeyLogger_IsTrigger(KK_ENTER))
     {
-        Fade_Start(1.0, true); // true: fade-out（沿用你的 Title 写法）
-    }
-
-    if (Fade_GetState() == FADE_STATE_FINISHED_OUT)
-    {
         Scene_Change(SCENE_TITLE);
     }
+
 }
 
 void Result_Draw()
