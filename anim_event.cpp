@@ -79,6 +79,72 @@ void AnimEventRegister()
         AnimEventRegistry_Register(atk);
     }
 
+    // 攻击动作事件
+    {
+        AnimEventTrack atk{};
+        atk.clipName = L"Attack_2";
+
+        {
+            AnimEvent e{};
+            e.timeNormalized = 0.468f;               // 攻击动画的 30% 处出刀
+            e.type = AnimEventType::SpawnHitBox;
+            e.spawnHitBox.localOffset = { 0.0f, 1.0f, 1.0f };
+            e.spawnHitBox.halfSize = { 0.5f, 0.5f, 0.5f };
+            e.spawnHitBox.durationSec = 3.0f / 60.0f;
+            e.spawnHitBox.damage = 10;
+
+            atk.events.push_back(e);
+        }
+
+
+        AnimEventRegistry_Register(atk);
+    }
+
+    // ★ Block_Attack：进入瞬间触发镜头演出 + 抖动（同一个 track 注册一次）
+    {
+        AnimEventTrack t{};
+        t.clipName = L"Attack_3";
+
+        // 1) LockOn preset
+        {
+            AnimEvent e{};
+            e.timeNormalized = 0.0f;
+            e.type = AnimEventType::CameraLockOnPreset;
+            e.cameraLockOnPreset.presetId = 1;       // 1 = Block_Attack
+            e.cameraLockOnPreset.blendInSec = 0.2f;
+            e.cameraLockOnPreset.holdSec = 1.12f;
+            e.cameraLockOnPreset.blendOutSec = 0.5f;
+            e.cameraLockOnPreset.priority = 200;
+            t.events.push_back(e);
+        }
+
+        // 2) Camera shake
+        {
+            AnimEvent e{};
+            e.timeNormalized = 0.5f;
+            e.type = AnimEventType::CameraShake;
+            e.cameraShake.magnitude = 0.58f;
+            e.cameraShake.durationSec = 1.12f;
+            e.cameraShake.mode = CameraShakeMode::Both;
+            e.cameraShake.priority = 100;
+            t.events.push_back(e);
+        }
+
+        {
+            AnimEvent e{};
+            e.timeNormalized = 0.55f;               // 攻击动画的 30% 处出刀
+            e.type = AnimEventType::SpawnHitBox;
+            e.spawnHitBox.localOffset = { 0.0f, 1.0f, 1.0f };
+            e.spawnHitBox.halfSize = { 0.8f, 0.8f, 0.8f };
+            e.spawnHitBox.durationSec = 4.0f / 60.0f;
+            e.spawnHitBox.damage = 15;
+            e.spawnHitBox.hitLevel = HitLevel::Heavy;
+            t.events.push_back(e);
+        }
+        AnimEventRegistry_Register(t);
+    }
+
+
     // ★ 在这里加 Boss 攻击事件
     {
         AnimEventTrack bossAtk{};

@@ -76,6 +76,46 @@ void AnimRegister()
 
     {
         AnimClipDesc c{};
+        c.name = L"Attack_2";
+        c.meshPath = L"resources/player_anim/cooked/sword_attack_2.mesh";
+        c.skelPath = L"resources/player_anim/cooked/sword_attack_2.skel";
+        c.animPath = L"resources/player_anim/cooked/sword_attack_2.anim";
+        c.matPath =  L"resources/player_anim/cooked/sword_attack_2.mat";
+        // 如需强制贴图（覆盖 .mat）：
+        c.baseColorOverride = L"resources/player_anim/cooked/Textures/Paladin_diffuse.png";
+        c.loop = false;
+        c.playbackRate = 1.0f;
+        c.rmType = RootMotionType::UseZDelta;
+        //c.velocity = 2.0f;
+           // ★ 若希望攻击不受 Hips 摇摆影响，改用 "Root"（按你的骨骼名来）
+    //   也可以继续用 "mixamorig:Hips"，视资源而定。
+        c.motionRootNameUTF8 = "root";
+
+        AnimatorRegistry_Register(c);
+    }
+
+    {
+        AnimClipDesc c{};
+        c.name = L"Attack_3";
+        c.meshPath = L"resources/player_anim/cooked/sword_block_attack.mesh";
+        c.skelPath = L"resources/player_anim/cooked/sword_block_attack.skel";
+        c.animPath = L"resources/player_anim/cooked/sword_block_attack.anim";
+        c.matPath = L"resources/player_anim/cooked/sword_block_attack.mat";
+        // 如需强制贴图（覆盖 .mat）：
+        c.baseColorOverride = L"resources/player_anim/cooked/Textures/Paladin_diffuse.png";
+        c.loop = false;
+        c.playbackRate = 1.0f;
+        c.rmType = RootMotionType::UseZDelta;
+        //c.velocity = 2.0f;
+           // ★ 若希望攻击不受 Hips 摇摆影响，改用 "Root"（按你的骨骼名来）
+    //   也可以继续用 "mixamorig:Hips"，视资源而定。
+        c.motionRootNameUTF8 = "root";
+
+        AnimatorRegistry_Register(c);
+    }
+
+    {
+        AnimClipDesc c{};
         c.name = L"Parry";
         c.meshPath = L"resources/player_anim/cooked/sword_block.mesh";
         c.skelPath = L"resources/player_anim/cooked/sword_block.skel";

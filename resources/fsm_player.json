@@ -26,6 +26,24 @@
       "uninterruptible": [ [ 0.00, 0.35 ] ]
     },
     {
+      "name": "Attack_2",
+      "clip": "Attack_2",
+      "loop": false,
+      "root_motion": "use_delta",
+      "length_sec": 0.00,
+      "locomotion": false,
+      "uninterruptible": [ [ 0.00, 0.35 ] ]
+    },
+    {
+      "name": "Attack_3",
+      "clip": "Attack_3",
+      "loop": false,
+      "root_motion": "use_delta",
+      "length_sec": 0.00,
+      "locomotion": false,
+      "uninterruptible": [ [ 0.00, 0.35 ] ]
+    },
+    {
       "name": "Roll",
       "clip": "Roll",
       "loop": false,
@@ -146,6 +164,50 @@
       "priority": 5
     },
 
+    {
+      "from": "Attack",
+      "to": "Attack_2",
+      "trigger": "Attack",
+      "buffer": 0.15,
+      "window": [ [ 0.70, 1.00 ] ],
+      "duration": 0.2,
+      "curve": "linear",
+      "can_interrupt": true,
+      "priority": 50
+    },
+
+
+    {
+      "from": "Attack_2",
+      "to": "Attack_3",
+      "trigger": "Attack",
+      "buffer": 0.15,
+      "window": [ [ 0.70, 1.00 ] ],
+      "duration": 0.2,
+      "curve": "linear",
+      "can_interrupt": true,
+      "priority": 50
+    },
+
+    {
+      "from": "Attack_2",
+      "to": "Idle",
+      "window": [ [ 0.95, 1.00 ] ],
+      "duration": 0.08,
+      "curve": "ease_out",
+      "can_interrupt": true,
+      "priority": 5
+    },
+
+    {
+      "from": "Attack_3",
+      "to": "Idle",
+      "window": [ [ 0.95, 1.00 ] ],
+      "duration": 0.08,
+      "curve": "ease_out",
+      "can_interrupt": true,
+      "priority": 5
+    },
 
     {
       "from": "Idle",
@@ -185,6 +247,29 @@
       "priority": 80
     },
 
+    {
+      "from": "Attack_2",
+      "to": "Roll",
+      "trigger": "Roll",
+      "buffer": 0.15,
+      "window": [ [ 0.9, 1.0 ] ],
+      "duration": 0.05,
+      "curve": "ease_in_out",
+      "can_interrupt": true,
+      "priority": 80
+    },
+
+    {
+      "from": "Attack_3",
+      "to": "Roll",
+      "trigger": "Roll",
+      "buffer": 0.15,
+      "window": [ [ 0.9, 1.0 ] ],
+      "duration": 0.05,
+      "curve": "ease_in_out",
+      "can_interrupt": true,
+      "priority": 80
+    },
 
     {
       "from": "Roll",
@@ -231,6 +316,31 @@
       "can_interrupt": true,
       "priority": 85
     },
+
+    {
+      "from": "Attack_2",
+      "to": "Parry",
+      "trigger": "Parry",
+      "buffer": 0.15,
+      "window": [ [ 0.90, 1.00 ] ],
+      "duration": 0.05,
+      "curve": "linear",
+      "can_interrupt": true,
+      "priority": 85
+    },
+
+    {
+      "from": "Attack_3",
+      "to": "Parry",
+      "trigger": "Parry",
+      "buffer": 0.15,
+      "window": [ [ 0.90, 1.00 ] ],
+      "duration": 0.05,
+      "curve": "linear",
+      "can_interrupt": true,
+      "priority": 85
+    },
+
     {
       "from": "Parry",
       "to": "Parry",
