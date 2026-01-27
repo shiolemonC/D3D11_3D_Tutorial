@@ -226,4 +226,5 @@ bool Shader3d_IsShadowPass()
 
 void Shader3d_SetShadowPass(bool enable)
 {
+	g_isShadowPass = enable;
 }

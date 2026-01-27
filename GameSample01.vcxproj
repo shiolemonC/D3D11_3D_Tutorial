@@ -180,6 +180,7 @@
     <ClCompile Include="mouse.cpp" />
     <ClCompile Include="over.cpp" />
     <ClCompile Include="pad_logger.cpp" />
+    <ClCompile Include="particle_system.cpp" />
     <ClCompile Include="player.cpp" />
     <ClCompile Include="player_camera.cpp" />
     <ClCompile Include="player_camera_test.cpp" />
@@ -205,6 +206,7 @@
     <ClCompile Include="texture.cpp" />
     <ClCompile Include="title.cpp" />
     <ClCompile Include="trajectory.cpp" />
+    <ClCompile Include="vfx_config.cpp" />
     <ClCompile Include="WICTextureLoader11.cpp" />
   </ItemGroup>
   <ItemGroup>
@@ -245,6 +247,7 @@
     <ClInclude Include="mouse.h" />
     <ClInclude Include="over.h" />
     <ClInclude Include="pad_logger.h" />
+    <ClInclude Include="particle_system.h" />
     <ClInclude Include="player.h" />
     <ClInclude Include="player_camera.h" />
     <ClInclude Include="player_camera_test.h" />
@@ -270,6 +273,7 @@
     <ClInclude Include="texture.h" />
     <ClInclude Include="title.h" />
     <ClInclude Include="trajectory.h" />
+    <ClInclude Include="vfx_config.h" />
     <ClInclude Include="WICTextureLoader11.h" />
   </ItemGroup>
   <ItemGroup>

@@ -22,6 +22,9 @@ static ID3D11BlendState* g_pBlendStateMultiply = nullptr;
 static ID3D11BlendState* g_pBlendStateAdd = nullptr;
 static ID3D11DepthStencilState* g_pDepthStencilStateDepthDisable = nullptr;
 static ID3D11DepthStencilState* g_pDepthStencilStateDepthEnable = nullptr;
+
+static ID3D11DepthStencilState* g_pDepthStencilStateDepthTestNoWrite = nullptr;
+
 static ID3D11RasterizerState* g_pRasterizerState = nullptr;
 
 
@@ -158,6 +161,11 @@ bool Direct3D_Initialize(HWND hWnd)
 	dsd.DepthWriteMask = D3D11_DEPTH_WRITE_MASK_ALL;
 	g_pDevice->CreateDepthStencilState(&dsd, &g_pDepthStencilStateDepthEnable);
 
+	// Depth test ON, depth write OFF (transparent particles)
+	dsd.DepthEnable = TRUE;
+	dsd.DepthWriteMask = D3D11_DEPTH_WRITE_MASK_ZERO;
+	g_pDevice->CreateDepthStencilState(&dsd, &g_pDepthStencilStateDepthTestNoWrite);
+
 	Direct3D_SetDepthEnable(true);
 
 	//rasterize
@@ -181,6 +189,7 @@ void Direct3D_Finalize()
 	/* Œã•Ğ•t‚¯‚ÌŠÖ” */
 	SAFE_RELEASE(g_pDepthStencilStateDepthDisable);
 	SAFE_RELEASE(g_pDepthStencilStateDepthEnable);
+	SAFE_RELEASE(g_pDepthStencilStateDepthTestNoWrite);
 	SAFE_RELEASE(g_pBlendStateMultiply);
 
 	releaseBackBuffer();
@@ -253,6 +262,12 @@ void Direct3D_SetDepthEnable(bool enable)
 	{
 		g_pDeviceContext->OMSetDepthStencilState(g_pDepthStencilStateDepthDisable, NULL);
 	}
+}
+
+void Direct3D_SetDepthTestNoWrite()
+{
+	// Depth test ON, depth write OFF
+	g_pDeviceContext->OMSetDepthStencilState(g_pDepthStencilStateDepthTestNoWrite, NULL);
 }
 
 /* ‰æ—p†‚ğì‚é */

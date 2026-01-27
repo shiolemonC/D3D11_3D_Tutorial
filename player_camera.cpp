@@ -26,6 +26,7 @@ static XMFLOAT3 s_moveRightXZ{ 1.0f, 0.0f, 0.0f };
 
 // ★ LockOn 镜头演出：预设参数（在 default 基础上微调）
 static LockOnTuning s_lockTuneHit{};
+static LockOnTuning s_lockTuneBlock{};
 static LockOnTuning s_lockTuneBlockAttack{};
 
 struct LockOnPresetState {
@@ -281,6 +282,21 @@ static void StartTransition(const CameraRig& from,
     s_transition.elapsed = 0.0f;
 }
 
+// 约定：AnimEvent 里传的 presetId
+// 0 = Hit
+// 1 = Block_Attack
+// 2 = Block   ★新增
+static const LockOnTuning& PlayerCamera_SelectPresetTuning(int presetId)
+{
+    switch (presetId)
+    {
+    case 1:  return s_lockTuneBlockAttack;
+    case 2:  return s_lockTuneBlock;      // ★新增：Block 演出镜头
+    case 0:
+    default: return s_lockTuneHit;
+    }
+}
+
 // ------------------ 对外接口 ------------------
 
 void PlayerCamera_Initialize(const PlayerCameraDesc& d)
@@ -318,6 +334,11 @@ void PlayerCamera_Initialize(const PlayerCameraDesc& d)
     s_lockTuneHit.baseRadius = std::max(0.1f, s_lockTune.baseRadius * 0.75f);
     s_lockTuneHit.cameraHeightNear = s_lockTune.cameraHeightNear * 0.90f;
     s_lockTuneHit.cameraHeightFar = s_lockTune.cameraHeightFar * 0.90f;
+
+    s_lockTuneBlock = s_lockTune;
+    s_lockTuneBlock.baseRadius = std::max(0.1f, s_lockTune.baseRadius * 0.75f);
+    s_lockTuneBlock.cameraHeightNear = s_lockTune.cameraHeightNear * 0.90f;
+    s_lockTuneBlock.cameraHeightFar = s_lockTune.cameraHeightFar * 0.90f;
 
     s_lockTuneBlockAttack = s_lockTune;
     s_lockTuneBlockAttack.baseRadius = std::max(0.1f, s_lockTune.baseRadius * 0.8f);
@@ -468,8 +489,8 @@ void PlayerCamera_Update(double dt, const PlayerCameraInput& in)
                 // 混合 base / fx
                 if (presetWeight > 0.0f)
                 {
-                    const LockOnTuning& fxTune =
-                        (s_preset.presetId == 1) ? s_lockTuneBlockAttack : s_lockTuneHit;
+                    const LockOnTuning& fxTune = PlayerCamera_SelectPresetTuning(s_preset.presetId);
+                        //(s_preset.presetId == 1) ? s_lockTuneBlockAttack : s_lockTuneHit;
 
                     CameraRig fx = ComputeLockOnRigImmediate(fxTune);
 

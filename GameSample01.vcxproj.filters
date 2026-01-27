@@ -47,6 +47,12 @@
     <Filter Include="ソース ファイル\scene">
       <UniqueIdentifier>{5df71def-5b0c-4186-8062-0a601c7083e2}</UniqueIdentifier>
     </Filter>
+    <Filter Include="ヘッダー ファイル\effect">
+      <UniqueIdentifier>{3c035c28-46ef-4760-9023-4a846fe60c11}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="ソース ファイル\effect">
+      <UniqueIdentifier>{99c0df52-b32a-421c-98e8-633f9041cf5f}</UniqueIdentifier>
+    </Filter>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="main.cpp">
@@ -151,9 +157,6 @@
     <ClCompile Include="shader_billboard.cpp">
       <Filter>ソース ファイル</Filter>
     </ClCompile>
-    <ClCompile Include="billboard.cpp">
-      <Filter>ソース ファイル</Filter>
-    </ClCompile>
     <ClCompile Include="sky.cpp">
       <Filter>ソース ファイル</Filter>
     </ClCompile>
@@ -237,6 +240,15 @@
     </ClCompile>
     <ClCompile Include="fade.cpp">
       <Filter>ソース ファイル\scene</Filter>
+    </ClCompile>
+    <ClCompile Include="particle_system.cpp">
+      <Filter>ソース ファイル\effect</Filter>
+    </ClCompile>
+    <ClCompile Include="vfx_config.cpp">
+      <Filter>ソース ファイル\effect</Filter>
+    </ClCompile>
+    <ClCompile Include="billboard.cpp">
+      <Filter>ソース ファイル\effect</Filter>
     </ClCompile>
   </ItemGroup>
   <ItemGroup>
@@ -339,9 +351,6 @@
     <ClInclude Include="player_sm_json.h">
       <Filter>ヘッダー ファイル\player_function</Filter>
     </ClInclude>
-    <ClInclude Include="billboard.h">
-      <Filter>ヘッダー ファイル</Filter>
-    </ClInclude>
     <ClInclude Include="shader_billboard.h">
       <Filter>ヘッダー ファイル</Filter>
     </ClInclude>
@@ -428,6 +437,15 @@
     </ClInclude>
     <ClInclude Include="title.h">
       <Filter>ヘッダー ファイル\scene</Filter>
+    </ClInclude>
+    <ClInclude Include="particle_system.h">
+      <Filter>ヘッダー ファイル\effect</Filter>
+    </ClInclude>
+    <ClInclude Include="vfx_config.h">
+      <Filter>ヘッダー ファイル\effect</Filter>
+    </ClInclude>
+    <ClInclude Include="billboard.h">
+      <Filter>ヘッダー ファイル\effect</Filter>
     </ClInclude>
   </ItemGroup>
   <ItemGroup>

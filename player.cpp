@@ -10,6 +10,7 @@
 #include "ModelSkinned.h"
 #include "sprite_effect.h"
 #include "scene.h"
+#include "particle_system.h"
 using namespace DirectX;
 
 // ------------------ 内部状态 ------------------
@@ -437,6 +438,19 @@ void Player_Update(double dt, const PlayerUpdateInput& in)
     if (in.parry) {
         PlayerSM_FireTrigger("Parry"); // ★ 新增：格挡/弹反 Trigger
     }
+
+#if defined(DEBUG) || defined(_DEBUG)
+    if (in.parry)
+    {
+        XMFLOAT3 p = Player_GetPosition();
+        p.y += 1.0f;
+        ParticleSystem_Spawn(VfxId::SparkParry, p, in.camForwardXZ);
+    }
+    if (in.attack)
+    {
+        ParticleSystem_Spawn(VfxId::BloodSlash, Player_GetPosition(), in.camForwardXZ);
+    }
+#endif
 
     // 2) 跑 FSM，决定当前播放的状态/动画
     PlayerSMOutput smOut = PlayerSM_Update(dt);

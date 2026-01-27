@@ -45,6 +45,9 @@
 #include "hud_hp.h"
 #include "shadow_map.h"
 
+#include "vfx_config.h"
+#include "particle_system.h"
+
 
 using namespace DirectX;
 
@@ -106,12 +109,14 @@ void Game_Initialize()
 
     Sky_Initialize();
     Billboard_Initialize();
-    g_TestTexid = Texture_Load(L"resources/runningman001.png");
+    VfxConfig_Initialize();
+    ParticleSystem_Initialize();
+    //g_TestTexid = Texture_Load(L"resources/runningman001.png");
 
-    g_AnimPatternId = SpriteAnim_RegisterPattern(
-        g_TestTexid, 10, 5, 0.1, {140,200},{0,0},true);
+    //g_AnimPatternId = SpriteAnim_RegisterPattern(
+    //    g_TestTexid, 10, 5, 0.1, {140,200},{0,0},true);
 
-    g_AnimPlayId = SpriteAnim_CreatePlayer(g_AnimPatternId);
+    //g_AnimPlayId = SpriteAnim_CreatePlayer(g_AnimPatternId);
 
     SpriteSheetDesc hit{};
     hit.path = L"resources/fx/hit_effect.png";
@@ -160,7 +165,6 @@ void Game_Initialize()
     // 播放初始动画
     auto out0 = PlayerSM_Update(0.0);
     AnimatorRegistry_Play(out0.clip, nullptr);
-
     // 相机跟随
     PlayerCamera_Initialize({});
 
@@ -170,6 +174,7 @@ void Game_Initialize()
     ShadowMap_Initialize(Direct3D_GetDevice(), Direct3D_GetContext(), 2048);
     ShadowMap_SetParams(0.0025f, 1.0f);
 
+
 }
 
 void Game_Finalize()
@@ -178,6 +183,8 @@ void Game_Finalize()
     Sky_Finalize();
     Billboard_Finalize();
     Camera_Finalize();
+    ParticleSystem_Finalize();
+    VfxConfig_Finalize();
     //PlayerCameraTest_Finalize();
     ShadowMap_Finalize();
 }
@@ -229,6 +236,7 @@ void Game_Update(double elapsed_time)
     // 4) 把所有和玩家相关的逻辑都交给 Player_Update
     Player_Update(elapsed_time, pin);
 
+
     // Boss 更新
     BossUpdateContext bctx{};
     bctx.playerPos = Player_GetPosition();
@@ -239,10 +247,14 @@ void Game_Update(double elapsed_time)
 
     //Sky_SetPosition(Player_GetPosition());//
     Sky_SetPosition(Camera_GetPosition());
+
+    ParticleSystem_Update(elapsed_time);
     SpriteAnim_Update(elapsed_time);
     SpriteEffect_Update(elapsed_time);
 
+
     HudHP_Update(elapsed_time);
+
 }
 
 void Game_Draw()
@@ -324,6 +336,7 @@ void Game_Draw()
     //PlayerSM_DebugDraw();
     GetCollisionWorld().DebugDraw3D();
 #endif
+    ParticleSystem_DrawWorld();
     SpriteEffect_Draw();   // ★特效在这里画
     HudHP_Draw();
 }

@@ -40,4 +40,8 @@ void Direct3D_SetAlphaBlendAdd();         // 加算合成
 
 //深度バッファの設定
 void Direct3D_SetDepthEnable(bool enable);
+
+// Depth test ON, depth write OFF (recommended for transparent particles)
+void Direct3D_SetDepthTestNoWrite();
+
 #endif // DIRECT3D_H
