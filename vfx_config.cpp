@@ -1,4 +1,4 @@
-#include "vfx_config.h"
+﻿#include "vfx_config.h"
 #include "texture.h"
 
 // ------------------------------------------------------------
@@ -19,24 +19,31 @@ void VfxConfig_Initialize()
 
         p.blend = VfxBlend::Add;
 
-        p.burstCount = { 10, 18 };
-        p.lifetime = { 2.06f, 3.12f };
+        p.burstCount = { 30, 45 };
+        p.lifetime = { 0.16f, 0.182f };
 
-        p.speed = { 3.5f, 7.5f };
+        p.speed = { 20.5f, 25.5f };
         p.useCone = true;
-        p.coneAngleDeg = 40.0f;
+        p.coneAngleDeg = 60.0f;
 
-        p.sizeStart = { 1.10f, 1.16f };
-        p.sizeEnd = { 1.00f, 1.04f };
+        p.sizeStart = { 0.50f, 0.6f };
+        p.sizeEnd = { 0.2f, 0.25f };
 
         p.colorStart = { 1.0f, 0.95f, 0.65f, 1.0f };
         p.colorEnd   = { 1.0f, 0.30f, 0.00f, 0.0f };
 
-        p.gravityScale = 2.0f;
-        p.drag = 5.0f; // sparks slow down quickly
+        p.gravityScale = 1.5f;
+        p.drag = 12.0f; // sparks slow down quickly
 
         p.uvScale = { 1.0f, 1.0f };
         p.uvOffset = { 0.0f, 0.0f };
+
+        p.alignToVelocity = true; // 火花开，血默认关
+        p.rotationBias = 0.0f;                                // 需要时再调 ±90°/180°
+        p.streakMul = 0.25f; // 火花拉伸强度
+        p.streakMax = 4.0f;                                   // 最长 4 倍
+        p.rotRad = 0.0f;
+
     }
 
     // ---- Blood (slash / hit) ----
@@ -49,24 +56,30 @@ void VfxConfig_Initialize()
 
         p.blend = VfxBlend::Alpha;
 
-        p.burstCount = { 8, 14 };
-        p.lifetime = { 0.25f, 0.45f };
+        p.burstCount = { 15, 20 };
+        p.lifetime = { 0.26f, 0.32f };
 
-        p.speed = { 1.5f, 4.0f };
+        p.speed = { 15.5f, 18.5f };
         p.useCone = true;
-        p.coneAngleDeg = 55.0f;
+        p.coneAngleDeg = 30.0f;
 
-        p.sizeStart = { 1.10f, 1.18f };
-        p.sizeEnd = { 2.12f, 2.22f }; // grow slightly
+        p.sizeStart = { 0.50f, 0.75f };
+        p.sizeEnd = { 0.1f, 0.15f };
 
-        p.colorStart = { 0.85f, 0.05f, 0.05f, 0.9f };
-        p.colorEnd   = { 0.35f, 0.02f, 0.02f, 0.0f };
+        p.colorStart = { 1.0f, 1.0f, 1.0f, 1.0f };
+        p.colorEnd = { 1.0f, 0.30f, 0.00f, 0.0f };
 
-        p.gravityScale = 1.0f;
-        p.drag = 1.5f;
+        p.gravityScale = 4.50f;
+        p.drag = 0.0f; // sparks slow down quickly
 
         p.uvScale = { 1.0f, 1.0f };
         p.uvOffset = { 0.0f, 0.0f };
+
+        p.alignToVelocity = true; // 火花开，血默认关
+        p.rotationBias = 0.0f;                                // 需要时再调 ±90°/180°
+        p.streakMul = 0.95f; // 火花拉伸强度
+        p.streakMax = 12.0f;                                   // 最长 4 倍
+        p.rotRad = 0.0f;
     }
 }
 

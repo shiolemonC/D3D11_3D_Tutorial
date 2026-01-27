@@ -1,4 +1,4 @@
-#ifndef VFX_CONFIG_H
+﻿#ifndef VFX_CONFIG_H
 #define VFX_CONFIG_H
 
 #include <DirectXMath.h>
@@ -61,6 +61,12 @@ struct VfxPreset
     // UV (for atlas / sprite-sheet usage)
     DirectX::XMFLOAT2 uvScale{ 1.0f, 1.0f };
     DirectX::XMFLOAT2 uvOffset{ 0.0f, 0.0f };
+
+    float alignToVelocity = false; // 火花开，血默认关
+    float rotationBias = 0.0f;                                // 需要时再调 ±90°/180°
+    float streakMul = 0.0f; // 火花拉伸强度
+    float streakMax = 0.0f;                                   // 最长 4 倍
+    float rotRad = 0.0f;
 };
 
 void VfxConfig_Initialize();

@@ -41,4 +41,14 @@ void Billboard_DrawEx(
     const DirectX::XMFLOAT4& color,
     const DirectX::XMFLOAT2& pivot = { 0.0f, 0.0f });
 
+void Billboard_DrawExRot(
+    int texid,
+    const DirectX::XMFLOAT3& position,
+    const DirectX::XMFLOAT2& scale,
+    const DirectX::XMFLOAT4& color,
+    float rotationRad,
+    const DirectX::XMFLOAT2& uv_scale = { 1.0f, 1.0f },
+    const DirectX::XMFLOAT2& uv_offset = { 0.0f, 0.0f },
+    const DirectX::XMFLOAT2& pivot = { 0.0f, 0.0f });
+
 #endif // !BILLBOARD_H

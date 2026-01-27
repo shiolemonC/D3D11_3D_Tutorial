@@ -444,11 +444,25 @@ void Player_Update(double dt, const PlayerUpdateInput& in)
     {
         XMFLOAT3 p = Player_GetPosition();
         p.y += 1.0f;
-        ParticleSystem_Spawn(VfxId::SparkParry, p, in.camForwardXZ);
+
+        XMFLOAT3 dir = in.camForwardXZ;
+
+        // 绕Y轴 +90°：朝“右侧”
+        XMFLOAT3 dirRight = { dir.z, 0.0f, -dir.x };
+
+        ParticleSystem_Spawn(VfxId::SparkParry, p, dirRight);
     }
     if (in.attack)
     {
-        ParticleSystem_Spawn(VfxId::BloodSlash, Player_GetPosition(), in.camForwardXZ);
+        XMFLOAT3 p = Player_GetPosition();
+        p.y += 1.0f;
+
+        XMFLOAT3 dir = in.camForwardXZ;
+
+        // 绕Y轴 -90°：朝“左侧”
+        XMFLOAT3 dirLeft = { -dir.z, 0.0f, dir.x };
+
+        ParticleSystem_Spawn(VfxId::BloodSlash, p, dirLeft);
     }
 #endif
 

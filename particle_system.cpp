@@ -7,6 +7,7 @@
 #include "billboard.h"
 #include "direct3d.h"
 #include "sampler.h"
+#include "camera.h"
 
 using namespace DirectX;
 
@@ -37,6 +38,13 @@ struct Particle
 
     XMFLOAT2 uvScale{ 1,1 };
     XMFLOAT2 uvOffset{ 0,0 };
+
+    float rotRad = 0.0f;      // 缓存角，速度很小时避免抖
+    float streakMul = 0.0f;   // 拉伸强度（0=不开）
+    float streakMax = 1.0f;   // 最大拉伸倍率（>=1）
+    float rotationBias = 0.0f;// 贴图默认方向修正（可选）
+    bool  alignToVelocity = true;
+
 };
 
 static Particle g_particles[MAX_PARTICLES];
@@ -209,6 +217,12 @@ void ParticleSystem_Spawn(VfxId id, const XMFLOAT3& position, const XMFLOAT3& di
 
         p.uvScale = preset.uvScale;
         p.uvOffset = preset.uvOffset;
+
+        p.alignToVelocity = preset.alignToVelocity; // 火花开，血默认关
+        p.rotationBias = preset.rotationBias;                                // 需要时再调 ±90°/180°
+        p.streakMul = preset.streakMul; // 火花拉伸强度
+        p.streakMax = preset.streakMax;                                   // 最长 4 倍
+        p.rotRad = preset.rotRad;
     }
 }
 
@@ -251,26 +265,70 @@ void ParticleSystem_Update(double dt)
 
 static void drawBlend(VfxBlend blend)
 {
+    // Camera_GetMatrix() 在你工程里是 View（世界->相机）
+    XMFLOAT4X4 viewF = Camera_GetMatrix();
+    XMMATRIX view = XMLoadFloat4x4(&viewF);
+
     for (int i = 0; i < MAX_PARTICLES; ++i)
     {
-        const Particle& p = g_particles[i];
+        Particle& p = g_particles[i];   // ★ 注意：改成非 const，方便缓存 rotRad
         if (!p.alive) continue;
         if (p.blend != blend) continue;
 
         float t = (p.life > EPS) ? (p.age / p.life) : 1.0f;
-        if (t < 0.0f) t = 0.0f;
-        if (t > 1.0f) t = 1.0f;
+        t = std::clamp(t, 0.0f, 1.0f);
 
-        float size = p.size0 + (p.size1 - p.size0) * t;
+        float baseSize = p.size0 + (p.size1 - p.size0) * t;
         XMFLOAT4 color = lerp4(p.c0, p.c1, t);
 
-        Billboard_DrawEx(
+        // ---- 屏幕对齐角度（Option A）----
+        float theta = p.rotRad;
+
+        // 世界速度 -> 视空间速度
+        XMVECTOR vW = XMLoadFloat3(&p.vel);
+        XMVECTOR vV = XMVector3TransformNormal(vW, view);
+        float vx = XMVectorGetX(vV);
+        float vy = XMVectorGetY(vV);
+        float vxy2 = vx * vx + vy * vy;
+
+        if (p.alignToVelocity && vxy2 > 1e-6f)
+        {
+            // 以“屏幕向上(+Y)”为 0°，向右(+X)为 +90°
+            theta = std::atan2(vy, vx) + p.rotationBias;
+            p.rotRad = theta; // 缓存，避免速度很小时抖动
+        }
+
+        // ---- Streak：沿速度方向拉长 ----
+        // 只用屏幕平面速度(vx,vy)来决定拉伸（朝向/远离相机时 streak 会自然变短）
+        float speedXY = (vxy2 > 1e-6f) ? std::sqrt(vxy2) : 0.0f;
+
+        float width = baseSize;
+        float length = baseSize;
+
+        if (p.streakMul > 0.0f)
+        {
+            float stretch = 1.0f + p.streakMul * speedXY;
+
+            // 可选：随时间衰减，让拖尾主要集中在初期（更像火花）
+            // stretch *= (1.0f - 0.7f * t);
+
+            if (p.streakMax < 1.0f) p.streakMax = 1.0f;
+            if (stretch > p.streakMax) stretch = p.streakMax;
+
+            length = baseSize * stretch;
+        }
+
+        // 注意：我们让贴图“竖直方向(+Y)”对齐速度方向，所以把“长边”放到 scale.y
+        Billboard_DrawExRot(
             p.texId,
             p.pos,
-            { size, size },
+            //{ width, length },
+            { length, width },
             color,
+            theta,
             p.uvScale,
-            p.uvOffset);
+            p.uvOffset
+        );
     }
 }
 
