@@ -240,7 +240,7 @@ void Game_Update(double elapsed_time)
     // Boss 更新
     BossUpdateContext bctx{};
     bctx.playerPos = Player_GetPosition();
-    //Boss_Update(elapsed_time, bctx);
+    Boss_Update(elapsed_time, bctx);
 
     // 5) 让底层 Camera 模块更新 view/proj（原来就有）
     Camera_Update(elapsed_time);

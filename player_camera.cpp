@@ -336,9 +336,9 @@ void PlayerCamera_Initialize(const PlayerCameraDesc& d)
     s_lockTuneHit.cameraHeightFar = s_lockTune.cameraHeightFar * 0.90f;
 
     s_lockTuneBlock = s_lockTune;
-    s_lockTuneBlock.baseRadius = std::max(0.1f, s_lockTune.baseRadius * 0.75f);
-    s_lockTuneBlock.cameraHeightNear = s_lockTune.cameraHeightNear * 0.90f;
-    s_lockTuneBlock.cameraHeightFar = s_lockTune.cameraHeightFar * 0.90f;
+    s_lockTuneBlock.baseRadius = std::max(0.1f, s_lockTune.baseRadius * 0.8f);
+    s_lockTuneBlock.cameraHeightNear = s_lockTune.cameraHeightNear * 0.80f;
+    s_lockTuneBlock.cameraHeightFar = s_lockTune.cameraHeightFar * 0.80f;
 
     s_lockTuneBlockAttack = s_lockTune;
     s_lockTuneBlockAttack.baseRadius = std::max(0.1f, s_lockTune.baseRadius * 0.8f);

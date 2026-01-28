@@ -10,6 +10,8 @@
 #include "player.h"
 #include "camera.h"
 #include "scene.h"
+#include "particle_system.h"
+#include <cstdlib>
 
 using namespace DirectX;
 
@@ -72,6 +74,17 @@ static float LengthSqXZ(const XMFLOAT3& a, const XMFLOAT3& b)
     return dx * dx + dz * dz;
 }
 
+static inline DirectX::XMFLOAT3 RotateY(const DirectX::XMFLOAT3& v, float rad)
+{
+    float c = std::cosf(rad);
+    float s = std::sinf(rad);
+    return { v.x * c + v.z * s, v.y, -v.x * s + v.z * c };
+}
+
+static inline float RandomSign45Deg()
+{
+    return (std::rand() & 1) ? DirectX::XM_PIDIV4 : -DirectX::XM_PIDIV4;
+}
 
 static void Boss_OnDeathStub()
 {
@@ -502,9 +515,11 @@ void Boss_OnIncomingHit(const HitParams& hit)
         vP += camForward * push;
         XMStoreFloat3(&p, vP);
     }
+    // ★ Blood：方向=受击者(Boss)前方 + 随机左右45°
+    XMFLOAT3 dir = RotateY(Boss_GetForward(), RandomSign45Deg());
+    ParticleSystem_Spawn(VfxId::BloodSlash, p, dir);
 
-
-    SpriteEffect_SpawnHit(p, { 2.2f, 2.2f });
+    //SpriteEffect_SpawnHit(p, { 2.2f, 2.2f });
 
     // Boss_ApplyDamage 里已经处理了死亡瞬间切 Dead
     if (s_dead) return;

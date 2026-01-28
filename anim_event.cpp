@@ -296,7 +296,7 @@ void AnimEventRegister()
         AddHitCamEvent(L"Hit_Medium");
         AddHitCamEvent(L"Hit_Heavy");
     }
-    // ★ Block_Attack：进入瞬间触发镜头演出 + 抖动（同一个 track 注册一次）
+    // ★ Block：进入瞬间触发镜头演出 + 抖动（同一个 track 注册一次）
     {
         AnimEventTrack t{};
         t.clipName = L"Block";
@@ -314,6 +314,18 @@ void AnimEventRegister()
             t.events.push_back(e);
         }
 
+        {
+            AnimEvent e{};
+            e.timeNormalized = 0.0f;
+            e.type = AnimEventType::CameraLockOnPreset;
+            e.cameraLockOnPreset.presetId = 2;       // 2 = Block
+            e.cameraLockOnPreset.blendInSec = 0.2f;
+            e.cameraLockOnPreset.holdSec = 0.3f;
+            e.cameraLockOnPreset.blendOutSec = 0.5f;
+            e.cameraLockOnPreset.priority = 150;
+            t.events.push_back(e);
+        }
+
         AnimEventRegistry_Register(t);
     }
 
@@ -328,9 +340,9 @@ void AnimEventRegister()
             e.timeNormalized = 0.0f;
             e.type = AnimEventType::CameraLockOnPreset;
             e.cameraLockOnPreset.presetId = 1;       // 1 = Block_Attack
-            e.cameraLockOnPreset.blendInSec = 0.2f;
-            e.cameraLockOnPreset.holdSec = 1.12f;
-            e.cameraLockOnPreset.blendOutSec = 0.5f;
+            e.cameraLockOnPreset.blendInSec = 0.6f;
+            e.cameraLockOnPreset.holdSec = 0.8f;
+            e.cameraLockOnPreset.blendOutSec = 0.3f;
             e.cameraLockOnPreset.priority = 200;
             t.events.push_back(e);
         }
@@ -340,8 +352,8 @@ void AnimEventRegister()
             AnimEvent e{};
             e.timeNormalized = 0.5f;
             e.type = AnimEventType::CameraShake;
-            e.cameraShake.magnitude = 0.58f;
-            e.cameraShake.durationSec = 1.12f;
+            e.cameraShake.magnitude = 0.38f;
+            e.cameraShake.durationSec = 0.6f;
             e.cameraShake.mode = CameraShakeMode::Both;
             e.cameraShake.priority = 100;
             t.events.push_back(e);

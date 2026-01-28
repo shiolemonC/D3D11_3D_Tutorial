@@ -11,6 +11,7 @@
 #include "sprite_effect.h"
 #include "scene.h"
 #include "particle_system.h"
+#include <cstdlib>
 using namespace DirectX;
 
 // ------------------ 内部状态 ------------------
@@ -67,6 +68,18 @@ static inline float AngleDelta(float a, float b) {
 }
 static inline float ExpLerp01(float k, float dt) {
     return 1.0f - expf(-k * dt);
+}
+
+static inline DirectX::XMFLOAT3 RotateY(const DirectX::XMFLOAT3& v, float rad)
+{
+    float c = std::cosf(rad);
+    float s = std::sinf(rad);
+    return { v.x * c + v.z * s, v.y, -v.x * s + v.z * c };
+}
+
+static inline float RandomSign45Deg()
+{
+    return (std::rand() & 1) ? DirectX::XM_PIDIV4 : -DirectX::XM_PIDIV4;
 }
 
 // プレイヤーの「体」用 AABB コライダーを作成
@@ -439,32 +452,32 @@ void Player_Update(double dt, const PlayerUpdateInput& in)
         PlayerSM_FireTrigger("Parry"); // ★ 新增：格挡/弹反 Trigger
     }
 
-#if defined(DEBUG) || defined(_DEBUG)
-    if (in.parry)
-    {
-        XMFLOAT3 p = Player_GetPosition();
-        p.y += 1.0f;
-
-        XMFLOAT3 dir = in.camForwardXZ;
-
-        // 绕Y轴 +90°：朝“右侧”
-        XMFLOAT3 dirRight = { dir.z, 0.0f, -dir.x };
-
-        ParticleSystem_Spawn(VfxId::SparkParry, p, dirRight);
-    }
-    if (in.attack)
-    {
-        XMFLOAT3 p = Player_GetPosition();
-        p.y += 1.0f;
-
-        XMFLOAT3 dir = in.camForwardXZ;
-
-        // 绕Y轴 -90°：朝“左侧”
-        XMFLOAT3 dirLeft = { -dir.z, 0.0f, dir.x };
-
-        ParticleSystem_Spawn(VfxId::BloodSlash, p, dirLeft);
-    }
-#endif
+//#if defined(DEBUG) || defined(_DEBUG)
+//    if (in.parry)
+//    {
+//        XMFLOAT3 p = Player_GetPosition();
+//        p.y += 1.0f;
+//
+//        XMFLOAT3 dir = in.camForwardXZ;
+//
+//        // 绕Y轴 +90°：朝“右侧”
+//        XMFLOAT3 dirRight = { dir.z, 0.0f, -dir.x };
+//
+//        ParticleSystem_Spawn(VfxId::SparkParry, p, dirRight);
+//    }
+//    if (in.attack)
+//    {
+//        XMFLOAT3 p = Player_GetPosition();
+//        p.y += 1.0f;
+//
+//        XMFLOAT3 dir = in.camForwardXZ;
+//
+//        // 绕Y轴 -90°：朝“左侧”
+//        XMFLOAT3 dirLeft = { -dir.z, 0.0f, dir.x };
+//
+//        ParticleSystem_Spawn(VfxId::BloodSlash, p, dirLeft);
+//    }
+//#endif
 
     // 2) 跑 FSM，决定当前播放的状态/动画
     PlayerSMOutput smOut = PlayerSM_Update(dt);
@@ -678,7 +691,8 @@ PlayerHitResponse Player_OnIncomingHit(const HitParams& hit)
 
         XMFLOAT3 p = Player_GetPosition();
         p.y += 1.0f;
-        SpriteEffect_SpawnParry(p, { 2.6f, 2.6f });
+        ParticleSystem_Spawn(VfxId::SparkParry, p, Player_GetForward());
+       // SpriteEffect_SpawnParry(p, { 2.6f, 2.6f });
 
         // ★ 关键：触发 FSM 的成功格挡分支
         PlayerSM_FireTrigger("ParrySuccess");
@@ -694,7 +708,11 @@ PlayerHitResponse Player_OnIncomingHit(const HitParams& hit)
 
     XMFLOAT3 p = hit.hitPos;
     p.y += 1.0f; // 让特效离地一点
-    SpriteEffect_SpawnHit(p, { 1.2f, 1.2f });
+    // ★ Blood：方向=受击者(玩家)前方 + 随机左右45°
+    XMFLOAT3 dir = RotateY(Player_GetForward(), RandomSign45Deg());
+    ParticleSystem_Spawn(VfxId::BloodSlash, p, dir);
+
+    //SpriteEffect_SpawnHit(p, { 1.2f, 1.2f });
 
     if (hit.knockbackDistance > 0.0f) {
         Player_StartKnockback(hit.knockbackDistance, hit.attackerPos, hit.victimPos);
