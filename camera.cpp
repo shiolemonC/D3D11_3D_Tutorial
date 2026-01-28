@@ -273,3 +273,43 @@ void Camera_SetPose(const XMFLOAT3& pos, const XMFLOAT3& front, const XMFLOAT3& 
 	XMStoreFloat3(&g_CameraUp, u);
 	XMStoreFloat3(&g_CameraRight, r);
 }
+
+bool Camera_ProjectWorldToScreenUV(const DirectX::XMFLOAT3& worldPos,
+	DirectX::XMFLOAT2& outUV,
+	float* outDepth01)
+{
+	using namespace DirectX;
+
+	const float w = (float)Direct3D_GetBackBufferWidth();
+	const float h = (float)Direct3D_GetBackBufferHeight();
+	if (w <= 1.0f || h <= 1.0f) return false;
+
+	XMMATRIX V = XMLoadFloat4x4(&g_CameraMatrix);
+	XMMATRIX P = XMLoadFloat4x4(&g_PerspectiveMatrix);
+	XMMATRIX VP = XMMatrixMultiply(V, P);
+
+	XMVECTOR p = XMVectorSet(worldPos.x, worldPos.y, worldPos.z, 1.0f);
+	XMVECTOR clip = XMVector4Transform(p, VP);
+
+	const float cw = XMVectorGetW(clip);
+	if (cw <= 1e-5f) return false; // 镜头后面
+
+	XMVECTOR ndc = XMVectorScale(clip, 1.0f / cw);
+	const float nx = XMVectorGetX(ndc);
+	const float ny = XMVectorGetY(ndc);
+	const float nz = XMVectorGetZ(ndc); // D3D: 0~1
+
+	// 可见性：z在[0,1]，且在屏幕范围内（你也可以放宽只判断z）
+	if (nz < 0.0f || nz > 1.0f) return false;
+
+	const float px = (nx * 0.5f + 0.5f) * w;
+	const float py = (-ny * 0.5f + 0.5f) * h;
+
+	outUV.x = px / w;
+	outUV.y = py / h;
+
+	if (outDepth01) *outDepth01 = nz;
+
+	// 允许略微出界（径向模糊中心在边缘也能用），这里不强行 return false
+	return true;
+}

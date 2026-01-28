@@ -31,6 +31,7 @@
 #include "ModelSkinned.h"
 #include "AnimatorRegistry.h"
 #include "BossAnimatorRegistry.h"
+#include "postfx.h"
 #pragma comment(lib, "xinput.lib")
 
 using namespace DirectX;
@@ -73,6 +74,7 @@ int APIENTRY WinMain(
 	//ModelSkinned_Initialize(Direct3D_GetDevice(), Direct3D_GetContext());
 	AnimatorRegistry_Initialize(Direct3D_GetDevice(), Direct3D_GetContext());
 	BossAnimatorRegistry_Initialize(Direct3D_GetDevice(), Direct3D_GetContext());
+	PostFx_Initialize(Direct3D_GetDevice(), Direct3D_GetContext());
 	//Game_Initialize();
 	Scene_Initialize();
 	Grid_Initialize(Direct3D_GetDevice(), Direct3D_GetContext());
@@ -177,16 +179,21 @@ int APIENTRY WinMain(
 				KeyLogger_Update(); // キーの状態を更新
 				//Game_Update(elapsed_time);
 				Scene_Update(elapsed_time);
+				PostFx_Update(elapsed_time);
 				SpriteAnim_Update(elapsed_time);
 				Fade_Update(elapsed_time);
 				
 				// ゲームの描画
-				Direct3D_Clear(); // Clear the screen
+				float clear_color[4] = { 0.1f, 0.2f, 0.6f, 1.0f };
+
+				PostFx_BeginScene(clear_color);
 
 				Sprite_Begin();
-
-				//Game_Draw();
 				Scene_Draw();
+				// 做后处理输出到 backbuffer
+				PostFx_ApplyToBackBuffer();
+				// 后处理之后再画 2D（Fade、DebugText）
+				Sprite_Begin();
 				Fade_Draw();
 
 				// フレーム計測数表示
@@ -232,6 +239,7 @@ int APIENTRY WinMain(
 	Shader3d_Finalize();
 	Shader_Finalize();
 	Sampler_Finalize();
+	PostFx_Finalize();
 	Direct3D_Finalize();
 
 	UninitAudio();

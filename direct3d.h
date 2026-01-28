@@ -44,4 +44,8 @@ void Direct3D_SetDepthEnable(bool enable);
 // Depth test ON, depth write OFF (recommended for transparent particles)
 void Direct3D_SetDepthTestNoWrite();
 
+ID3D11RenderTargetView* Direct3D_GetBackBufferRTV();
+ID3D11DepthStencilView* Direct3D_GetDepthStencilView();
+const D3D11_VIEWPORT& Direct3D_GetViewport();
+
 #endif // DIRECT3D_H

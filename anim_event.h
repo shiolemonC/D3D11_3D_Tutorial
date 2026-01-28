@@ -20,6 +20,8 @@ enum class AnimEventType {
     CameraLockOnPreset,
 
     CameraShake, // ★ 新增
+
+    PostFxRadialBlurStart,
 };
 
 // SpawnHitBox 的参数
@@ -62,6 +64,16 @@ struct AnimEvent_CameraShake
     int priority = 0;
 };
 
+struct AnimEventPostFxRadialBlurStart
+{
+    DirectX::XMFLOAT3 centerWorld;
+    float durationSec;
+    float strength;
+    float radius;
+    int   sampleCount;
+    float _pad[3];
+};
+
 // 通用事件
 struct AnimEvent 
 {
@@ -74,6 +86,8 @@ struct AnimEvent
     AnimEvent_CameraLockOnPreset cameraLockOnPreset; // ★ 新增
 
     AnimEvent_CameraShake cameraShake;
+
+    AnimEventPostFxRadialBlurStart postFxRadialBlurStart;
 };
 
 // 某个剪辑的事件轨道

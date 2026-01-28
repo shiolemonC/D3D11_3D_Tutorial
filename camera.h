@@ -36,6 +36,9 @@ void Camera_SetPose(const DirectX::XMFLOAT3& pos,
     const DirectX::XMFLOAT3& front,
     const DirectX::XMFLOAT3& up);
 
+bool Camera_ProjectWorldToScreenUV(const DirectX::XMFLOAT3& worldPos,
+    DirectX::XMFLOAT2& outUV,
+    float* outDepth01 = nullptr);
 
 
 #endif // !CAMERA_H

@@ -270,6 +270,21 @@ void Direct3D_SetDepthTestNoWrite()
 	g_pDeviceContext->OMSetDepthStencilState(g_pDepthStencilStateDepthTestNoWrite, NULL);
 }
 
+ID3D11RenderTargetView* Direct3D_GetBackBufferRTV()
+{
+	return g_pRenderTargetView;
+}
+
+ID3D11DepthStencilView* Direct3D_GetDepthStencilView()
+{
+	return g_pDepthStencilView;
+}
+
+const D3D11_VIEWPORT& Direct3D_GetViewport()
+{
+	return g_Viewport;
+}
+
 /* ‰æ—p†‚ğì‚é */
 
 bool configureBackBuffer()
