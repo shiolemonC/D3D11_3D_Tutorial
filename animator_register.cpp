@@ -334,6 +334,25 @@ void BossAnimRegister()
         BossAnimatorRegistry_Register(c);
     }
 
+    // 开场吼叫
+    {
+        AnimClipDesc c{};
+        c.name = L"Boss_Combo";
+        c.meshPath = L"resources/player_anim/cooked/mutant_roar.mesh";
+        c.skelPath = L"resources/player_anim/cooked/mutant_roar.skel";
+        c.animPath = L"resources/player_anim/cooked/mutant_roar.anim";
+        c.matPath =  L"resources/player_anim/cooked/mutant_roar.mat";
+        // 如需强制贴图（覆盖 .mat）：
+        c.baseColorOverride = L"resources/player_anim/cooked/Textures/Mutant_diffuse.png";
+
+        c.loop = false;  // 攻击不循环
+        c.playbackRate = 1.0f;
+        c.rmType = RootMotionType::UseZDelta; // 第一版不做冲刺 RootMotion
+        c.motionRootNameUTF8 = "root";
+
+        BossAnimatorRegistry_Register(c);
+    }
+
     // 受击动作
     {
         AnimClipDesc c{};

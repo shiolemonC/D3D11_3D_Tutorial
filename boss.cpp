@@ -100,7 +100,7 @@ static void Boss_ChangeState(BossState next, const wchar_t* clipName, bool useCr
     if (clipName && clipName[0]) {
         if (useCrossFade) {
             // 0.2 秒 ease_in_out 过渡
-            BossAnimatorRegistry_CrossFade(clipName, 0.2f, "ease_in_out");
+            BossAnimatorRegistry_CrossFade(clipName, 0.5f, "ease_in_out");
         }
         else {
             BossAnimatorRegistry_Play(clipName, nullptr);
@@ -224,11 +224,25 @@ void Boss_Initialize(const BossDesc& d)
 }
 
 DirectX::XMFLOAT3 Boss_GetPosition() { return s_bossPos; }
+
+static inline float Boss_GetNodeYawFix()
+{
+    return BossModelSkinned_GetNodeYawFix(); // 或者 BossAnimatorRegistry_GetNodeYawFix()
+}
+
+static inline float Boss_GetVisualYaw()
+{
+    return s_bossYaw + Boss_GetNodeYawFix();
+}
+
+
 DirectX::XMFLOAT3 Boss_GetForward()
 {
-    float sy = std::sinf(s_bossYaw);
-    float cy = std::cosf(s_bossYaw);
-    return DirectX::XMFLOAT3{ sy, 0.0f, cy }; // 和 Player_GetForward 同一约定
+    //float sy = std::sinf(s_bossYaw);
+    //float cy = std::cosf(s_bossYaw);
+    //return DirectX::XMFLOAT3{ sy, 0.0f, cy }; // 和 Player_GetForward 同一约定
+    const float yaw = Boss_GetVisualYaw();
+    return { std::sinf(yaw), 0.0f, std::cosf(yaw) };
 }
 float Boss_GetYaw() { return s_bossYaw; }
 
@@ -368,16 +382,21 @@ void Boss_Update(double dt, const BossUpdateContext& ctx)
             s_bossPos.x += dx * kBossMoveSpeed * float(dt);
             s_bossPos.z += dz * kBossMoveSpeed * float(dt);
 
-            s_bossYaw = std::atan2(dx, dz);
+            const float yawToPlayer = std::atan2(dx, dz);
+            s_bossYaw = yawToPlayer - Boss_GetNodeYawFix();
+            //s_bossYaw = std::atan2(dx, dz);
         }
     }
-    else if (s_state == BossState::Idle || s_state == BossState::Attack || s_state == BossState::Hit) {
+    else// if (s_state == BossState::Idle || s_state == BossState::Attack || s_state == BossState::Hit) {
+    {
         // Idle / Attack 时也可以让 Boss 面向玩家（看你喜好）
         float dx = ctx.playerPos.x - s_bossPos.x;
         float dz = ctx.playerPos.z - s_bossPos.z;
         float len = std::sqrt(dx * dx + dz * dz);
         if (len > 1e-3f) {
-            s_bossYaw = std::atan2(dx, dz);
+            const float yawToPlayer = std::atan2(dx, dz);
+            s_bossYaw = yawToPlayer - Boss_GetNodeYawFix();
+            //s_bossYaw = std::atan2(dx, dz);
         }
     }
 

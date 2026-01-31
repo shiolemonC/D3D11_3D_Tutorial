@@ -96,22 +96,6 @@ void AnimEventRegister()
             atk.events.push_back(e);
         }
 
-        //{
-        //    AnimEvent e{};
-        //    e.timeNormalized = 0.468f;               // 攻击动画的 30% 处出刀
-        //    e.type = AnimEventType::PostFxRadialBlurStart;
-
-        //    // 注意：这里我们把 centerWorld 当成 “boss局部偏移” 来用（更好调）
-        //    // x=右, y=上, z=前
-        //    e.postFxRadialBlurStart.centerWorld = DirectX::XMFLOAT3(0.0f, 1.8f, 0.6f);
-
-        //    e.postFxRadialBlurStart.durationSec = 1.45f;
-        //    e.postFxRadialBlurStart.strength = 1.75f;
-        //    e.postFxRadialBlurStart.radius = 0.10f;
-        //    e.postFxRadialBlurStart.sampleCount = 12;
-
-        //    atk.events.push_back(e);
-        //}
 
 
         AnimEventRegistry_Register(atk);
@@ -178,6 +162,30 @@ void AnimEventRegister()
 
         bossAtk.events.push_back(e);
         AnimEventRegistry_Register(bossAtk);
+    }
+
+    // ★ 在这里加 Boss 攻击事件
+    {
+        AnimEventTrack bossRoar{};
+        bossRoar.clipName = L"Boss_Roar";   // 必须和 BossAnimatorRegistry 的 clip 名字一致
+
+        {
+            AnimEvent e{};
+            e.timeNormalized = 0.468f;               
+            e.type = AnimEventType::PostFxRadialBlurStart;
+
+            // 注意：这里我们把 centerWorld 当成 “boss局部偏移” 来用（更好调）
+            // x=右, y=上, z=前
+            e.postFxRadialBlurStart.centerWorld = DirectX::XMFLOAT3(0.0f, 1.8f, 0.6f);
+
+            e.postFxRadialBlurStart.durationSec = 1.45f;
+            e.postFxRadialBlurStart.strength = 1.75f;
+            e.postFxRadialBlurStart.radius = 0.10f;
+            e.postFxRadialBlurStart.sampleCount = 12;
+
+            bossRoar.events.push_back(e);
+        }
+        AnimEventRegistry_Register(bossRoar);
     }
 
     // ★ Boss_Combo：更强攻击

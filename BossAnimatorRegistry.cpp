@@ -370,7 +370,7 @@ void BossAnimatorRegistry_Update(double dtSec)
             XMFLOAT4X4 m;
             XMStoreFloat4x4(&m, gBaseWorld);
 
-            XMFLOAT3 fwd = { m._13, m._23, m._33 };
+            XMFLOAT3 fwd = { m._31, m._32, m._33 };
             // 可选：normalize（如果你 baseWorld 可能带缩放）
             const float len = std::sqrt(fwd.x * fwd.x + fwd.y * fwd.y + fwd.z * fwd.z);
             if (len > 1e-6f) { fwd.x /= len; fwd.y /= len; fwd.z /= len; }
