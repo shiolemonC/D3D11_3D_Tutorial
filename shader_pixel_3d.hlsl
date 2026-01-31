@@ -79,6 +79,8 @@ float4 main(PS_IN pi) : SV_TARGET
     
     float rim = 1.0f - max(dot(normalW.xyz, toEye), 0.0f);
     rim = pow(rim, 3.2f);
+    float3 rimColor = float3(0.1f, 0.1f, 0.1f);
+    color += rimColor * rim * 0.6f;
     // color += float3(rim, rim, rim);
     
     // point light calculation

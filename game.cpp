@@ -310,10 +310,21 @@ void Game_Draw()
     //========================
     ShadowMap_BindForFieldPS();
 
-    Light_SetAmbient({ 1.0f, 1.0f, 1.0f });
-    Light_SetDirectionWorld({ 1.0f, -0.6f, 0.0f, 0.0f }, { 1.0f, 0.0f, 0.0f, 1.0f });
-    Light_SetSpecularWorld(Camera_GetPosition(), 2.0f, { 0.1f, 0.1f, 0.1f, 1.0f });
-    Light_SetPointCount(0); // 即使没有点光源，也把 b4 绑定上
+    // Base lighting
+// 方向光：建议先归一化（至少别让强度随向量长度变）
+    DirectX::XMFLOAT4 dir = { 1.0f, -0.6f, 0.0f, 0.0f };
+
+    // 1) 环境光：从 1.0 降到 0.06~0.20 区间（越低对比越强）
+    Light_SetAmbient({ 0.3f, 0.3f, 0.3f });
+
+    // 2) 方向光颜色：别用黑；先用接近白或略偏暖
+    Light_SetDirectionWorld(dir, { 1.0f, 0.98f, 0.95f, 1.0f });
+
+    // 3) 高光：你现在传 2.0 会让高光很“糊一片”，更容易显平
+    //    先试 32~128（越大越锐利）
+    Light_SetSpecularWorld(Camera_GetPosition(), 5.0f, { 0.20f, 0.20f, 0.20f, 1.0f });
+
+    Light_SetPointCount(0);
 
     MeshField_Draw();
 

@@ -143,7 +143,8 @@ float4 main(PS_IN pi) : SV_TARGET
     // Ambient light (not shadowed in v1)
     //-----------------------------
     float3 ambient = material_color * ambient_color.rgb;
-
+    ambient *= lerp(1.0f, vis, shadowParams.y * 0.6f);
+    
     //-----------------------------
     // Specular (shadowed together with directional diffuse)
     //-----------------------------
