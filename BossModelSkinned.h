@@ -11,6 +11,7 @@ struct BossModelSkinnedDesc {
     std::wstring animPath;                 // 可选：.anim（没有也能用 bind pose）
     std::wstring matPath;                  // 可选：.mat（如果不指定，默认 = mesh 同名 .mat）
     std::wstring baseColorTexOverride;     // 可选：强制覆盖一张漫反射贴图
+    std::wstring normalTexOverride;    // 可空：Normal Map
 };
 
 // 初始化：传入 D3D 设备与上下文（与 Shader3d 相同）

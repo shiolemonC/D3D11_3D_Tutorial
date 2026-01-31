@@ -242,6 +242,7 @@ bool AnimatorRegistry_Play(const std::wstring& name,
     d.animPath = clip.animPath;
     d.matPath = clip.matPath;
     d.baseColorTexOverride = clip.baseColorOverride;
+    d.normalTexOverride = clip.normalOverride;
 
     // 目前为稳妥：统一全量加载
     if (!ModelSkinned_Load(d)) return false;

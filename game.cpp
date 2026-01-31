@@ -312,19 +312,48 @@ void Game_Draw()
 
     // Base lighting
 // 方向光：建议先归一化（至少别让强度随向量长度变）
-    DirectX::XMFLOAT4 dir = { 1.0f, -0.6f, 0.0f, 0.0f };
+    //DirectX::XMFLOAT4 dir = { 1.0f, -0.6f, 0.0f, 0.0f };
 
-    // 1) 环境光：从 1.0 降到 0.06~0.20 区间（越低对比越强）
-    Light_SetAmbient({ 0.3f, 0.3f, 0.3f });
+    //// 1) 环境光：从 1.0 降到 0.06~0.20 区间（越低对比越强）
+    //Light_SetAmbient({ 0.3f, 0.3f, 0.3f });
 
-    // 2) 方向光颜色：别用黑；先用接近白或略偏暖
-    Light_SetDirectionWorld(dir, { 1.0f, 0.98f, 0.95f, 1.0f });
+    //// 2) 方向光颜色：别用黑；先用接近白或略偏暖
+    //Light_SetDirectionWorld(dir, { 1.0f, 0.98f, 0.95f, 1.0f });
 
-    // 3) 高光：你现在传 2.0 会让高光很“糊一片”，更容易显平
-    //    先试 32~128（越大越锐利）
-    Light_SetSpecularWorld(Camera_GetPosition(), 5.0f, { 0.20f, 0.20f, 0.20f, 1.0f });
+    //// 3) 高光：你现在传 2.0 会让高光很“糊一片”，更容易显平
+    ////    先试 32~128（越大越锐利）
+    //Light_SetSpecularWorld(Camera_GetPosition(), 5.0f, { 0.20f, 0.20f, 0.20f, 1.0f });
+// 先把环境光压低一点，让点光/方向光更“立体”
+    Light_SetAmbient({ 0.05f, 0.05f, 0.05f });
 
+    Light_SetDirectionWorld({ 1.0f, -0.6f, 0.0f, 0.0f }, { 0.7,0.7,0.7,0.7 });
+
+    // 高光强一点更容易看出 normal 细节
+    Light_SetSpecularWorld(Camera_GetPosition(), 2.0f, { 0.20f, 0.20f, 0.20f, 1.0f });
+
+    // ---- 关键：点光源数量改成 3（最多 4）----
     Light_SetPointCount(0);
+
+    //XMFLOAT3 boss = Boss_GetPosition();
+    //XMFLOAT3 player = Player_GetPosition();
+
+    //// Key light：偏暖，从右上打
+    //Light_SetPointWorld(0,
+    //    { boss.x + 2.0f, boss.y + 1.8f, boss.z + 1.5f },
+    //    7.0f,
+    //    { 1.0f, 0.85f, 0.65f});
+
+    //// Fill light：偏冷，从左前补
+    //Light_SetPointWorld(1,
+    //    { boss.x - 2.2f, boss.y + 1.2f, boss.z + 2.0f },
+    //    7.0f,
+    //    { 0.65f, 0.80f, 1.0f});
+
+    //// Back/Rim light：从后上打轮廓（很适合看 normal）
+    //Light_SetPointWorld(2,
+    //    { boss.x + 0.0f, boss.y + 2.2f, boss.z - 2.5f },
+    //    8.0f,
+    //    { 0.9f, 0.9f, 1.0f});
 
     MeshField_Draw();
 

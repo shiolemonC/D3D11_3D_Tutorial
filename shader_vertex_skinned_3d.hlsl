@@ -41,6 +41,8 @@ struct VS_OUT
     float4 posH : SV_Position; // クリップ空間
     float4 posW : POSITION0; // ワールド座標（PS 用于光照/視線ベクトル等）
     float4 normalW : NORMAL0; // ワールド法線（w=0）
+    
+    float4 tangentW : TANGENT0;
     float4 color : COLOR0; // 顶点色；蒙皮网格没有顶点色，这里填白
     float2 uv : TEXCOORD0;
 };
@@ -62,6 +64,8 @@ VS_OUT main(VS_IN vi)
 
     float4 skinnedPos = 0.0.xxxx; // 累加位置
     float3 skinnedNrm = 0.0.xxx; // 累加法线
+    float3 skinnedTan = 0.0.xxx; // ★新增：累加 tangent
+
 
     // 骨索引（uint4）直接用
     uint bi0 = vi.idx4.x;
@@ -75,24 +79,28 @@ VS_OUT main(VS_IN vi)
         float4x4 M = Bones[bi0];
         skinnedPos += mul(float4(vi.posL, 1.0f), M) * w.x;
         skinnedNrm += mul(vi.nrmL, Upper3x3(M)) * w.x;
+        skinnedTan += mul(vi.tangL.xyz, Upper3x3(M)) * w.x;
     }
     if (w.y > 0.0f)
     {
         float4x4 M = Bones[bi1];
         skinnedPos += mul(float4(vi.posL, 1.0f), M) * w.y;
         skinnedNrm += mul(vi.nrmL, Upper3x3(M)) * w.y;
+        skinnedTan += mul(vi.tangL.xyz, Upper3x3(M)) * w.y;
     }
     if (w.z > 0.0f)
     {
         float4x4 M = Bones[bi2];
         skinnedPos += mul(float4(vi.posL, 1.0f), M) * w.z;
         skinnedNrm += mul(vi.nrmL, Upper3x3(M)) * w.z;
+        skinnedTan += mul(vi.tangL.xyz, Upper3x3(M)) * w.z;
     }
     if (w.w > 0.0f)
     {
         float4x4 M = Bones[bi3];
         skinnedPos += mul(float4(vi.posL, 1.0f), M) * w.w;
         skinnedNrm += mul(vi.nrmL, Upper3x3(M)) * w.w;
+        skinnedTan += mul(vi.tangL.xyz, Upper3x3(M)) * w.w;
     }
 
     // ------ 2) 转到世界/裁剪空间（光照交给 PS） ------
@@ -107,6 +115,9 @@ VS_OUT main(VS_IN vi)
     float3 nW = mul(float4(normalize(skinnedNrm), 0.0f), world).xyz;
     o.normalW = float4(normalize(nW), 0.0f);
 
+    float3 tW = mul(float4(normalize(skinnedTan), 0.0f), world).xyz;
+    o.tangentW = float4(normalize(tW), vi.tangL.w); // ★新增：w 存 handedness
+    
     // 颜色（你的蒙皮网格没有顶点色，这里给 1）
     o.color = 1.0.xxxx;
 

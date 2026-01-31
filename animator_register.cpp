@@ -26,6 +26,7 @@ void AnimRegister()
         c.matPath  = L"resources/player_anim/cooked/sword_idle.mat";
         // 如需强制贴图（覆盖 .mat）：
         c.baseColorOverride = L"resources/player_anim/textures/Paladin_diffuse.png";
+        c.normalOverride = L"resources/player_anim/textures/Paladin_normal.png";
 
         c.loop = true;
         c.playbackRate = 1.0f;
@@ -45,6 +46,8 @@ void AnimRegister()
         c.matPath =  L"resources/player_anim/cooked/sword_run_60.mat";
         // 如需强制贴图（覆盖 .mat）：
         c.baseColorOverride = L"resources/player_anim/cooked/Textures/Paladin_diffuse.png";
+        c.normalOverride = L"resources/player_anim/textures/Paladin_normal.png";
+
         c.loop = true;
         c.playbackRate = 1.0f;
         c.rmType = RootMotionType::None;
@@ -63,6 +66,8 @@ void AnimRegister()
         c.matPath =  L"resources/player_anim/cooked/sword_attack.mat";
         // 如需强制贴图（覆盖 .mat）：
         c.baseColorOverride = L"resources/player_anim/cooked/Textures/Paladin_diffuse.png";
+        c.normalOverride = L"resources/player_anim/textures/Paladin_normal.png";
+
         c.loop = false;
         c.playbackRate = 1.0f;
         c.rmType = RootMotionType::UseZDelta;
@@ -83,6 +88,8 @@ void AnimRegister()
         c.matPath =  L"resources/player_anim/cooked/sword_attack_2.mat";
         // 如需强制贴图（覆盖 .mat）：
         c.baseColorOverride = L"resources/player_anim/cooked/Textures/Paladin_diffuse.png";
+        c.normalOverride = L"resources/player_anim/textures/Paladin_normal.png";
+
         c.loop = false;
         c.playbackRate = 1.0f;
         c.rmType = RootMotionType::UseZDelta;
@@ -103,6 +110,8 @@ void AnimRegister()
         c.matPath = L"resources/player_anim/cooked/sword_block_attack.mat";
         // 如需强制贴图（覆盖 .mat）：
         c.baseColorOverride = L"resources/player_anim/cooked/Textures/Paladin_diffuse.png";
+        c.normalOverride = L"resources/player_anim/textures/Paladin_normal.png";
+
         c.loop = false;
         c.playbackRate = 1.0f;
         c.rmType = RootMotionType::UseZDelta;
@@ -122,6 +131,8 @@ void AnimRegister()
         c.animPath = L"resources/player_anim/cooked/sword_block.anim";
         c.matPath =  L"resources/player_anim/cooked/sword_block.mat";
         c.baseColorOverride = L"resources/player_anim/cooked/Textures/Paladin_diffuse.png";
+        c.normalOverride = L"resources/player_anim/textures/Paladin_normal.png";
+
         c.loop = false;
         c.playbackRate = 1.0f;
         c.rmType = RootMotionType::UseZDelta;
@@ -142,6 +153,8 @@ void AnimRegister()
         c.matPath =  L"resources/player_anim/cooked/sword_parry.mat";
         // 如需强制贴图（覆盖 .mat）：
         c.baseColorOverride = L"resources/player_anim/cooked/Textures/Paladin_diffuse.png";
+        c.normalOverride = L"resources/player_anim/textures/Paladin_normal.png";
+
         c.loop = false;
         c.playbackRate = 1.0f;
         c.rmType = RootMotionType::UseZDelta;
@@ -162,6 +175,8 @@ void AnimRegister()
         c.matPath =  L"resources/player_anim/cooked/sword_block_attack.mat";
         // 如需强制贴图（覆盖 .mat）：
         c.baseColorOverride = L"resources/player_anim/cooked/Textures/Paladin_diffuse.png";
+        c.normalOverride = L"resources/player_anim/textures/Paladin_normal.png";
+
         c.loop = false;
         c.playbackRate = 1.0f;
         c.rmType = RootMotionType::UseZDelta;
@@ -182,6 +197,8 @@ void AnimRegister()
         c.matPath =  L"resources/player_anim/cooked/sword_roll.mat";
         // 如需强制贴图（覆盖 .mat）：
         c.baseColorOverride = L"resources/player_anim/cooked/Textures/Paladin_diffuse.png";
+        c.normalOverride = L"resources/player_anim/textures/Paladin_normal.png";
+
         c.loop = false;
         c.playbackRate = 1.0f;
         c.rmType = RootMotionType::UseZDelta;
@@ -202,6 +219,8 @@ void AnimRegister()
         c.matPath =  L"resources/player_anim/cooked/sword_hit_light.mat";
         // 如需强制贴图（覆盖 .mat）：
         c.baseColorOverride = L"resources/player_anim/cooked/Textures/Paladin_diffuse.png";
+        c.normalOverride = L"resources/player_anim/textures/Paladin_normal.png";
+
         c.loop = false;
         c.playbackRate = 1.0f;
         c.rmType = RootMotionType::UseZDelta;
@@ -219,6 +238,7 @@ void AnimRegister()
         c.matPath = L"resources/player_anim/cooked/player_attack.mat";
         // 如需强制贴图（覆盖 .mat）：
         c.baseColorOverride = L"resources/player_anim/cooked/Textures/Mutant_diffuse.png";
+        c.normalOverride = L"resources/player_anim/cooked/Textures/Mutant_normal.png";
         c.loop = false;
         c.playbackRate = 1.0f;
         c.rmType = RootMotionType::UseZDelta;
@@ -236,6 +256,7 @@ void AnimRegister()
         c.matPath = L"resources/player_anim/cooked/player_attack.mat";
         // 如需强制贴图（覆盖 .mat）：
         c.baseColorOverride = L"resources/player_anim/cooked/Textures/Mutant_diffuse.png";
+        c.normalOverride = L"resources/player_anim/cooked/Textures/Mutant_normal.png";
         c.loop = false;
         c.playbackRate = 1.0f;
         c.rmType = RootMotionType::UseZDelta;
@@ -268,7 +289,7 @@ void BossAnimRegister()
         c.animPath = L"resources/player_anim/cooked/mutant_idle.anim";
         c.matPath =  L"resources/player_anim/cooked/mutant_idle.mat";
         c.baseColorOverride = L"resources/player_anim/cooked/Textures/Mutant_diffuse.png";
-
+        c.normalOverride = L"resources/player_anim/cooked/Textures/Mutant_normal.png";
         c.loop = true;
         c.playbackRate = 1.0f;
         c.rmType = RootMotionType::None;   // Idle 不需要 RootMotion
@@ -287,7 +308,7 @@ void BossAnimRegister()
         c.matPath =  L"resources/player_anim/cooked/mutant_run.mat";
         // 如需强制贴图（覆盖 .mat）：
         c.baseColorOverride = L"resources/player_anim/cooked/Textures/Mutant_diffuse.png";
-
+        c.normalOverride = L"resources/player_anim/cooked/Textures/Mutant_normal.png";
         c.loop = true;
         c.playbackRate = 1.0f;
         c.rmType = RootMotionType::None;   // 先用逻辑位移追踪
@@ -306,7 +327,7 @@ void BossAnimRegister()
         c.matPath =  L"resources/player_anim/cooked/mutant_swipe.mat";
         // 如需强制贴图（覆盖 .mat）：
         c.baseColorOverride = L"resources/player_anim/cooked/Textures/Mutant_diffuse.png";
-
+        c.normalOverride = L"resources/player_anim/cooked/Textures/Mutant_normal.png";
         c.loop = false;  // 攻击不循环
         c.playbackRate = 1.0f;
         c.rmType = RootMotionType::UseZDelta; // 第一版不做冲刺 RootMotion
@@ -325,7 +346,7 @@ void BossAnimRegister()
         c.matPath  = L"resources/player_anim/cooked/mutant_combo.mat";
         // 如需强制贴图（覆盖 .mat）：
         c.baseColorOverride = L"resources/player_anim/cooked/Textures/Mutant_diffuse.png";
-
+        c.normalOverride = L"resources/player_anim/cooked/Textures/Mutant_normal.png";
         c.loop = false;  // 攻击不循环
         c.playbackRate = 1.0f;
         c.rmType = RootMotionType::UseZDelta; // 第一版不做冲刺 RootMotion
@@ -344,7 +365,7 @@ void BossAnimRegister()
         c.matPath =  L"resources/player_anim/cooked/mutant_roar.mat";
         // 如需强制贴图（覆盖 .mat）：
         c.baseColorOverride = L"resources/player_anim/cooked/Textures/Mutant_diffuse.png";
-
+        c.normalOverride = L"resources/player_anim/cooked/Textures/Mutant_normal.png";
         c.loop = false;  // 攻击不循环
         c.playbackRate = 1.0f;
         c.rmType = RootMotionType::UseZDelta; // 第一版不做冲刺 RootMotion
@@ -363,7 +384,7 @@ void BossAnimRegister()
         c.matPath =  L"resources/player_anim/cooked/mutant_hit.mat";
         // 如需强制贴图（覆盖 .mat）：
         c.baseColorOverride = L"resources/player_anim/cooked/Textures/Mutant_diffuse.png";
-
+        c.normalOverride = L"resources/player_anim/cooked/Textures/Mutant_normal.png";
         c.loop = false;  // 攻击不循环
         c.playbackRate = 1.0f;
         c.rmType = RootMotionType::UseZDelta; // 第一版不做冲刺 RootMotion
@@ -382,7 +403,7 @@ void BossAnimRegister()
         c.matPath  = L"resources/player_anim/cooked/mutant_die.mat";
         // 如需强制贴图（覆盖 .mat）：
         c.baseColorOverride = L"resources/player_anim/cooked/Textures/Mutant_diffuse.png";
-
+        c.normalOverride = L"resources/player_anim/cooked/Textures/Mutant_normal.png";
         c.loop = false;  // 攻击不循环
         c.playbackRate = 1.0f;
         c.rmType = RootMotionType::UseZDelta; // 第一版不做冲刺 RootMotion

@@ -20,6 +20,7 @@ struct AnimClipDesc {
     std::wstring animPath;             // .anim（可空）
     std::wstring matPath;              // .mat（可空）
     std::wstring baseColorOverride;    // 可空：强制底色贴图
+    std::wstring normalOverride;       // 可空：强制法线贴图（Normal Map）
 
     // 默认播放参数（可在 Play 时覆盖）
     bool          loop = true;

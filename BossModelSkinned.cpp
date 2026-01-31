@@ -30,6 +30,7 @@ static UINT                  gIndexCount = 0;
 static DXGI_FORMAT           gIndexFormat = DXGI_FORMAT_R16_UINT;
 
 static ID3D11VertexShader* gVS = nullptr;
+static ID3D11PixelShader* gPSSkinnedNM = nullptr;
 static ID3D11InputLayout* gIL = nullptr;
 
 // b5：骨矩阵数组
@@ -52,6 +53,7 @@ static XMMATRIX              gWorld = XMMatrixIdentity();
 
 // 贴图
 static int                   gTexId = -1;
+static int gNormalTexId = -1; // ★新增
 
 // 骨架
 struct Joint {
@@ -264,6 +266,19 @@ static bool LoadMeshV1(const std::wstring& meshPathW) {
     // VS + IL
     std::vector<uint8_t> vsbin;
     if (!ReadAll(L"shader_vertex_skinned_3d.cso", vsbin)) return false;
+
+    if (!gPSSkinnedNM)
+    {
+        std::vector<uint8_t> psbin;
+        ReadAll(L"shader_pixel_3d_nm.cso", psbin);
+
+        HRESULT hr = gDev->CreatePixelShader(
+            psbin.data(), psbin.size(), nullptr, &gPSSkinnedNM);
+
+        if (FAILED(hr)) {
+            // 这里按你项目风格打 log
+        }
+    }
 
     SAFE_RELEASE(gVS);
     if (FAILED(gDev->CreateVertexShader(vsbin.data(), vsbin.size(), nullptr, &gVS))) return false;
@@ -526,6 +541,12 @@ bool BossModelSkinned_Load(const BossModelSkinnedDesc& d) {
         }
     }
 
+    // normal：只走 override（方案A）
+    gNormalTexId = -1;
+    if (!d.normalTexOverride.empty()) {
+        gNormalTexId = Texture_Load(d.normalTexOverride.c_str());
+    }
+
     gWorld = XMMatrixIdentity();
     gTime = 0.0f;
     return true;
@@ -536,6 +557,7 @@ void BossModelSkinned_Finalize() {
     SAFE_RELEASE(gCBAmbient);
     SAFE_RELEASE(gCBBones);
     SAFE_RELEASE(gVB);
+    SAFE_RELEASE(gPSSkinnedNM);
     SAFE_RELEASE(gIB);
     SAFE_RELEASE(gVS);
     SAFE_RELEASE(gIL);
@@ -547,6 +569,7 @@ void BossModelSkinned_Finalize() {
 
     gIndexCount = 0;
     gTexId = -1;
+    gNormalTexId = -1;
     gMotionRootIndex = -1;
 }
 
@@ -854,7 +877,8 @@ void BossModelSkinned_Draw() {
     gCtx->VSSetConstantBuffers(5, 1, &gCBBones);
 
     // 纹理/采样
-    if (gTexId >= 0) Texture_SetTexture(gTexId);
+    if (gTexId >= 0) Texture_SetTexture(gTexId, 0);
+    if (gNormalTexId >= 0)Texture_SetTexture(gNormalTexId, 1); // ★新增：t1
     Sampler_SetFillterAnisotropic();
 
     // Draw
@@ -863,14 +887,29 @@ void BossModelSkinned_Draw() {
     gCtx->IASetIndexBuffer(gIB, gIndexFormat, 0);
     gCtx->IASetPrimitiveTopology(D3D11_PRIMITIVE_TOPOLOGY_TRIANGLELIST);
 
-    // 在 shadow pass 中，强制保证 PS 为空（任何人绑回去都没用）
-    if (Shader3d_IsShadowPass())   // 你加个getter返回 g_isShadowPass
+    // ---- (A) 先保存当前 PS（Shader3d_Begin() 绑的普通PS）----
+    ID3D11PixelShader* prevPS = nullptr;
+    gCtx->PSGetShader(&prevPS, nullptr, nullptr);  // 注意：会 AddRef，需要 Release
+
+    // ---- (B) 非 shadow pass：切到“Skinned 专用 NM PS”----
+    if (!Shader3d_IsShadowPass())
     {
-        ID3D11DeviceContext* ctx = Direct3D_GetContext();
-        ctx->PSSetShader(nullptr, nullptr, 0);
+        if (gPSSkinnedNM) {
+            gCtx->PSSetShader(gPSSkinnedNM, nullptr, 0);
+        }
+    }
+    else
+    {
+        // shadow pass：强制 PS 为空
+        gCtx->PSSetShader(nullptr, nullptr, 0);
     }
 
+    // ---- Draw ----
     gCtx->DrawIndexed(gIndexCount, 0, 0);
+
+    // ---- (C) 恢复原来的 PS，避免影响后续普通模型 ----
+    gCtx->PSSetShader(prevPS, nullptr, 0);
+    if (prevPS) prevPS->Release();
 }
 
 // ---------------------------------------------------------

@@ -181,6 +181,7 @@ bool BossAnimatorRegistry_Play(const std::wstring& name,
     d.animPath = clip.animPath;
     d.matPath = clip.matPath;
     d.baseColorTexOverride = clip.baseColorOverride;
+    d.normalTexOverride = clip.normalOverride; // ★新增
 
     // 目前为稳妥：统一全量加载
     if (!BossModelSkinned_Load(d)) return false;

@@ -105,16 +105,20 @@ void Texture_AllRelease()
 
 void Texture_SetTexture(int texid, int slot)
 {
-	// テクスチャ設定
-	if (texid < 0)
+	ID3D11ShaderResourceView* srv = nullptr;
+
+	if (texid >= 0)
 	{
-		return; // 管理番号は-1の場合
+		g_SetTextureIndex = texid;
+		srv = g_Textures[texid].pTextureView;
 	}
-	// if (g_SetTextureIndex == texid) return;
+	else
+	{
+		g_SetTextureIndex = -1;
+		srv = nullptr; // ★关键：清空
+	}
 
-	g_SetTextureIndex = texid;
-
-	g_pContext->PSSetShaderResources(slot, 1, &g_Textures[texid].pTextureView);
+	g_pContext->PSSetShaderResources(slot, 1, &srv);
 }
 
 unsigned int Texture_Width(int texid)
