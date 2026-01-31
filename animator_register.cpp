@@ -337,7 +337,7 @@ void BossAnimRegister()
     // 开场吼叫
     {
         AnimClipDesc c{};
-        c.name = L"Boss_Combo";
+        c.name = L"Boss_Roar";
         c.meshPath = L"resources/player_anim/cooked/mutant_roar.mesh";
         c.skelPath = L"resources/player_anim/cooked/mutant_roar.skel";
         c.animPath = L"resources/player_anim/cooked/mutant_roar.anim";

@@ -171,16 +171,16 @@ void AnimEventRegister()
 
         {
             AnimEvent e{};
-            e.timeNormalized = 0.468f;               
+            e.timeNormalized = 0.33f;               
             e.type = AnimEventType::PostFxRadialBlurStart;
 
             // 注意：这里我们把 centerWorld 当成 “boss局部偏移” 来用（更好调）
             // x=右, y=上, z=前
             e.postFxRadialBlurStart.centerWorld = DirectX::XMFLOAT3(0.0f, 1.8f, 0.6f);
 
-            e.postFxRadialBlurStart.durationSec = 1.45f;
+            e.postFxRadialBlurStart.durationSec = 2.45f;
             e.postFxRadialBlurStart.strength = 1.75f;
-            e.postFxRadialBlurStart.radius = 0.10f;
+            e.postFxRadialBlurStart.radius = 0.40f;
             e.postFxRadialBlurStart.sampleCount = 12;
 
             bossRoar.events.push_back(e);

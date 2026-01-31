@@ -65,3 +65,5 @@ void PlayerCamera_PushLockOnPreset(int presetId,
 
 void PlayerCamera_PushShake(float magnitude, float durationSec, CameraShakeMode mode,
     float blendInSec = 0.0f, int priority = 0);
+
+void PlayerCamera_EnsureLockOn();

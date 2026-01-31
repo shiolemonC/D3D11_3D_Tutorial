@@ -611,3 +611,24 @@ void PlayerCamera_PushShake(float magnitude, float durationSec, CameraShakeMode 
     // 任何模式都允许抖动叠加（Free/LockOn/transition 都可共存）
     CameraShake_Push(magnitude, durationSec, mode, priority);
 }
+
+void PlayerCamera_EnsureLockOn()
+{
+    // 已经是 LockOn 就不用动
+    if (s_mode == PlayerCameraMode::LockOn) return;
+
+    // 过渡中就别打断（你想强制打断也可以，我下面给可选版）
+    if (s_transition.active) return;
+
+    // Boss 不可锁就不切
+    if (!Boss_CanBeLockedOn()) return;
+
+    // Free -> LockOn（复用你 Update 里 toggle 的逻辑）
+    CameraRig from{ s_eye, s_target };
+    CameraRig to = ComputeLockOnRigImmediate(s_lockTune);
+    StartTransition(from, to, PlayerCameraMode::Free, PlayerCameraMode::LockOn);
+    s_mode = PlayerCameraMode::LockOn;
+
+    // ★ 切模式时清空演出
+    s_preset.active = false;
+}

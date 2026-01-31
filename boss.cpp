@@ -12,6 +12,7 @@
 #include "scene.h"
 #include "particle_system.h"
 #include <cstdlib>
+#include "player_camera.h"
 
 using namespace DirectX;
 
@@ -40,9 +41,15 @@ static int s_hp = 300;
 static BossOnDeathFn s_onDeath = nullptr;
 static bool s_dead = false;
 
+// ------------ start roar -----------
+static bool  s_introRoarTriggered = false;  // 开场Roar只触发一次
+static float s_introRoarTimer = 0.0f;   // ★Idle内计时
+static float s_introRoarDelay = 1.5f;   // ★延迟秒数：默认1.5秒（你也可改成1~2随机）
+
 // ----------- state machine --------------
 enum class BossState {
     Idle,
+    Roar,
     Chase,
     Attack,
     Combo,
@@ -112,6 +119,12 @@ static void Boss_ChangeState(BossState next, const wchar_t* clipName, bool useCr
         // 如果你把 OnClipChanged 改成 const wchar_t* 版本，就可以直接：
         // s_bossEventPlayer.OnClipChanged(clipName);
     }
+
+    if (next == BossState::Idle && !s_introRoarTriggered)
+    {
+        s_introRoarTimer = 0.0f; // ★进入Idle开始计时
+    }
+
 }
 
 // Boss の「体」用 AABB コライダーを作成
@@ -219,6 +232,10 @@ void Boss_Initialize(const BossDesc& d)
 
     Boss_SetMaxHP(300, true);
 
+    s_introRoarTriggered = false;
+    s_introRoarTimer = 0.0f;
+    s_introRoarDelay = 3.5f; // 或随机
+
     // ★ 帧事件播放器绑定到 Boss owner token
     s_bossEventPlayer.Initialize(Boss_GetHitboxOwnerToken());
 }
@@ -280,6 +297,30 @@ void Boss_Update(double dt, const BossUpdateContext& ctx)
     {
     case BossState::Idle:
     {
+        // ★开场缓冲：Idle 停 1~2 秒，再进入 Roar（只触发一次）
+        if (!s_introRoarTriggered)
+        {
+            s_introRoarTimer += (float)dt; // dt如果是秒就直接加；如果你dt是毫秒就改成 dt*0.001f
+
+            if ( s_introRoarTimer >= s_introRoarDelay)
+            {
+                s_introRoarTriggered = true;
+
+                Boss_ChangeState(BossState::Roar, L"Boss_Roar", true);
+
+                // 进入 Roar 时，若相机没在锁定就切到锁定
+                if (!PlayerCamera_IsLockOnActive())
+                {
+                    PlayerCamera_EnsureLockOn();
+                }
+            }
+
+            // 延迟期间，你可以选择“仍然允许转向玩家”，或者直接 break 静止
+            // 我建议：延迟期间也允许面向玩家（更自然）
+            // （如果你不想动，就 break;）
+            break;
+        }
+
         // ★ 1) 优先 Combo
         if (distSq <= comboRangeSq && s_comboCooldown <= 0.0) {
             Boss_ChangeState(BossState::Combo, L"Boss_Combo");
@@ -291,6 +332,19 @@ void Boss_Update(double dt, const BossUpdateContext& ctx)
         // 3) 追击
         else if (distSq > attackRangeSq && distSq <= chaseRangeSq) {
             Boss_ChangeState(BossState::Chase, L"Boss_Chase");
+        }
+        break;
+    }
+
+    case BossState::Roar:
+    {
+        float norm = 0.0f;
+        if (BossAnimatorRegistry_DebugGetCurrentNormalizedTime(&norm))
+        {
+            if (norm >= 1.0f)
+            {
+                Boss_ChangeState(BossState::Idle, L"Boss_Idle");
+            }
         }
         break;
     }
