@@ -18,6 +18,9 @@ static constexpr int TEXTURE_MAX = 1024; // テクスチャ管理最大数
 struct Texture // テクスチャ管理する用の構造体
 {
 	std::wstring filename;
+
+	bool isSRGB = true;
+
 	unsigned int width; // テクスチャの幅
 	unsigned int height; // テクスチャの高さ
 
@@ -51,14 +54,14 @@ void Texture_Finalize(void)
 	Texture_AllRelease();
 }
 
-int Texture_Load(const wchar_t* pFilename)
+int Texture_Load(const wchar_t* pFilename, bool srgb)
 {
 	// すでに読み込んでいるものは読み込まない
 	for (int i = 0; i < TEXTURE_MAX; i++)
 	{
-		if (g_Textures[i].filename == pFilename) // 今読み込もうとするファイル名は同じですか
+		if (g_Textures[i].filename == pFilename && g_Textures[i].isSRGB == srgb)
 		{
-			return i; // 管理番号を返す
+			return i;
 		}
 	}
 
@@ -66,20 +69,26 @@ int Texture_Load(const wchar_t* pFilename)
 	for (int i = 0; i < TEXTURE_MAX; i++)
 	{
 		if (g_Textures[i].pTexture)
-		{
-			continue; // 使用中
-		}
+			continue;
 
-		// テクスチャの読み込み
 		HRESULT hr;
 
-		hr = CreateWICTextureFromFile(g_pDevice, g_pContext, pFilename, &g_Textures[i].pTexture, &g_Textures[i].pTextureView);
+		// ★ここが本体：sRGB/Linear を明示
+		// BaseColor: srgb=true  => FORCE_SRGB
+		// Normal/Rough/Height: srgb=false => IGNORE_SRGB
+		WIC_LOADER_FLAGS flags = srgb ? WIC_LOADER_FORCE_SRGB : WIC_LOADER_IGNORE_SRGB;
 
-		ID3D11Texture2D* pTexture = (ID3D11Texture2D*)g_Textures[i].pTexture;
-		D3D11_TEXTURE2D_DESC t2desc;
-		pTexture->GetDesc(&t2desc);
-		g_Textures[i].width = t2desc.Width;
-		g_Textures[i].height = t2desc.Height;
+		hr = CreateWICTextureFromFileEx(
+			g_pDevice, g_pContext,
+			pFilename,
+			0,                              // maxsize (0=制限なし)
+			D3D11_USAGE_DEFAULT,
+			D3D11_BIND_SHADER_RESOURCE,
+			0, 0,
+			flags,
+			&g_Textures[i].pTexture,
+			&g_Textures[i].pTextureView
+		);
 
 		if (FAILED(hr))
 		{
@@ -87,10 +96,19 @@ int Texture_Load(const wchar_t* pFilename)
 			return -1;
 		}
 
-		g_Textures[i].filename = pFilename;
+		ID3D11Texture2D* pTexture = (ID3D11Texture2D*)g_Textures[i].pTexture;
+		D3D11_TEXTURE2D_DESC t2desc;
+		pTexture->GetDesc(&t2desc);
+		g_Textures[i].width = t2desc.Width;
+		g_Textures[i].height = t2desc.Height;
 
-		return i; // 管理番号を返す
+		g_Textures[i].filename = pFilename;
+		g_Textures[i].isSRGB = srgb;  // ★记录
+
+		return i;
 	}
+
+	return -1;
 }
 
 void Texture_AllRelease()

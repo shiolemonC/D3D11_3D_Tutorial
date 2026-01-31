@@ -23,6 +23,11 @@ static int g_TexId = -1;
 static int g_Tex0Id = -1;
 static int g_Tex1Id = -1;
 
+static int g_TexBaseId = -1;
+static int g_TexNormalId = -1;
+static int g_TexRoughId = -1;
+static int g_TexHeightId = -1;
+
 // 注意！初期化で外部から設定されるもの。Release不要。
 static ID3D11Device* g_pDevice = nullptr;
 static ID3D11DeviceContext* g_pContext = nullptr;
@@ -122,7 +127,11 @@ void MeshField_Initialize(ID3D11Device* pDevice, ID3D11DeviceContext* pContext)
 	g_TexId = Texture_Load(L"resources/ground_texture/Ground_Gravel_ukxmacclw_1K_BaseColor.jpg");
 
 	g_Tex0Id = Texture_Load(L"resources/ground_texture/Ground_Gravel_ukxmacclw_1K_BaseColor.jpg");
-	g_Tex1Id = Texture_Load(L"resources/country_farwoods.png");
+
+	g_TexBaseId = Texture_Load(L"resources/ground_texture/Ground_Gravel_ukxmacclw_1K_BaseColor.jpg", true);
+	g_TexNormalId = Texture_Load(L"resources/ground_texture/Ground_Gravel_ukxmacclw_1K_Normal.jpg", false);
+	g_TexRoughId = Texture_Load(L"resources/ground_texture/Ground_Gravel_ukxmacclw_1K_Roughness.jpg", false); // 若是 Gloss 也先当 false
+	g_TexHeightId = Texture_Load(L"resources/ground_texture/Ground_Gravel_ukxmacclw_1K_Bump.jpg", false);
 	ShaderField_Initialize(pDevice, pContext);
 }
 
@@ -138,7 +147,11 @@ void MeshField_Draw()
 	ShaderField_Begin();
 
 	// 只绑定一张
-	Texture_SetTexture(g_TexId, 0);
+	Texture_SetTexture(g_TexBaseId, 0);
+	Texture_SetTexture(g_TexNormalId, 1);
+	// slot2 = shadow map（由你的 shadow 系统绑定）
+	Texture_SetTexture(g_TexRoughId, 3);
+	Texture_SetTexture(g_TexHeightId, 4);
 
 	// 頂点バッファを描画パイプラインに設定
 	UINT stride = sizeof(Vertex3d);

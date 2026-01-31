@@ -326,7 +326,7 @@ void Game_Draw()
 // 先把环境光压低一点，让点光/方向光更“立体”
     Light_SetAmbient({ 0.05f, 0.05f, 0.05f });
 
-    Light_SetDirectionWorld({ 1.0f, -0.6f, 0.0f, 0.0f }, { 0.7,0.7,0.7,0.7 });
+    Light_SetDirectionWorld({ 1.0f, -0.6f, 0.0f, 0.0f }, { 0.4,0.4,0.4,0.4 });
 
     // 高光强一点更容易看出 normal 细节
     Light_SetSpecularWorld(Camera_GetPosition(), 2.0f, { 0.20f, 0.20f, 0.20f, 1.0f });
@@ -334,26 +334,6 @@ void Game_Draw()
     // ---- 关键：点光源数量改成 3（最多 4）----
     Light_SetPointCount(0);
 
-    //XMFLOAT3 boss = Boss_GetPosition();
-    //XMFLOAT3 player = Player_GetPosition();
-
-    //// Key light：偏暖，从右上打
-    //Light_SetPointWorld(0,
-    //    { boss.x + 2.0f, boss.y + 1.8f, boss.z + 1.5f },
-    //    7.0f,
-    //    { 1.0f, 0.85f, 0.65f});
-
-    //// Fill light：偏冷，从左前补
-    //Light_SetPointWorld(1,
-    //    { boss.x - 2.2f, boss.y + 1.2f, boss.z + 2.0f },
-    //    7.0f,
-    //    { 0.65f, 0.80f, 1.0f});
-
-    //// Back/Rim light：从后上打轮廓（很适合看 normal）
-    //Light_SetPointWorld(2,
-    //    { boss.x + 0.0f, boss.y + 2.2f, boss.z - 2.5f },
-    //    8.0f,
-    //    { 0.9f, 0.9f, 1.0f});
 
     MeshField_Draw();
 
@@ -363,8 +343,20 @@ void Game_Draw()
     //========================
     // 2) 后续你的原逻辑：画玩家/Boss 等
     //========================
-    Light_SetAmbient({ 1.0f, 1.0f, 1.0f });
-    Light_SetDirectionWorld({ 1.0f, -0.6f, 0.0f, 0.0f }, { 0.0f, 0.0f, 0.0f, 1.0f });
+    Light_SetAmbient({ 0.5f, 0.5f, 0.5f });
+    Light_SetDirectionWorld({ 1.0f, -0.6f, 0.0f, 0.0f }, { 0.4f, 0.4f, 0.4f, 0.4f });
+
+    // ---- 关键：点光源数量改成 3（最多 4）----
+    Light_SetPointCount(1);
+
+    XMFLOAT3 boss = Boss_GetPosition();
+    XMFLOAT3 player = Player_GetPosition();
+
+    // Fill light：偏冷，从左前补
+    Light_SetPointWorld(0,
+        { boss.x - 2.2f, boss.y + 3.2f, boss.z + 2.0f },
+        7.0f,
+        { 0.2f, 0.1f, 0.1f });
 
     Sampler_SetFillterLinear();
     Sampler_SetFillterAnisotropic();

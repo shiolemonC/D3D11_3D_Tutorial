@@ -8,6 +8,8 @@
 cbuffer PS_CONSTANT_BUFFER : register(b0)
 {
     float4 diffuse_color;
+    float4 matParams0; // x=uvScale, y=parallaxScale, z=roughMul, w=specMul
+    float4 matParams1; // x=useNormal, y=useParallax, z=roughIsGloss, w=normalFlipY
 };
 
 cbuffer PS_CONSTANT_BUFFER : register(b1)
@@ -63,11 +65,15 @@ struct PS_IN
     float2 uv : TEXCOORD0;
 };
 
-Texture2D tex0 : register(t0);
+Texture2D g_baseColor : register(t0);
+Texture2D g_normalMap : register(t1);
+Texture2D g_shadowMap : register(t2);
+Texture2D g_roughMap : register(t3);
+Texture2D g_heightMap : register(t4);
 //Texture2D tex1 : register(t1);
 
 // Shadow map (NEW)
-Texture2D g_shadowMap : register(t2);
+//Texture2D g_shadowMap : register(t2);
 
 SamplerState samp : register(s0);
 SamplerComparisonState g_shadowSamp : register(s1);
@@ -108,24 +114,110 @@ float ComputeShadowVisibility(float3 posW, float3 normalW3)
     return g_shadowMap.SampleCmpLevelZero(g_shadowSamp, uv, depth - bias);
 }
 
+// ------------------------------
+// No-tangent TBN from ddx/ddy
+// ------------------------------
+float3x3 CotangentFrame(float3 N, float3 p, float2 uv)
+{
+    float3 dp1 = ddx(p);
+    float3 dp2 = ddy(p);
+    float2 duv1 = ddx(uv);
+    float2 duv2 = ddy(uv);
+
+    float3 dp2perp = cross(dp2, N);
+    float3 dp1perp = cross(N, dp1);
+
+    float3 T = dp2perp * duv1.x + dp1perp * duv2.x;
+    float3 B = dp2perp * duv1.y + dp1perp * duv2.y;
+
+    float invMax = rsqrt(max(dot(T, T), dot(B, B)));
+    T *= invMax;
+    B *= invMax;
+
+    // 这里我们用 “行向量基” 约定：TBN 的三行分别是 T,B,N
+    // World -> Tangent:  v_ts = mul(v_ws, TBN)
+    // Tangent -> World: v_ws = mul(v_ts, transpose(TBN))
+    return float3x3(T, B, N);
+}
+
+// ------------------------------
+// Simple Parallax (UV offset)
+// ------------------------------
+float2 ParallaxUV(float2 uv, float3 Vws, float3x3 TBN, float scale)
+{
+    // Vws: pixel -> eye (world space)
+    float3 Vts = mul(Vws, TBN); // world -> tangent
+    float h = g_heightMap.Sample(samp, uv).r; // 0..1
+    float height = (h * 2.0f - 1.0f); // -1..1
+
+    float denom = max(Vts.z, 0.2f); // 避免斜视角爆炸
+    float2 offset = (Vts.xy / denom) * (height * scale);
+    return uv + offset;
+}
+
 float4 main(PS_IN pi) : SV_TARGET
 {
-    // UV handle, sample of rotating (NOTE: you compute 'uv' but original samples used pi.uv.
-    // Keep original behavior to avoid changing visuals.)
-    //float2 uv;
-    //float angle = 3.14159f * 45.0f / 180.0f;
-    //uv.x = pi.uv.x * cos(angle) + pi.uv.y * sin(angle);
-    //uv.y = -pi.uv.x * sin(angle) + pi.uv.y * cos(angle);
+    // ============================================================
+    // (A) 先准备：uv0 / N0 / view / TBN
+    // ============================================================
+    float2 uv0 = pi.uv * matParams0.x; // uvScale
+    float3 N0 = normalize(pi.normalW.xyz);
+    float3 toEye = normalize(eye_posW - pi.posW.xyz);
 
-    // color handle, sample of color blending (original behavior: sample by pi.uv)
-    float4 tex_color = tex0.Sample(samp, pi.uv);// * pi.blend.g;
-                     //+ tex1.Sample(samp, pi.uv) * pi.blend.r;
+    // “无需切线”的 TBN（用 ddx/ddy 自动构建）
+    float3x3 TBN = CotangentFrame(N0, pi.posW.xyz, uv0);
 
-    // material color
+    // ============================================================
+    // (B) Parallax（可选）：用高度图偏移 UV
+    // ============================================================
+    float2 uv = uv0;
+    if (matParams1.y > 0.5f)                      // useParallax
+    {
+        uv = ParallaxUV(uv, toEye, TBN, matParams0.y); // parallaxScale
+    }
+
+    // ============================================================
+    // (C) 采样 BaseColor（用偏移后的 uv）
+    // ============================================================
+    float4 tex_color = g_baseColor.Sample(samp, uv);
     float3 material_color = tex_color.rgb * diffuse_color.rgb;
 
-    // Normalize normal
-    float3 normalW3 = normalize(pi.normalW.xyz);
+    // ============================================================
+    // (D) Normal Mapping（可选）：用法线贴图更新 normalW3
+    // ============================================================
+    float3 normalW3 = N0;
+    if (matParams1.x > 0.5f)                      // useNormal
+    {
+        float3 nTS = g_normalMap.Sample(samp, uv).xyz * 2.0f - 1.0f;
+
+        // 如果你发现凹凸反了，通常翻转绿通道
+        if (matParams1.w > 0.5f)                  // normalFlipY
+            nTS.y = -nTS.y;
+
+        // Tangent -> World
+        normalW3 = normalize(mul(nTS, transpose(TBN)));
+    }
+
+    // ============================================================
+    // (E) Roughness/Gloss -> Spec 参数（可选但强烈建议）
+    // ============================================================
+    float rm = g_roughMap.Sample(samp, uv).r;
+
+    // 如果你的贴图其实是 gloss，就 rough = 1 - gloss
+    if (matParams1.z > 0.5f)                      // roughnessIsGloss
+        rm = 1.0f - rm;
+
+    float rough = saturate(rm * matParams0.z); // roughnessMul
+
+    // roughness 映射到高光“锐利度”
+    float specPow = lerp(256.0f, 8.0f, rough * rough);
+
+    // roughness 越大，高光越弱
+    float specIntensity = (1.0f - rough) * matParams0.w; // specularMul
+
+    // ============================================================
+    // 下面开始：你的原本光照逻辑（尽量少动）
+    // ============================================================
 
     //-----------------------------
     // Directional light (with shadow)
@@ -140,23 +232,22 @@ float4 main(PS_IN pi) : SV_TARGET
     float3 diffuse = material_color * direction_world_color.rgb * dl * shadowTerm;
 
     //-----------------------------
-    // Ambient light (not shadowed in v1)
+    // Ambient light
     //-----------------------------
     float3 ambient = material_color * ambient_color.rgb;
     ambient *= lerp(1.0f, vis, shadowParams.y * 0.6f);
-    
+
     //-----------------------------
-    // Specular (shadowed together with directional diffuse)
+    // Specular (use specPow + specIntensity)
     //-----------------------------
-    float3 toEye = normalize(eye_posW - pi.posW.xyz);
     float3 rDir = reflect(direction_world_vector.xyz, normalW3);
-    float tDir = pow(max(dot(normalize(rDir), toEye), 0.0f), specular_power);
-    float3 specular = specular_color.rgb * tDir * shadowTerm;
+    float tDir = pow(max(dot(normalize(rDir), toEye), 0.0f), specPow);
+    float3 specular = specular_color.rgb * tDir * shadowTerm * specIntensity;
 
     float3 color = ambient + diffuse + specular;
 
     //-----------------------------
-    // Point lights (not shadowed in v1)
+    // Point lights
     //-----------------------------
     for (int i = 0; i < point_light_count; i++)
     {
@@ -168,12 +259,12 @@ float4 main(PS_IN pi) : SV_TARGET
         float dlp = max(0.0f, dot(-normalize(lightToPixel), normalW3));
         color += material_color * point_light[i].color.rgb * distance_factor * dlp;
 
-        // specular of point light
+        // specular of point light（建议也乘 distance_factor，更自然）
         float3 rP = reflect(normalize(lightToPixel), normalW3);
-        float tP = pow(max(dot(normalize(rP), toEye), 0.0f), specular_power);
-        float3 point_specular = point_light[i].color.rgb * tP;
+        float tP = pow(max(dot(normalize(rP), toEye), 0.0f), specPow);
+        float3 point_specular = point_light[i].color.rgb * tP * specIntensity;
 
-        color += point_specular;
+        color += point_specular * distance_factor;
     }
 
     return float4(color, 1.0f);

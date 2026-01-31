@@ -22,4 +22,15 @@ void ShaderField_Begin();
 
 void ShaderField_SetColor(const DirectX::XMFLOAT4& color);
 
+void ShaderField_SetMaterialParams(
+    float uvScale,
+    float parallaxScale,
+    float roughnessMul,
+    float specularMul,
+    bool  useNormal,
+    bool  useParallax,
+    bool  roughnessIsGloss,
+    bool  normalFlipY
+);
+
 #endif // SHADER_H

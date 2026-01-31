@@ -18,7 +18,7 @@ void Texture_Finalize(void);
 //
 // –ß‚è’lFŠÇ—”Ô†B“Ç‚İ‚ß‚È‚©‚Á‚½ê‡ -1
 //
-int Texture_Load(const wchar_t* pFilename);
+int Texture_Load(const wchar_t* pFilename, bool srgb = false);
 
 void Texture_AllRelease();
 
