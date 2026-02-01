@@ -27,8 +27,28 @@ MODEL* ModelLoad( const char *FileName, bool bBlender)
 
 	//const std::string modelPath( FileName );
 
-	model->AiScene = aiImportFile(FileName, aiProcessPreset_TargetRealtime_MaxQuality | aiProcess_ConvertToLeftHanded);
-	assert(model->AiScene);
+	model->AiScene = aiImportFile(
+		FileName,
+		aiProcessPreset_TargetRealtime_MaxQuality | aiProcess_ConvertToLeftHanded
+	);
+
+	if (!model->AiScene)
+	{
+		const char* err = aiGetErrorString();
+
+		// VS 输出窗口
+		OutputDebugStringA("[Assimp] aiImportFile failed: ");
+		OutputDebugStringA(FileName);
+		OutputDebugStringA("\n");
+		OutputDebugStringA(err);
+		OutputDebugStringA("\n");
+
+		// 也可以弹窗（可选）
+		// MessageBoxA(nullptr, err, "Assimp Import Error", MB_OK);
+
+		delete model;
+		return nullptr;
+	}
 
 	model->VertexBuffer = new ID3D11Buffer*[model->AiScene->mNumMeshes];
 	model->IndexBuffer = new ID3D11Buffer*[model->AiScene->mNumMeshes];

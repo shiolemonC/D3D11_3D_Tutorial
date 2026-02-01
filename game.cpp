@@ -169,7 +169,7 @@ void Game_Initialize()
     PlayerCamera_Initialize({});
 
     HudHP_Initialize();
-    Sky_SetScale(100.0f);   // 想大就调大
+    Sky_SetScale(10.0f);   // 想大就调大
 
     ShadowMap_Initialize(Direct3D_GetDevice(), Direct3D_GetContext(), 2048);
     ShadowMap_SetParams(0.0025f, 1.0f);
@@ -324,9 +324,10 @@ void Game_Draw()
     ////    先试 32~128（越大越锐利）
     //Light_SetSpecularWorld(Camera_GetPosition(), 5.0f, { 0.20f, 0.20f, 0.20f, 1.0f });
 // 先把环境光压低一点，让点光/方向光更“立体”
-    Light_SetAmbient({ 0.05f, 0.05f, 0.05f });
+    Light_SetAmbient({ 0.25f, 0.25f, 0.25f });
 
-    Light_SetDirectionWorld({ 1.0f, -0.6f, 0.0f, 0.0f }, { 0.4,0.4,0.4,0.4 });
+    Light_SetDirectionWorld({ -0.857f, -0.514f, 0.0f, 0.0f },
+        { 0.25f, 0.85f, 1.00f, 1.0f }); // 偏冷：B 更高
 
     // 高光强一点更容易看出 normal 细节
     Light_SetSpecularWorld(Camera_GetPosition(), 2.0f, { 0.20f, 0.20f, 0.20f, 1.0f });
@@ -344,7 +345,8 @@ void Game_Draw()
     // 2) 后续你的原逻辑：画玩家/Boss 等
     //========================
     Light_SetAmbient({ 0.5f, 0.5f, 0.5f });
-    Light_SetDirectionWorld({ 1.0f, -0.6f, 0.0f, 0.0f }, { 0.4f, 0.4f, 0.4f, 0.4f });
+    Light_SetDirectionWorld({ 0.857f, -0.514f, 0.0f, 0.0f },
+        { 0.55f, 0.65f, 1.00f, 1.0f }); // 偏冷：B 更高
 
     // ---- 关键：点光源数量改成 3（最多 4）----
     Light_SetPointCount(2);
