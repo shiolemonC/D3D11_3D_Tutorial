@@ -365,8 +365,8 @@ void AnimEventRegister()
             e.timeNormalized = 0.0f;
             e.type = AnimEventType::CameraLockOnPreset;
             e.cameraLockOnPreset.presetId = 1;       // 1 = Block_Attack
-            e.cameraLockOnPreset.blendInSec = 0.6f;
-            e.cameraLockOnPreset.holdSec = 0.8f;
+            e.cameraLockOnPreset.blendInSec = 0.4f;
+            e.cameraLockOnPreset.holdSec = 0.7f;
             e.cameraLockOnPreset.blendOutSec = 0.3f;
             e.cameraLockOnPreset.priority = 200;
             t.events.push_back(e);

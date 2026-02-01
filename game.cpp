@@ -347,7 +347,7 @@ void Game_Draw()
     Light_SetDirectionWorld({ 1.0f, -0.6f, 0.0f, 0.0f }, { 0.4f, 0.4f, 0.4f, 0.4f });
 
     // ---- 关键：点光源数量改成 3（最多 4）----
-    Light_SetPointCount(1);
+    Light_SetPointCount(2);
 
     XMFLOAT3 boss = Boss_GetPosition();
     XMFLOAT3 player = Player_GetPosition();
@@ -357,6 +357,12 @@ void Game_Draw()
         { boss.x - 2.2f, boss.y + 3.2f, boss.z + 2.0f },
         7.0f,
         { 0.2f, 0.1f, 0.1f });
+
+    // Fill light：偏冷，从左前补
+    Light_SetPointWorld(1,
+        { player.x - 1.2f, player.y + 1.6f, player.z + 1.0f },
+        7.0f,
+        { 0.3f, 0.2f, 0.2f });
 
     Sampler_SetFillterLinear();
     Sampler_SetFillterAnisotropic();
