@@ -172,6 +172,17 @@ void AnimEventRegister()
             e.postFxRadialBlurStart.radius = 0.40f;
             e.postFxRadialBlurStart.sampleCount = 12;
 
+            //bossRoar.events.push_back(e);
+        }
+
+        {
+            AnimEvent e{};
+            e.timeNormalized = 0.34f;
+            e.type = AnimEventType::CameraShake;
+            e.cameraShake.magnitude = 0.4f;
+            e.cameraShake.durationSec = 2.0f;
+            e.cameraShake.mode = CameraShakeMode::Both;
+            e.cameraShake.priority = 110;
             bossRoar.events.push_back(e);
         }
         AnimEventRegistry_Register(bossRoar);
@@ -324,7 +335,7 @@ void AnimEventRegister()
             e.cameraShake.magnitude = 0.12f;
             e.cameraShake.durationSec = 0.12f;
             e.cameraShake.mode = CameraShakeMode::Both;
-            e.cameraShake.priority = 100;
+            e.cameraShake.priority = 120;
             t.events.push_back(e);
         }
 

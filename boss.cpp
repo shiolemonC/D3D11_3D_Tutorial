@@ -601,7 +601,7 @@ void Boss_OnIncomingHit(const HitParams& hit)
     if (hit.level == HitLevel::Heavy)
     {
         OutputDebugStringA("[Boss] Enter HIT state (heavy hit)\n");
-        Boss_ChangeState(BossState::Hit, L"Boss_Hit", true);
+        Boss_ChangeState(BossState::Hit, L"Boss_Hit", false);
         return;
     }
 }

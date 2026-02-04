@@ -45,6 +45,15 @@ static uint32_t               gSkelJointCount = 0;
 static ID3D11Buffer* gCBAmbient = nullptr;     // VS b3
 static ID3D11Buffer* gCBDirectional = nullptr; // VS b4
 
+// ---- Outline (Inverted Hull) ----
+static ID3D11VertexShader* gVS_Outline = nullptr;
+static ID3D11PixelShader* gPS_Outline = nullptr;
+static ID3D11RasterizerState* gRS_CullFront = nullptr;
+static ID3D11Buffer* gCB_Outline = nullptr;
+
+static bool  gOutlineEnable = true;
+static float gOutlineWidth = 0.0f; // 先给明显一点，之后你再调小（例如 0.008~0.015）
+
 // Velocity-Driven 开关：为“动画位移”使用时清除根的局部 XZ 平移
 static bool                  gZeroRootTransXZ = false;
 
@@ -98,6 +107,13 @@ static int         gMotionRootIndex = -1;
 // --动画融合用参数
 static std::vector<AnimTRS> gCrossFadeSourcePose; // 旧姿势快照
 static float gCrossFadeWeight = 1.0f;             // 当前混合权重（0~1）
+
+struct CBOutline
+{
+    float outlineWidth;
+    float pad[3];
+};
+
 
 // 安全释放
 #ifndef SAFE_RELEASE
@@ -208,6 +224,52 @@ static bool TryLoadBaseColorFromMat(const std::wstring& matPathW) {
         return (gTexId >= 0);
     }
     return false;
+}
+
+static bool EnsureOutlineResources()
+{
+    EnsureD3D();
+    if (gVS_Outline && gPS_Outline && gRS_CullFront && gCB_Outline) return true;
+
+    // VS
+    if (!gVS_Outline)
+    {
+        std::vector<uint8_t> bin;
+        if (!ReadAll(L"shader_vertex_skinned_outline_3d.cso", bin)) return false;
+        if (FAILED(gDev->CreateVertexShader(bin.data(), bin.size(), nullptr, &gVS_Outline))) return false;
+    }
+
+    // PS
+    if (!gPS_Outline)
+    {
+        std::vector<uint8_t> bin;
+        if (!ReadAll(L"shader_pixel_outline_3d.cso", bin)) return false;
+        if (FAILED(gDev->CreatePixelShader(bin.data(), bin.size(), nullptr, &gPS_Outline))) return false;
+    }
+
+    // Rasterizer: Cull Front
+    if (!gRS_CullFront)
+    {
+        D3D11_RASTERIZER_DESC rd{};
+        rd.FillMode = D3D11_FILL_SOLID;
+        rd.CullMode = D3D11_CULL_FRONT;          // ★ Inverted Hull 关键
+        rd.FrontCounterClockwise = FALSE;        // 你现在的默认就按 FALSE 走
+        rd.DepthClipEnable = TRUE;
+        if (FAILED(gDev->CreateRasterizerState(&rd, &gRS_CullFront))) return false;
+    }
+
+    // CB b6
+    if (!gCB_Outline)
+    {
+        D3D11_BUFFER_DESC bd{};
+        bd.Usage = D3D11_USAGE_DYNAMIC;
+        bd.BindFlags = D3D11_BIND_CONSTANT_BUFFER;
+        bd.CPUAccessFlags = D3D11_CPU_ACCESS_WRITE;
+        bd.ByteWidth = sizeof(CBOutline); // 16 bytes
+        if (FAILED(gDev->CreateBuffer(&bd, nullptr, &gCB_Outline))) return false;
+    }
+
+    return true;
 }
 
 // ---------------------------------------------------------
@@ -623,7 +685,10 @@ void ModelSkinned_Finalize() {
     SAFE_RELEASE(gIB);
     SAFE_RELEASE(gVS);
     SAFE_RELEASE(gIL);
-
+    SAFE_RELEASE(gVS_Outline);
+    SAFE_RELEASE(gPS_Outline);
+    SAFE_RELEASE(gRS_CullFront);
+    SAFE_RELEASE(gCB_Outline);
     gJoints.clear();
     gAnimFrames.clear();
     gPalette.clear();
@@ -1028,7 +1093,66 @@ void ModelSkinned_Draw() {
         gCtx->PSSetShader(nullptr, nullptr, 0);
     }
 
-    // ---- Draw ----
+    // ===== Outline Pass (skip in shadow pass) =====
+    if (gOutlineEnable && !Shader3d_IsShadowPass())
+    {
+        if (EnsureOutlineResources())
+        {
+            // 1) 备份状态（RS/DS/PS）
+            ID3D11RasterizerState* prevRS = nullptr;
+            ID3D11DepthStencilState* prevDS = nullptr;
+            UINT prevStencilRef = 0;
+            ID3D11PixelShader* prevPS = nullptr;
+
+            gCtx->RSGetState(&prevRS);
+            gCtx->OMGetDepthStencilState(&prevDS, &prevStencilRef);
+            gCtx->PSGetShader(&prevPS, nullptr, nullptr);
+
+            // 2) 更新 outline CB(b6)
+            D3D11_MAPPED_SUBRESOURCE mp2{};
+            if (SUCCEEDED(gCtx->Map(gCB_Outline, 0, D3D11_MAP_WRITE_DISCARD, 0, &mp2)))
+            {
+                CBOutline cb{};
+                cb.outlineWidth = gOutlineWidth;
+                std::memcpy(mp2.pData, &cb, sizeof(cb));
+                gCtx->Unmap(gCB_Outline, 0);
+            }
+
+            // 3) 绑定 outline 状态
+            gCtx->RSSetState(gRS_CullFront);          // Cull Front
+            Direct3D_SetDepthTestNoWrite();           // Depth test on, write off
+
+            gCtx->VSSetShader(gVS_Outline, nullptr, 0);
+            gCtx->PSSetShader(gPS_Outline, nullptr, 0);
+
+            // VS b5 bones 你前面已经绑过；这里再绑一次也行
+            gCtx->VSSetConstantBuffers(5, 1, &gCBBones);
+            gCtx->VSSetConstantBuffers(6, 1, &gCB_Outline);
+
+            // 4) 画一遍（黑边）
+            gCtx->DrawIndexed(gIndexCount, 0, 0);
+
+            // 5) 恢复状态
+            gCtx->RSSetState(prevRS);
+            gCtx->OMSetDepthStencilState(prevDS, prevStencilRef);
+            if (prevPS) gCtx->PSSetShader(prevPS, nullptr, 0);
+
+            if (prevPS) prevPS->Release();
+            if (prevDS) prevDS->Release();
+            if (prevRS) prevRS->Release();
+
+            // 恢复正常 depth（可选但推荐，避免后面别的东西还处于 no-write）
+            Direct3D_SetDepthEnable(true);
+
+            // 恢复 skinned VS（因为 outline pass 改了 VS）
+            gCtx->VSSetShader(gVS, nullptr, 0);
+            gCtx->IASetInputLayout(gIL);
+            gCtx->VSSetConstantBuffers(5, 1, &gCBBones);
+        }
+    }
+
+    // ===== Main Pass =====
+    // 你原本的 DrawIndexed 继续执行
     gCtx->DrawIndexed(gIndexCount, 0, 0);
 
     // ---- (C) 恢复原来的 PS，避免影响后续普通模型 ----

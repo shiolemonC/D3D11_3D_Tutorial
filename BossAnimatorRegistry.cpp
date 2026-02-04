@@ -56,6 +56,10 @@ static float    gRM_AccumYaw = 0.0f;
 static bool  gYawBaselineInit = false;
 static float gYawBaselineRad = 0.0f;
 
+// ------------------ HitStop（攻击冻结帧） ------------------
+// 以 60fps 为基准计数：frames=4 表示 4/60 秒。
+static float gHitStopRemainFrames = 0.0f;
+
 // 小工具：应用位移到 world（注意：node-fix 在 ModelSkinned_Draw 里做）
 static void ApplyWorldWithRootMotion()
 {
@@ -88,6 +92,30 @@ static float EvalBlendCurve(float t, AnimBlendCurve c)
     }
     default: // Linear
         return t;
+    }
+}
+
+// 返回“用于动画推进的 dt”：冻结期间为 0，但冻结计时仍按真实 dt 消耗
+static double ConsumeHitStop_AnimDt(double dtSec)
+{
+    if (dtSec <= 0.0) return dtSec;
+    if (gHitStopRemainFrames <= 0.0f) return dtSec;
+
+    const float consumeFrames = float(dtSec) * 60.0f;
+    gHitStopRemainFrames -= consumeFrames;
+
+    if (gHitStopRemainFrames > 0.0f)
+    {
+        return 0.0; // 仍在冻结：动画 dt=0
+    }
+    else
+    {
+        // 冻结在本帧内结束：把剩余时间还给动画（一般很小）
+        const float leftoverFrames = -gHitStopRemainFrames;
+        gHitStopRemainFrames = 0.0f;
+        double leftoverSec = double(leftoverFrames) / 60.0;
+        if (leftoverSec > dtSec) leftoverSec = dtSec;
+        return leftoverSec;
     }
 }
 
@@ -300,8 +328,9 @@ void BossAnimatorRegistry_SetWorld(const XMMATRIX& world)
     ApplyWorldWithRootMotion(); // 让位移叠加到新 world 上
 }
 
-void BossAnimatorRegistry_Update(double dtSec)
+void BossAnimatorRegistry_Update(double dtAnim)
 {
+    const double dtSec = ConsumeHitStop_AnimDt(dtAnim);
     if (gCurrent < 0 || gCurrent >= (int)gClips.size()) {
         // 没有有效动画也要推进底层时间（如静态姿势）
         BossModelSkinned_Update(dtSec);
@@ -559,4 +588,15 @@ void BossAnimatorRegistry_CrossFade(const std::wstring& name,
     gBlend.time = 0.0f;
     gBlend.duration = durationSec;
     gBlend.curve = ParseBlendCurve(curveNameUTF8);
+}
+
+void BossAnimatorRegistry_RequestHitStopFrames(int frames)
+{
+    if (frames <= 0) return;
+    gHitStopRemainFrames = std::max(gHitStopRemainFrames, float(frames));
+}
+
+bool BossAnimatorRegistry_IsHitStopActive()
+{
+    return gHitStopRemainFrames > 0.0f;
 }

@@ -1,6 +1,8 @@
 ﻿#include "hit_event.h"
 #include "player.h"
 #include "boss.h"
+#include "AnimatorRegistry.h"
+#include "BossAnimatorRegistry.h"
 #include <cstdio>
 #include <Windows.h>
 
@@ -10,6 +12,24 @@ static HitLevel ChooseHitLevelFromDamage(int dmg)
 {
     (void)dmg;
     return HitLevel::Light; // 目前全部当轻受击处理
+}
+
+// HitStop：根据受击等级给冻结帧数（60fps 基准）
+static int HitStopFramesFromLevel(HitLevel lv)
+{
+    switch (lv) {
+    case HitLevel::Heavy:  return 12;
+    case HitLevel::Medium: return 5;
+    case HitLevel::Light:
+    default: return 6;
+    }
+}
+
+static void RequestHitStopBoth(int frames)
+{
+    if (frames <= 0) return;
+    AnimatorRegistry_RequestHitStopFrames(frames);
+    BossAnimatorRegistry_RequestHitStopFrames(frames);
 }
 
 static bool IsSelfHit(void* attackerOwner, void* victimOwner)
@@ -25,15 +45,15 @@ static bool IsSelfHit(void* attackerOwner, void* victimOwner)
 // 这里先简单写死“谁打谁”，以后可以改成更优雅的表驱动
 bool HitEvent_Dispatch(const HitContact& c)
 {
-    {
-        char buf[512];
-        sprintf_s(buf,
-            "[HitEvent] attacker=%p victim=%p | PHit=%p PHurt=%p BHit=%p BHurt=%p\n",
-            c.attackerOwner, c.victimOwner,
-            Player_GetHitboxOwnerToken(), Player_GetHurtboxOwnerToken(),
-            Boss_GetHitboxOwnerToken(), Boss_GetHurtboxOwnerToken());
-        OutputDebugStringA(buf);
-    }
+    //{
+    //    char buf[512];
+    //    sprintf_s(buf,
+    //        "[HitEvent] attacker=%p victim=%p | PHit=%p PHurt=%p BHit=%p BHurt=%p\n",
+    //        c.attackerOwner, c.victimOwner,
+    //        Player_GetHitboxOwnerToken(), Player_GetHurtboxOwnerToken(),
+    //        Boss_GetHitboxOwnerToken(), Boss_GetHurtboxOwnerToken());
+    //    OutputDebugStringA(buf);
+    //}
 
     // 1) 先把“自己打自己”的情况全部过滤掉
     if (!c.attackerOwner || !c.victimOwner) return false;
@@ -59,7 +79,11 @@ bool HitEvent_Dispatch(const HitContact& c)
         hp.victimPos = c.victimPos;
 
         //这里才是真正扣血入口
+        const bool bossCanTakeDamage = Boss_IsHurtEnabled() && !Boss_IsDead() && (hp.damage > 0);
         Boss_OnIncomingHit(hp);
+        if (bossCanTakeDamage) {
+            RequestHitStopBoth(HitStopFramesFromLevel(hp.level));
+        }
 
         char buf[256];
         sprintf_s(buf, "[HitEvent] PLAYER hit BOSS! dmg=%d\n", c.damage);
@@ -98,6 +122,9 @@ bool HitEvent_Dispatch(const HitContact& c)
             return true; // ★ 消耗 HitBox
         case PlayerHitResponse::TookHit:
         default:
+            if (hp.damage > 0) {
+                RequestHitStopBoth(HitStopFramesFromLevel(hp.level));
+            }
             sprintf_s(buf, "[HitEvent] BOSS hit PLAYER! dmg=%d\n", c.damage);
             OutputDebugStringA(buf);
             return true; // ★ 消耗 HitBox

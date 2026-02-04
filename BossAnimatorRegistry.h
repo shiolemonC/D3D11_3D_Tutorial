@@ -42,3 +42,8 @@ bool BossAnimatorRegistry_DebugGetCurrentNormalizedTime(float* outNorm);
 void BossAnimatorRegistry_CrossFade(const std::wstring& name,
     float durationSec,
     const char* curveNameUTF8);
+
+// ------------------ HitStop（攻击冻结帧） ------------------
+// frames 的单位以 60fps 为基准：例如 4 表示 4/60 秒。
+void BossAnimatorRegistry_RequestHitStopFrames(int frames);
+bool BossAnimatorRegistry_IsHitStopActive();
