@@ -12,8 +12,8 @@
 #include "result.h"
 #include "over.h"
 
-//static Scene g_Scene = SCENE_TITLE; // 今のシーン
-static Scene g_Scene = SCENE_GAME; // debugしたいのシーン
+static Scene g_Scene = SCENE_TITLE; // 今のシーン
+//static Scene g_Scene = SCENE_GAME; // debugしたいのシーン
 static Scene g_SceneNext = g_Scene; // 次のシーン
 
 void Scene_Initialize()

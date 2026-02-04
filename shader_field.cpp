@@ -23,6 +23,7 @@ struct PSFieldCB
 	DirectX::XMFLOAT4 diffuse_color; // 原 b0
 	DirectX::XMFLOAT4 matParams0;    // x=uvScale, y=parallaxScale, z=roughMul, w=specMul
 	DirectX::XMFLOAT4 matParams1;    // x=useNormal, y=useParallax, z=roughIsGloss, w=normalFlipY
+	DirectX::XMFLOAT4 matParams2; // ★新增：normalStrength, roughBias, roughPow, heightMul
 };
 
 static PSFieldCB g_psFieldCB{};
@@ -151,6 +152,7 @@ bool ShaderField_Initialize(ID3D11Device* pDevice, ID3D11DeviceContext* pContext
 	g_psFieldCB.diffuse_color = { 1,1,1,1 };
 	g_psFieldCB.matParams0 = { 0.25f, 0.03f, 1.0f, 1.0f }; // uvScale=0.25 先减少平铺
 	g_psFieldCB.matParams1 = { 1.0f, 0.0f, 0.0f, 0.0f };   // useNormal=1, 其它先关
+	g_psFieldCB.matParams2 = { 1.6f, 0.0f, 1.3f, 1.2f }; // ★推荐起点
 	g_pContext->UpdateSubresource(g_pPSConstantBuffer0, 0, nullptr, &g_psFieldCB, 0, 0);
 
 	return true;
@@ -237,6 +239,12 @@ void ShaderField_SetMaterialParams(float uvScale, float parallaxScale, float rou
 		roughnessIsGloss ? 1.0f : 0.0f,
 		normalFlipY ? 1.0f : 0.0f
 	};
+	g_pContext->UpdateSubresource(g_pPSConstantBuffer0, 0, nullptr, &g_psFieldCB, 0, 0);
+}
+
+void ShaderField_SetMaterialParams2(float normalStrength, float roughBias, float roughPow, float heightMul)
+{
+	g_psFieldCB.matParams2 = { normalStrength, roughBias, roughPow, heightMul };
 	g_pContext->UpdateSubresource(g_pPSConstantBuffer0, 0, nullptr, &g_psFieldCB, 0, 0);
 }
 

@@ -33,4 +33,6 @@ void ShaderField_SetMaterialParams(
     bool  normalFlipY
 );
 
+void ShaderField_SetMaterialParams2(float normalStrength, float roughBias, float roughPow, float heightMul);
+
 #endif // SHADER_H

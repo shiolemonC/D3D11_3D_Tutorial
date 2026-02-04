@@ -10,6 +10,7 @@ cbuffer PS_CONSTANT_BUFFER : register(b0)
     float4 diffuse_color;
     float4 matParams0; // x=uvScale, y=parallaxScale, z=roughMul, w=specMul
     float4 matParams1; // x=useNormal, y=useParallax, z=roughIsGloss, w=normalFlipY
+    float4 matParams2; // x=normalStrength, y=roughBias, z=roughPow, w=heightMul
 };
 
 cbuffer PS_CONSTANT_BUFFER : register(b1)
@@ -148,7 +149,7 @@ float2 ParallaxUV(float2 uv, float3 Vws, float3x3 TBN, float scale)
     // Vws: pixel -> eye (world space)
     float3 Vts = mul(Vws, TBN); // world -> tangent
     float h = g_heightMap.Sample(samp, uv).r; // 0..1
-    float height = (h * 2.0f - 1.0f); // -1..1
+    float height = (h * 2.0f - 1.0f) * matParams2.w; // -1..1
 
     float denom = max(Vts.z, 0.2f); // 避免斜视角爆炸
     float2 offset = (Vts.xy / denom) * (height * scale);
@@ -190,12 +191,15 @@ float4 main(PS_IN pi) : SV_TARGET
     {
         float3 nTS = g_normalMap.Sample(samp, uv).xyz * 2.0f - 1.0f;
 
-        // 如果你发现凹凸反了，通常翻转绿通道
-        if (matParams1.w > 0.5f)                  // normalFlipY
+    // ★法线强度：1=原样，1.5~2 更明显，>3 容易“塑料/脏”
+        nTS.xy *= matParams2.x; // ★
+
+        if (matParams1.w > 0.5f) // normalFlipY
             nTS.y = -nTS.y;
 
-        // Tangent -> World
-        normalW3 = normalize(mul(nTS, transpose(TBN)));
+        nTS = normalize(nTS); // ★放大后一定要 normalize
+
+        normalW3 = normalize(mul(nTS, transpose(TBN))); // Tangent -> World
     }
 
     // ============================================================
@@ -207,7 +211,16 @@ float4 main(PS_IN pi) : SV_TARGET
     if (matParams1.z > 0.5f)                      // roughnessIsGloss
         rm = 1.0f - rm;
 
-    float rough = saturate(rm * matParams0.z); // roughnessMul
+// ★粗糙度基础强度（你已有 matParams0.z）
+    float rough = rm * matParams0.z;
+
+// ★偏移：+ 更粗糙（更哑光），- 更光滑（更亮）
+    rough += matParams2.y; // ★ 推荐 -0.2 ~ +0.2
+
+    rough = saturate(rough);
+
+// ★对比曲线：>1 更“分层明显”，<1 更平
+    rough = pow(rough, max(matParams2.z, 0.001f)); // ★ 推荐 0.8 ~ 2.0
 
     // roughness 映射到高光“锐利度”
     float specPow = lerp(256.0f, 8.0f, rough * rough);

@@ -176,6 +176,8 @@ void MeshField_Draw()
 	//set PSShader color
 	ShaderField_SetColor({ 1.0f, 1.0f, 1.0f, 1.0f });
 
+	ShaderField_SetMaterialParams2(8.8f, 0.0f, 2.8f, 12.0f);
+
 	g_pContext->DrawIndexed(NUM_INDEX, 0, 0);
 
 	//add some comments to test git

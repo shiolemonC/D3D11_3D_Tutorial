@@ -25,6 +25,16 @@ static bool IsSelfHit(void* attackerOwner, void* victimOwner)
 // 这里先简单写死“谁打谁”，以后可以改成更优雅的表驱动
 bool HitEvent_Dispatch(const HitContact& c)
 {
+    {
+        char buf[512];
+        sprintf_s(buf,
+            "[HitEvent] attacker=%p victim=%p | PHit=%p PHurt=%p BHit=%p BHurt=%p\n",
+            c.attackerOwner, c.victimOwner,
+            Player_GetHitboxOwnerToken(), Player_GetHurtboxOwnerToken(),
+            Boss_GetHitboxOwnerToken(), Boss_GetHurtboxOwnerToken());
+        OutputDebugStringA(buf);
+    }
+
     // 1) 先把“自己打自己”的情况全部过滤掉
     if (!c.attackerOwner || !c.victimOwner) return false;
 

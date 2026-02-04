@@ -48,24 +48,13 @@ void AnimEventRegister()
 {
     AnimEventRegistry_Clear();
 
-    // 攻击动作事件
     {
         AnimEventTrack atk{};
         atk.clipName = L"Attack";
 
-        // ① 开始就关掉 HurtBox（比如：起手无敌）
-        //{
-        //    AnimEvent e{};
-        //    e.timeNormalized = 0.0f;
-        //    e.type = AnimEventType::SetHurtBoxEnabled;
-        //    e.setHurtBox.enabled = false;    // 关闭受击框 → 无敌
-        //    atk.events.push_back(e);
-        //}
-
-        // ② 0.30 出刀：生成 HitBox
         {
             AnimEvent e{};
-            e.timeNormalized = 0.415f;               // 攻击动画的 30% 处出刀
+            e.timeNormalized = 0.415f;               
             e.type = AnimEventType::SpawnHitBox;
             e.spawnHitBox.localOffset = { 0.0f, 1.0f, 1.0f };
             e.spawnHitBox.halfSize = { 0.5f, 0.5f, 0.5f };

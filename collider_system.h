@@ -60,7 +60,7 @@ enum class ColliderCategory : uint8_t
 
 inline unsigned int CategoryBit(ColliderCategory c) noexcept
 {
-    return 1u << static_cast<unsigned int>(c);
+    return 1ull << (uint32_t)c;
 }
 
 //------------------------------------------------------------------------------

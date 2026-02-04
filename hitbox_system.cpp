@@ -158,24 +158,19 @@ void HitboxSystem_Spawn(const AnimEvent_SpawnHitBox& param, void* owner)
 
 void HitboxSystem_Update(float dt)
 {
+    auto& world = GetCollisionWorld();
 
-     auto& world = GetCollisionWorld();
+    // （可选）快速抓 dt 单位问题：如果 dt > 1，几乎肯定你传的是毫秒
+    // if (dt > 1.0f) { OutputDebugStringA("[HitboxSystem] dt looks like ms!\n"); }
 
     // ------------------------------------------------------------
-    // (A) 更新寿命 & 更新每个 hitbox collider 的 AABB（保留你原本逻辑）
-    //     这里不展开：你原来怎么从 owner/localOffset 算 AABB，就继续用。
+    // (A) 先更新 AABB：只要“帧开始时还活着”，就允许参与本帧命中
     // ------------------------------------------------------------
     for (auto& hb : g_hitboxes)
     {
-        hb.remainingTime -= dt;
+        if (hb.colliderId < 0) continue;
+        if (hb.remainingTime <= 0.0f) continue;
 
-        if (hb.remainingTime <= 0.0f)
-        {
-            // 先不在这里 Unregister，交给最后统一清理
-            continue;
-        }
-
-        // TODO: 这里调用你原来的“更新 hitbox AABB”的逻辑
         UpdateHitboxAABB(world, hb);
     }
 
@@ -192,25 +187,28 @@ void HitboxSystem_Update(float dt)
     {
         const ActiveHitbox& hb = g_hitboxes[i];
         if (hb.colliderId < 0) continue;
-        if (hb.remainingTime <= 0.0f) continue;
+        if (hb.remainingTime <= 0.0f) continue; // 以“帧开始时是否存活”为准
 
         const ColliderBase* col = world.GetCollider(hb.colliderId);
         if (col) hitColToIndex[col] = i;
     }
 
-    // 同帧去重 key: (hitboxColliderId, victimOwnerToken)
     std::unordered_set<std::uint64_t> seen;
     seen.reserve(pairs.size() * 2 + 8);
 
     auto MakeKey = [](int hitboxColliderId, void* victimOwner) -> std::uint64_t
-    {
-        std::uint64_t a = static_cast<std::uint64_t>(static_cast<std::uint32_t>(hitboxColliderId));
-        std::uint64_t v = static_cast<std::uint64_t>(reinterpret_cast<std::uintptr_t>(victimOwner) >> 4);
-        return (v << 32) ^ a;
-    };
+        {
+            uint64_t a = (uint64_t)(uint32_t)hitboxColliderId;
+            uint64_t v = (uint64_t)(uintptr_t)victimOwner;
+
+            // 把 64-bit 指针折叠一下，避免只看高位或低位
+            uint64_t h = v ^ (v >> 32);
+
+            return (h << 32) ^ a;
+        };
 
     std::vector<int> toUnregister;
-    toUnregister.reserve(16);
+    toUnregister.reserve(32);
 
     // ------------------------------------------------------------
     // (C) 处理命中：consumed -> 立刻标记死亡 + 收集注销列表
@@ -224,88 +222,79 @@ void HitboxSystem_Update(float dt)
         const ColliderBase* hitCol = nullptr;
         const ColliderBase* hurtCol = nullptr;
 
-        if (colA->category == ColliderCategory::Hitbox &&
-            colB->category == ColliderCategory::Hurtbox)
-        {
-            hitCol = colA;
-            hurtCol = colB;
+        if (colA->category == ColliderCategory::Hitbox && colB->category == ColliderCategory::Hurtbox) {
+            hitCol = colA; hurtCol = colB;
         }
-        else if (colB->category == ColliderCategory::Hitbox &&
-                 colA->category == ColliderCategory::Hurtbox)
-        {
-            hitCol = colB;
-            hurtCol = colA;
+        else if (colB->category == ColliderCategory::Hitbox && colA->category == ColliderCategory::Hurtbox) {
+            hitCol = colB; hurtCol = colA;
         }
-        else
-        {
-            continue;
-        }
+        else continue;
 
         auto it = hitColToIndex.find(hitCol);
         if (it == hitColToIndex.end()) continue;
 
         ActiveHitbox& hb = g_hitboxes[it->second];
-        if (hb.colliderId < 0 || hb.remainingTime <= 0.0f) continue;
+        if (hb.colliderId < 0) continue;
+        if (hb.remainingTime <= 0.0f) continue; // 帧开始时活着才允许命中
 
-        // 同帧去重
         const std::uint64_t key = MakeKey(hb.colliderId, hurtCol->userPtr);
         if (seen.find(key) != seen.end()) continue;
         seen.insert(key);
 
-        // 计算 attacker/victim/hit 位置：用 AABB center
-        if (hitCol->shape.type != ColliderShapeType::AABB ||
-            hurtCol->shape.type != ColliderShapeType::AABB)
-        {
+        if (hitCol->shape.type != ColliderShapeType::AABB || hurtCol->shape.type != ColliderShapeType::AABB)
             continue;
-        }
 
-        const DirectX::XMFLOAT3 atkPos  = AABBCenter(hitCol->shape.aabb);
-        const DirectX::XMFLOAT3 vicPos  = AABBCenter(hurtCol->shape.aabb);
-        const DirectX::XMFLOAT3 hitPos  = vicPos;
+        const DirectX::XMFLOAT3 atkPos = AABBCenter(hitCol->shape.aabb);
+        const DirectX::XMFLOAT3 vicPos = AABBCenter(hurtCol->shape.aabb);
 
         HitContact c{};
         c.attackerOwner = hb.owner;
-        c.victimOwner   = hurtCol->userPtr;
-        c.damage        = hb.damage;
+        c.victimOwner = hurtCol->userPtr;
+        c.damage = hb.damage;
         c.knockbackDistance = hb.knockbackDistance;
-        c.hitPos        = hitPos;
-        c.attackerPos   = atkPos;
-        c.victimPos     = vicPos;
-        c.level         = hb.hitLevel;
-
+        c.hitPos = vicPos;
+        c.attackerPos = atkPos;
+        c.victimPos = vicPos;
+        c.level = hb.hitLevel;
 
         const bool consumed = HitEvent_Dispatch(c);
         if (consumed)
         {
             toUnregister.push_back(hb.colliderId);
-
-            hb.colliderId = -1;      // ★ 本帧后续 pair 直接跳过
-            hb.remainingTime = 0.0f; // ★ 标记死亡
+            hb.colliderId = -1;
+            hb.remainingTime = 0.0f;
         }
     }
 
     // ------------------------------------------------------------
-    // (D) 统一注销 collider
+    // (D) 最后再扣寿命：并把“自然到期”的 hitbox 注销
     // ------------------------------------------------------------
-    for (int id : toUnregister)
+    for (auto& hb : g_hitboxes)
     {
-        world.UnregisterCollider(id);
+        if (hb.colliderId < 0) continue;
+
+        hb.remainingTime -= dt;
+        if (hb.remainingTime <= 0.0f)
+        {
+            toUnregister.push_back(hb.colliderId);
+            hb.colliderId = -1;
+        }
     }
 
     // ------------------------------------------------------------
-    // (E) 清理过期/死亡 hitbox（如果还有没注销的，这里兜底注销）
+    // (E) 统一注销 collider（去重可选，但一般不会很多）
+    // ------------------------------------------------------------
+    for (int id : toUnregister)
+        world.UnregisterCollider(id);
+
+    // ------------------------------------------------------------
+    // (F) 清理死亡 hitbox
     // ------------------------------------------------------------
     g_hitboxes.erase(
         std::remove_if(g_hitboxes.begin(), g_hitboxes.end(),
             [&](const ActiveHitbox& hb)
             {
-                if (hb.colliderId < 0) return true;
-                if (hb.remainingTime <= 0.0f)
-                {
-                    world.UnregisterCollider(hb.colliderId);
-                    return true;
-                }
-                return false;
+                return (hb.colliderId < 0) || (hb.remainingTime <= 0.0f);
             }),
         g_hitboxes.end());
 }
