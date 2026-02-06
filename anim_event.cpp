@@ -414,4 +414,62 @@ void AnimEventRegister()
         }
         AnimEventRegistry_Register(t);
     }
+
+    {
+        AnimEventTrack t{};
+        t.clipName = L"Finish_Attack";
+
+        // 1) LockOn preset
+        {
+            AnimEvent e{};
+            e.timeNormalized = 0.1f;
+            e.type = AnimEventType::CameraLockOnPreset;
+            e.cameraLockOnPreset.presetId = 3;      
+            e.cameraLockOnPreset.blendInSec = 0.5f;
+            e.cameraLockOnPreset.holdSec = 0.8f;
+            e.cameraLockOnPreset.blendOutSec = 0.7f;
+            e.cameraLockOnPreset.priority = 200;
+            t.events.push_back(e);
+        }
+
+        // 2) Camera shake
+        {
+            AnimEvent e{};
+            e.timeNormalized = 0.35f;
+            e.type = AnimEventType::CameraShake;
+            e.cameraShake.magnitude = 0.6f;
+            e.cameraShake.durationSec = 0.3f;
+            e.cameraShake.mode = CameraShakeMode::Both;
+            e.cameraShake.priority = 100;
+            t.events.push_back(e);
+        }
+
+        {
+            AnimEvent e{};
+            e.timeNormalized = 0.323f;               // 攻击动画的 30% 处出刀
+            e.type = AnimEventType::SpawnHitBox;
+            e.spawnHitBox.localOffset = { 0.0f, 1.0f, 1.0f };
+            e.spawnHitBox.halfSize = { 0.8f, 0.8f, 0.8f };
+            e.spawnHitBox.durationSec = 4.0f / 60.0f;
+            e.spawnHitBox.damage = 15;
+            e.spawnHitBox.hitLevel = HitLevel::Heavy;
+            t.events.push_back(e);
+        }
+
+        {
+            AnimEvent e{};
+            e.timeNormalized = 0.124f;
+            e.type = AnimEventType::PostFxRadialBlurStartPlayer;
+
+            e.postFxRadialBlurStart.centerWorld = DirectX::XMFLOAT3(0.0f, 1.2f, 0.3f);
+
+            e.postFxRadialBlurStart.durationSec = 0.85f;
+            e.postFxRadialBlurStart.strength = 1.5f;
+            e.postFxRadialBlurStart.radius = 0.25f;
+            e.postFxRadialBlurStart.sampleCount = 16;
+
+            t.events.push_back(e);
+        }
+        AnimEventRegistry_Register(t);
+    }
 }

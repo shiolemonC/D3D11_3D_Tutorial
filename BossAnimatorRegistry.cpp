@@ -590,6 +590,31 @@ void BossAnimatorRegistry_CrossFade(const std::wstring& name,
     gBlend.curve = ParseBlendCurve(curveNameUTF8);
 }
 
+bool BossAnimatorRegistry_ForceRestartCurrent()
+{
+    if (gCurrent < 0 || gCurrent >= (int)gClips.size()) return false;
+
+    // 1) 归一化时间用的时钟清零
+    gCurrentTimeSec = 0.0f;
+
+    // 2) 底层采样时间清零（否则姿势不会回到第0帧）
+    BossModelSkinned_Seek(0.0f);
+
+    // 3) 保险：如果正在 crossfade，直接打断，避免权重影响“重开”
+    gBlend.active = false;
+    gBlend.time = 0.0f;
+    BossModelSkinned_ClearCrossFadeSource();
+    BossModelSkinned_SetCrossFadeWeight(1.0f);
+
+    // 4) 保险：确保长度有效（理论上已有，但防止未来改动导致为0）
+    float lenSec = 0.0f;
+    if (BossAnimatorRegistry_DebugGetCurrentClipLengthSec(&lenSec)) {
+        gCurrentClipLengthSec = lenSec;
+    }
+
+    return true;
+}
+
 void BossAnimatorRegistry_RequestHitStopFrames(int frames)
 {
     if (frames <= 0) return;

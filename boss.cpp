@@ -600,8 +600,17 @@ void Boss_OnIncomingHit(const HitParams& hit)
     // ★ 只有 Heavy 才进入受击
     if (hit.level == HitLevel::Heavy)
     {
-        OutputDebugStringA("[Boss] Enter HIT state (heavy hit)\n");
-        Boss_ChangeState(BossState::Hit, L"Boss_Hit", false);
+        // Hit 过程中再次 Heavy：强制重开受击动画
+        if (s_state == BossState::Hit)
+        {
+            s_timeInState = 0.0;
+            BossAnimatorRegistry_ForceRestartCurrent();                 // ★关键：清零 normalized 时钟 + Seek(0)
+            s_bossEventPlayer.OnClipChanged(std::wstring{ L"Boss_Hit" }); // ★关键：让帧事件能再触发一遍
+            return;
+        }
+
+        // 非 Hit 状态：正常进入 Hit（你原本的逻辑）
+        Boss_ChangeState(BossState::Hit, L"Boss_Hit", true);
         return;
     }
 }

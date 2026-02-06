@@ -28,6 +28,7 @@ static XMFLOAT3 s_moveRightXZ{ 1.0f, 0.0f, 0.0f };
 static LockOnTuning s_lockTuneHit{};
 static LockOnTuning s_lockTuneBlock{};
 static LockOnTuning s_lockTuneBlockAttack{};
+static LockOnTuning s_lockTuneFinishAttack{};
 
 struct LockOnPresetState {
     bool  active = false;
@@ -292,6 +293,7 @@ static const LockOnTuning& PlayerCamera_SelectPresetTuning(int presetId)
     {
     case 1:  return s_lockTuneBlockAttack;
     case 2:  return s_lockTuneBlock;      // ★新增：Block 演出镜头
+    case 3:  return s_lockTuneFinishAttack;
     case 0:
     default: return s_lockTuneHit;
     }
@@ -348,6 +350,15 @@ void PlayerCamera_Initialize(const PlayerCameraDesc& d)
     s_lockTuneBlockAttack.cameraHeightFar = s_lockTune.cameraHeightFar + 4.7f;
     s_lockTuneBlockAttack.targetHeightNear = s_lockTune.targetHeightNear - 0.5f;
     s_lockTuneBlockAttack.targetHeightFar = s_lockTune.targetHeightFar - 0.5f;
+
+    s_lockTuneFinishAttack = s_lockTune;
+    s_lockTuneFinishAttack.baseRadius = std::max(0.1f, s_lockTune.baseRadius * 0.8f);
+    s_lockTuneFinishAttack.sideOffsetDeg = s_lockTune.sideOffsetDeg + 45.0f; // 更侧一点（更有“演出感”）
+    s_lockTuneFinishAttack.cameraHeightNear = s_lockTune.cameraHeightNear - 3.0f;
+    s_lockTuneFinishAttack.cameraHeightFar = s_lockTune.cameraHeightFar - 3.0f;
+    s_lockTuneFinishAttack.targetHeightNear = s_lockTune.targetHeightNear + 0.7f;
+    s_lockTuneFinishAttack.targetHeightFar = s_lockTune.targetHeightFar + 0.5f;
+
     s_preset.active = false;
 
     // 立刻推一次到底层相机

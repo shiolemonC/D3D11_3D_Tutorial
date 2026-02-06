@@ -80,6 +80,15 @@
       "uninterruptible": [ [ 0.0, 0.35 ] ]
     },
     {
+      "name": "Finish_Attack",
+      "clip": "Finish_Attack",
+      "loop": false,
+      "root_motion": "use_delta",
+      "length_sec": 0.0,
+      "locomotion": false,
+      "uninterruptible": [ [ 0.0, 0.35 ] ]
+    },
+    {
       "name": "Hit_Light",
       "clip": "Hit_Light",
       "loop": false,
@@ -416,7 +425,26 @@
       "can_interrupt": true,
       "priority": 5
     },
-
+    {
+      "from": "Block_Attack",
+      "to": "Finish_Attack",
+      "trigger": "Attack",
+      "buffer": 0.15,
+      "window": [ [ 0.80, 1.00 ] ],
+      "duration": 0.35,
+      "curve": "linear",
+      "can_interrupt": true,
+      "priority": 150
+    },
+    {
+      "from": "Finish_Attack",
+      "to": "Idle",
+      "window": [ [ 0.90, 1.00 ] ],
+      "duration": 0.18,
+      "curve": "ease_out",
+      "can_interrupt": true,
+      "priority": 5
+    },
     {
       "from": "Any",
       "to": "Hit_Light",
