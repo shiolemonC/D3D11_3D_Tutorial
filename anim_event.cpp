@@ -172,7 +172,7 @@ void AnimEventRegister()
             e.postFxRadialBlurStart.radius = 0.40f;
             e.postFxRadialBlurStart.sampleCount = 12;
 
-            //bossRoar.events.push_back(e);
+            bossRoar.events.push_back(e);
         }
 
         {
@@ -275,7 +275,7 @@ void AnimEventRegister()
         AnimEventTrack parry{};
         parry.clipName = L"Parry";
 
-        // ① 窗口开启：比如 0.18 ~ 0.35（你之后可以根据动画帧微调）
+        
         {
             AnimEvent e{};
             e.timeNormalized = 0.05f;
@@ -284,7 +284,7 @@ void AnimEventRegister()
             parry.events.push_back(e);
         }
 
-        // ② 窗口关闭
+
         {
             AnimEvent e{};
             e.timeNormalized = 0.85f;
@@ -393,6 +393,23 @@ void AnimEventRegister()
             e.spawnHitBox.durationSec = 4.0f / 60.0f;
             e.spawnHitBox.damage = 15;
             e.spawnHitBox.hitLevel = HitLevel::Heavy;
+            t.events.push_back(e);
+        }
+
+        {
+            AnimEvent e{};
+            e.timeNormalized = 0.33f;
+            e.type = AnimEventType::PostFxRadialBlurStartPlayer;
+
+            // 注意：这里我们把 centerWorld 当成 “boss局部偏移” 来用（更好调）
+            // x=右, y=上, z=前
+            e.postFxRadialBlurStart.centerWorld = DirectX::XMFLOAT3(0.0f, 1.2f, 0.3f);
+
+            e.postFxRadialBlurStart.durationSec = 0.75f;
+            e.postFxRadialBlurStart.strength = 1.0f;
+            e.postFxRadialBlurStart.radius = 0.1f;
+            e.postFxRadialBlurStart.sampleCount = 16;
+
             t.events.push_back(e);
         }
         AnimEventRegistry_Register(t);

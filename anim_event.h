@@ -11,7 +11,7 @@
 #include "hit_event.h" // ★ 为了使用 HitLevel
 
 enum class AnimEventType {
-    SpawnHitBox,  // 攻击判定生成
+    SpawnHitBox,  
 
     SetHurtBoxEnabled,
 
@@ -19,9 +19,11 @@ enum class AnimEventType {
 
     CameraLockOnPreset,
 
-    CameraShake, // ★ 新增
+    CameraShake, 
 
     PostFxRadialBlurStart,
+
+    PostFxRadialBlurStartPlayer, // based on player position
 };
 
 // SpawnHitBox 的参数
@@ -74,6 +76,16 @@ struct AnimEventPostFxRadialBlurStart
     float _pad[3];
 };
 
+struct AnimEventPostFxRadialBlurStartPlayer
+{
+    DirectX::XMFLOAT3 centerWorld;
+    float durationSec;
+    float strength;
+    float radius;
+    int   sampleCount;
+    float _pad[3];
+};
+
 // 通用事件
 struct AnimEvent 
 {
@@ -88,6 +100,8 @@ struct AnimEvent
     AnimEvent_CameraShake cameraShake;
 
     AnimEventPostFxRadialBlurStart postFxRadialBlurStart;
+
+    AnimEventPostFxRadialBlurStartPlayer postFxRadialBlurStartPlayer;
 };
 
 // 某个剪辑的事件轨道

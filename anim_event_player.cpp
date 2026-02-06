@@ -64,7 +64,7 @@ static void FireAnimEvent(const AnimEvent& ev, void* owner)
 
     case AnimEventType::CameraShake: // ★ 新增
         // 目前只有玩家相机会抖（单相机项目）
-        if (owner == Player_GetHitboxOwnerToken())
+        //if (owner == Player_GetHitboxOwnerToken())
         {
             PlayerCamera_PushShake(
                 ev.cameraShake.magnitude,
@@ -76,6 +76,7 @@ static void FireAnimEvent(const AnimEvent& ev, void* owner)
         }
         break;
     case AnimEventType::PostFxRadialBlurStart:
+    {
         using namespace DirectX;
 
         // 1) 取 Boss 运行态基准
@@ -107,7 +108,42 @@ static void FireAnimEvent(const AnimEvent& ev, void* owner)
             ev.postFxRadialBlurStart.sampleCount
         );
         break;
+    }
 
+    case AnimEventType::PostFxRadialBlurStartPlayer:
+    {
+        using namespace DirectX;
+
+        // 1) 取 Boss 运行态基准
+        XMFLOAT3 bossPos = Player_GetPosition();
+        XMFLOAT3 fwd = Player_GetForward();              // (sinYaw,0,cosYaw)
+        XMFLOAT3 up = XMFLOAT3(0, 1, 0);
+
+        // 2) 由 up 和 forward 算 right（注意：XMVector3Cross 是数学右手叉乘，up×fwd 在你这套约定下会得到正确的 right）
+        XMVECTOR vUp = XMLoadFloat3(&up);
+        XMVECTOR vFwd = XMLoadFloat3(&fwd);
+        XMVECTOR vRight = XMVector3Normalize(XMVector3Cross(vUp, vFwd));
+        XMFLOAT3 right{};
+        XMStoreFloat3(&right, vRight);
+
+        // 3) 事件里存的是“Boss局部偏移”
+        XMFLOAT3 off = ev.postFxRadialBlurStart.centerWorld; // 当作 offsetLocal
+
+        // 4) 局部偏移 -> 世界坐标
+        XMFLOAT3 centerWorld;
+        centerWorld.x = bossPos.x + right.x * off.x + up.x * off.y + fwd.x * off.z;
+        centerWorld.y = bossPos.y + right.y * off.x + up.y * off.y + fwd.y * off.z;
+        centerWorld.z = bossPos.z + right.z * off.x + up.z * off.y + fwd.z * off.z;
+
+        PostFx_StartRadialBlurWorld(
+            centerWorld,
+            ev.postFxRadialBlurStart.durationSec,
+            ev.postFxRadialBlurStart.strength,
+            ev.postFxRadialBlurStart.radius,
+            ev.postFxRadialBlurStart.sampleCount
+        );
+        break;
+    }
     default:
         break;
     }
