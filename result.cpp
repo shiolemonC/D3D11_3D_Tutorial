@@ -13,13 +13,14 @@
 #include "sprite.h"
 #include "key_logger.h"
 #include "direct3d.h"
+#include "input_gamepad_xinput.h"
 
 static int g_ResultBgTexId = -1;
 
 void Result_Initialize()
 {
-    // 你把图片换成自己的资源名即可
     g_ResultBgTexId = Texture_Load(L"resources/result_bg.png");
+    input::xinput::Initialize();
 }
 
 void Result_Finalize()
@@ -30,8 +31,9 @@ void Result_Finalize()
 
 void Result_Update(double elapsed_time)
 {
-    // 回到 Title（或你想改成 SCENE_GAME 重新开始也行）
-    if (KeyLogger_IsTrigger(KK_ENTER))
+    input::xinput::Update();
+
+    if (KeyLogger_IsTrigger(KK_ENTER) || input::xinput::Press(input::xinput::Button::A))
     {
         Scene_Change(SCENE_TITLE);
     }

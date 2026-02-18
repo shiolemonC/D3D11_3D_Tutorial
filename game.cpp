@@ -15,6 +15,7 @@
 #include "shader3d.h"
 #include "shader3d_unlit.h"
 #include "key_logger.h"
+#include "input_gamepad_xinput.h"
 #include "sampler.h"
 #include "meshfield.h"
 #include "sky.h"
@@ -118,6 +119,8 @@ void Game_Initialize()
 
     //g_AnimPlayId = SpriteAnim_CreatePlayer(g_AnimPatternId);
 
+    input::xinput::Initialize();
+
     SpriteSheetDesc hit{};
     hit.path = L"resources/fx/hit_effect.png";
     hit.cols = 11;
@@ -187,6 +190,7 @@ void Game_Finalize()
     VfxConfig_Finalize();
     //PlayerCameraTest_Finalize();
     ShadowMap_Finalize();
+    input::xinput::StopVibration();
 }
 
 void Game_Update(double elapsed_time)
@@ -196,6 +200,11 @@ void Game_Update(double elapsed_time)
 
     g_AccumulatedTime += elapsed_time;
     Cube_Update(elapsed_time);
+
+    // 手柄输入
+    input::xinput::Update();
+    input::xinput::UpdateVibration(elapsed_time);
+    const auto& gp = input::xinput::GetState();
 
     // 采集鼠标
     Mouse_State ms{};
@@ -223,12 +232,34 @@ void Game_Update(double elapsed_time)
     PlayerCameraInput camIn{};
     camIn.deltaX = deltaX;
     camIn.deltaY = deltaY;
-    // 如果 Mouse_State 有 wheel 字段，你可以填 camIn.wheelDelta
-    camIn.lockTogglePressed = ms.middleButton;
+
+    //右摇杆 -> 虚拟鼠标 delta（驱动镜头旋转）
+    float stickDx = 0.0f, stickDy = 0.0f;
+    input::xinput::RightStickToMouseDelta(elapsed_time, 480.0f, 400.0f, stickDx, stickDy);
+    camIn.deltaX += stickDx;
+    camIn.deltaY += stickDy;
+
+    //R3(右摇杆按下) = 鼠标中键锁定
+    camIn.lockTogglePressed = ms.middleButton || input::xinput::Press(input::xinput::Button::R3);
+
     PlayerCamera_Update(elapsed_time, camIn);
 
     // 2) 玩家输入（WASD）
     PlayerUpdateInput pin = BuildPlayerInput(ms);
+
+    if (gp.connected)
+    {
+        pin.moveX += gp.lx;   // 左右
+        pin.moveZ += gp.ly;   // 前后（W/S）
+
+        // 映射按键：X=攻击, Y=格挡, B=翻滚
+        pin.attack = pin.attack || input::xinput::Press(input::xinput::Button::X);
+        pin.parry = pin.parry || input::xinput::Press(input::xinput::Button::Y);
+        pin.roll = pin.roll || input::xinput::Press(input::xinput::Button::B);
+
+        // （如果你有 pin.confirm / UI 交互，可用 A）
+        // pin.confirm = pin.confirm || input::xinput::Press(input::xinput::Button::A);
+    }
 
     // 3) 从摄像机模块拿到「移动用坐标系」（按摄像机方向移动）
     PlayerCamera_GetMoveBasis(&pin.camForwardXZ, &pin.camRightXZ);

@@ -6,7 +6,7 @@
 #include "player_camera.h"
 #include "camera_shake.h"
 #include "postfx.h"
-
+#include "input_gamepad_xinput.h"
 #include <DirectXMath.h>
 
 static void ApplyHurtBoxEnabledToOwner(void* owner, bool enabled)
@@ -144,6 +144,21 @@ static void FireAnimEvent(const AnimEvent& ev, void* owner)
         );
         break;
     }
+
+    case AnimEventType::GamepadRumbleImpulse:
+    {
+        if (!input::xinput::Connected()) break;
+
+        const auto& r = ev.rumble;
+
+        if (r.additive)
+            input::xinput::AddImpulse(r.leftMotor01, r.rightMotor01, r.durationSec);
+        else
+            input::xinput::PlayImpulse(r.leftMotor01, r.rightMotor01, r.durationSec);
+
+        break;
+    }
+
     default:
         break;
     }

@@ -13,7 +13,7 @@
 #include "sprite.h"
 #include "key_logger.h"
 #include "direct3d.h"
-
+#include "input_gamepad_xinput.h"
 
 enum TitleState
 {
@@ -30,6 +30,7 @@ void Title_Initialize()
 {
     g_TitleBgTexId = Texture_Load(L"resources/title_bg.png");
     g_TitleTexId = Texture_Load(L"resources/title_title.png");
+    input::xinput::Initialize();
 }
 
 void Title_Finalize()
@@ -39,7 +40,9 @@ void Title_Finalize()
 
 void Title_Update(double elapsed_time)
 {
-    if (KeyLogger_IsTrigger(KK_ENTER))
+    input::xinput::Update();
+
+    if (KeyLogger_IsTrigger(KK_ENTER) || input::xinput::Press(input::xinput::Button::A))
     {
         Scene_Change(SCENE_GAME);
     }

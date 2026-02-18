@@ -32,6 +32,7 @@
 #include "AnimatorRegistry.h"
 #include "BossAnimatorRegistry.h"
 #include "postfx.h"
+#include "input_gamepad_xinput.h"
 #pragma comment(lib, "xinput.lib")
 
 using namespace DirectX;

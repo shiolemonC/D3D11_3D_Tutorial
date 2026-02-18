@@ -177,6 +177,19 @@ void AnimEventRegister()
 
         {
             AnimEvent e{};
+            e.timeNormalized = 0.33f;
+            e.type = AnimEventType::GamepadRumbleImpulse;
+
+            e.rumble.leftMotor01 = 8.65f; // “沉”的震动更适合冲击
+            e.rumble.rightMotor01 = 6.25f; // “麻”的震动点缀一下
+            e.rumble.durationSec = 2.20f; 
+            e.rumble.additive = 1;     
+
+            bossRoar.events.push_back(e);
+        }
+
+        {
+            AnimEvent e{};
             e.timeNormalized = 0.34f;
             e.type = AnimEventType::CameraShake;
             e.cameraShake.magnitude = 0.4f;
@@ -464,8 +477,8 @@ void AnimEventRegister()
             e.postFxRadialBlurStart.centerWorld = DirectX::XMFLOAT3(0.0f, 1.2f, 0.3f);
 
             e.postFxRadialBlurStart.durationSec = 0.85f;
-            e.postFxRadialBlurStart.strength = 1.5f;
-            e.postFxRadialBlurStart.radius = 0.25f;
+            e.postFxRadialBlurStart.strength = 1.1f;
+            e.postFxRadialBlurStart.radius = 0.10f;
             e.postFxRadialBlurStart.sampleCount = 16;
 
             t.events.push_back(e);

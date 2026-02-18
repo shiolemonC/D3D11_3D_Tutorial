@@ -253,6 +253,9 @@
     <ClCompile Include="game.cpp">
       <Filter>ソース ファイル\scene</Filter>
     </ClCompile>
+    <ClCompile Include="input_gamepad_xinput.cpp">
+      <Filter>ソース ファイル\player_function</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="debug_ostream.h">
@@ -452,6 +455,9 @@
     </ClInclude>
     <ClInclude Include="game.h">
       <Filter>ヘッダー ファイル\scene</Filter>
+    </ClInclude>
+    <ClInclude Include="input_gamepad_xinput.h">
+      <Filter>ヘッダー ファイル\player_function</Filter>
     </ClInclude>
   </ItemGroup>
   <ItemGroup>

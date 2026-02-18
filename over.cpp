@@ -13,6 +13,7 @@
 #include "sprite.h"
 #include "key_logger.h"
 #include "direct3d.h"
+#include "input_gamepad_xinput.h"
 
 static int g_OverBgTexId = -1;
 
@@ -20,6 +21,7 @@ void Over_Initialize()
 {
     // 你把图片换成自己的资源名即可
     g_OverBgTexId = Texture_Load(L"resources/over_bg.png");
+    input::xinput::Initialize();
 }
 
 void Over_Finalize()
@@ -29,7 +31,9 @@ void Over_Finalize()
 
 void Over_Update(double elapsed_time)
 {
-    if (KeyLogger_IsTrigger(KK_ENTER))
+    input::xinput::Update();
+
+    if (KeyLogger_IsTrigger(KK_ENTER) || input::xinput::Press(input::xinput::Button::A))
     {
         Scene_Change(SCENE_TITLE);
     }

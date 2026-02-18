@@ -24,6 +24,8 @@ enum class AnimEventType {
     PostFxRadialBlurStart,
 
     PostFxRadialBlurStartPlayer, // based on player position
+
+    GamepadRumbleImpulse, 
 };
 
 // SpawnHitBox 的参数
@@ -86,6 +88,15 @@ struct AnimEventPostFxRadialBlurStartPlayer
     float _pad[3];
 };
 
+struct AnimEventGamepadRumbleImpulse
+{
+    float leftMotor01 = 0.0f; // [0,1] 低频“大震”
+    float rightMotor01 = 0.0f; // [0,1] 高频“小震”
+    float durationSec = 0.0f; // 秒
+    int   additive = 0;    // 0=覆盖(PlayImpulse) 1=叠加(AddImpulse)
+    float _pad[3]{};          // 对齐用（可按你项目习惯调整）
+};
+
 // 通用事件
 struct AnimEvent 
 {
@@ -102,6 +113,8 @@ struct AnimEvent
     AnimEventPostFxRadialBlurStart postFxRadialBlurStart;
 
     AnimEventPostFxRadialBlurStartPlayer postFxRadialBlurStartPlayer;
+
+    AnimEventGamepadRumbleImpulse rumble;
 };
 
 // 某个剪辑的事件轨道

@@ -13,6 +13,7 @@
 #include "particle_system.h"
 #include <cstdlib>
 #include "player_camera.h"
+#include "input_gamepad_xinput.h"
 
 using namespace DirectX;
 
@@ -600,6 +601,7 @@ void Boss_OnIncomingHit(const HitParams& hit)
     // ★ 只有 Heavy 才进入受击
     if (hit.level == HitLevel::Heavy)
     {
+        input::xinput::PlayImpulse(8.3f, 8.5f, 0.2f);
         // Hit 过程中再次 Heavy：强制重开受击动画
         if (s_state == BossState::Hit)
         {

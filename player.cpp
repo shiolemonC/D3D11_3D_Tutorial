@@ -12,6 +12,7 @@
 #include "scene.h"
 #include "particle_system.h"
 #include <cstdlib>
+#include "input_gamepad_xinput.h"
 using namespace DirectX;
 
 // ------------------ 内部状态 ------------------
@@ -694,6 +695,7 @@ PlayerHitResponse Player_OnIncomingHit(const HitParams& hit)
         ParticleSystem_Spawn(VfxId::SparkParry, p, Player_GetForward());
        // SpriteEffect_SpawnParry(p, { 2.6f, 2.6f });
 
+        input::xinput::PlayImpulse(4.3f, 5.5f, 0.15f);
         // ★ 关键：触发 FSM 的成功格挡分支
         PlayerSM_FireTrigger("ParrySuccess");
 
@@ -711,7 +713,7 @@ PlayerHitResponse Player_OnIncomingHit(const HitParams& hit)
     // ★ Blood：方向=受击者(玩家)前方 + 随机左右45°
     XMFLOAT3 dir = RotateY(Player_GetForward(), RandomSign45Deg());
     ParticleSystem_Spawn(VfxId::BloodSlash, p, dir);
-
+    input::xinput::PlayImpulse(2.3f, 3.5f, 0.1f);
     //SpriteEffect_SpawnHit(p, { 1.2f, 1.2f });
 
     if (hit.knockbackDistance > 0.0f) {
