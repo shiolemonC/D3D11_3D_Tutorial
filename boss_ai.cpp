@@ -13,6 +13,12 @@ BossAICommand BossAI_Decide(const BossAIContext& ctx)
     const float chaseRangeSq = ctx.chaseRange * ctx.chaseRange;
     const float attackRangeSq = ctx.attackRange * ctx.attackRange;
     const float comboRangeSq = ctx.comboRange * ctx.comboRange;
+    const float spellMinRangeSq = ctx.spellMinRange * ctx.spellMinRange;
+    const float spellMaxRangeSq = ctx.spellMaxRange * ctx.spellMaxRange;
+    const bool canCastSpell =
+        ctx.spellCooldown <= 0.0 &&
+        distSq >= spellMinRangeSq &&
+        distSq <= spellMaxRangeSq;
 
     switch (ctx.state)
     {
@@ -34,6 +40,10 @@ BossAICommand BossAI_Decide(const BossAIContext& ctx)
         {
             return BossAICommand::Attack;
         }
+        if (canCastSpell)
+        {
+            return BossAICommand::CastSpell;
+        }
         if (distSq > attackRangeSq && distSq <= chaseRangeSq)
         {
             return BossAICommand::Chase;
@@ -48,6 +58,10 @@ BossAICommand BossAI_Decide(const BossAIContext& ctx)
         if (distSq <= attackRangeSq && ctx.attackCooldown <= 0.0)
         {
             return BossAICommand::Attack;
+        }
+        if (canCastSpell)
+        {
+            return BossAICommand::CastSpell;
         }
         if (distSq > chaseRangeSq)
         {
@@ -71,6 +85,10 @@ BossAICommand BossAI_Decide(const BossAIContext& ctx)
         if (ctx.attackCooldown <= 0.0)
         {
             return BossAICommand::Attack;
+        }
+        if (canCastSpell)
+        {
+            return BossAICommand::CastSpell;
         }
         return BossAICommand::Idle;
 

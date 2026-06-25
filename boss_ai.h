@@ -16,6 +16,7 @@ enum class BossAICommand
     Chase,
     Attack,
     Combo,
+    CastSpell,
 };
 
 struct BossAIContext
@@ -33,10 +34,13 @@ struct BossAIContext
 
     double attackCooldown = 0.0;
     double comboCooldown = 0.0;
+    double spellCooldown = 0.0;
 
     float chaseRange = 0.0f;
     float attackRange = 0.0f;
     float comboRange = 0.0f;
+    float spellMinRange = 0.0f;
+    float spellMaxRange = 0.0f;
 };
 
 BossAICommand BossAI_Decide(const BossAIContext& ctx);

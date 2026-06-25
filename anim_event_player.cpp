@@ -7,6 +7,7 @@
 #include "camera_shake.h"
 #include "postfx.h"
 #include "input_gamepad_xinput.h"
+#include "boss_projectile.h"
 #include <DirectXMath.h>
 
 static void ApplyHurtBoxEnabledToOwner(void* owner, bool enabled)
@@ -35,6 +36,54 @@ static void ApplyParryWindowEnabledToOwner(void* owner, bool enabled)
     // Boss 如果以后也要做格挡，可在这里扩展
 }
 
+static void QueryOwnerBasis(void* owner,
+    DirectX::XMFLOAT3& outPos,
+    DirectX::XMFLOAT3& outForward,
+    DirectX::XMFLOAT3& outRight,
+    DirectX::XMFLOAT3& outUp)
+{
+    using namespace DirectX;
+
+    outUp = XMFLOAT3(0.0f, 1.0f, 0.0f);
+
+    if (owner == Boss_GetHitboxOwnerToken())
+    {
+        outPos = Boss_GetPosition();
+        outForward = Boss_GetForward();
+    }
+    else if (owner == Player_GetHitboxOwnerToken())
+    {
+        outPos = Player_GetPosition();
+        outForward = Player_GetForward();
+    }
+    else
+    {
+        outPos = XMFLOAT3(0.0f, 0.0f, 0.0f);
+        outForward = XMFLOAT3(0.0f, 0.0f, 1.0f);
+    }
+
+    XMVECTOR f = XMVector3Normalize(XMLoadFloat3(&outForward));
+    XMVECTOR u = XMVector3Normalize(XMLoadFloat3(&outUp));
+    XMVECTOR r = XMVector3Normalize(XMVector3Cross(u, f));
+
+    XMStoreFloat3(&outForward, f);
+    XMStoreFloat3(&outRight, r);
+}
+
+static DirectX::XMFLOAT3 LocalOffsetToWorld(
+    const DirectX::XMFLOAT3& base,
+    const DirectX::XMFLOAT3& right,
+    const DirectX::XMFLOAT3& up,
+    const DirectX::XMFLOAT3& forward,
+    const DirectX::XMFLOAT3& offset)
+{
+    return {
+        base.x + right.x * offset.x + up.x * offset.y + forward.x * offset.z,
+        base.y + right.y * offset.x + up.y * offset.y + forward.y * offset.z,
+        base.z + right.z * offset.x + up.z * offset.y + forward.z * offset.z
+    };
+}
+
 static void FireAnimEvent(const AnimEvent& ev, void* owner)
 {
     switch (ev.type)
@@ -42,6 +91,32 @@ static void FireAnimEvent(const AnimEvent& ev, void* owner)
     case AnimEventType::SpawnHitBox:
         HitboxSystem_Spawn(ev.spawnHitBox, owner);
         break;
+
+    case AnimEventType::SpawnBossProjectile:
+    {
+        if (owner != Boss_GetHitboxOwnerToken())
+        {
+            break;
+        }
+
+        DirectX::XMFLOAT3 ownerPos, forward, right, up;
+        QueryOwnerBasis(owner, ownerPos, forward, right, up);
+
+        const DirectX::XMFLOAT3 spawnPos = LocalOffsetToWorld(
+            ownerPos, right, up, forward, ev.spawnBossProjectile.localOffset);
+
+        DirectX::XMFLOAT3 targetPos = Player_GetPosition();
+        targetPos.x += ev.spawnBossProjectile.targetOffset.x;
+        targetPos.y += ev.spawnBossProjectile.targetOffset.y;
+        targetPos.z += ev.spawnBossProjectile.targetOffset.z;
+
+        BossProjectile_Fire(
+            static_cast<BossProjectilePatternId>(ev.spawnBossProjectile.patternId),
+            spawnPos,
+            targetPos,
+            owner);
+        break;
+    }
 
     case AnimEventType::SetHurtBoxEnabled:
         ApplyHurtBoxEnabledToOwner(owner, ev.setHurtBox.enabled);

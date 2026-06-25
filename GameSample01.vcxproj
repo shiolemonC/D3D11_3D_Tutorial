@@ -151,6 +151,7 @@
     <ClCompile Include="billboard.cpp" />
     <ClCompile Include="boss_ai.cpp" />
     <ClCompile Include="boss.cpp" />
+    <ClCompile Include="boss_projectile.cpp" />
     <ClCompile Include="BossAnimatorRegistry.cpp" />
     <ClCompile Include="BossModelSkinned.cpp" />
     <ClCompile Include="camera.cpp" />
@@ -221,6 +222,7 @@
     <ClInclude Include="billboard.h" />
     <ClInclude Include="boss_ai.h" />
     <ClInclude Include="boss.h" />
+    <ClInclude Include="boss_projectile.h" />
     <ClInclude Include="BossAnimatorRegistry.h" />
     <ClInclude Include="BossModelSkinned.h" />
     <ClInclude Include="camera.h" />

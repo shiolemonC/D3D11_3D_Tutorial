@@ -1,5 +1,6 @@
 ﻿#include "anim_event.h"
 #include <algorithm>
+#include "boss_projectile.h"
 
 using namespace DirectX;
 
@@ -151,6 +152,22 @@ void AnimEventRegister()
 
         bossAtk.events.push_back(e);
         AnimEventRegistry_Register(bossAtk);
+    }
+
+    // Boss_CastSpell: same animation asset as Boss_Attack, separate event track.
+    {
+        AnimEventTrack bossCast{};
+        bossCast.clipName = L"Boss_CastSpell";
+
+        AnimEvent e{};
+        e.timeNormalized = 0.45f;
+        e.type = AnimEventType::SpawnBossProjectile;
+        e.spawnBossProjectile.patternId = static_cast<int>(BossProjectilePatternId::StraightShot);
+        e.spawnBossProjectile.localOffset = { 0.0f, 1.7f, 2.3f };
+        e.spawnBossProjectile.targetOffset = { 0.0f, 1.0f, 0.0f };
+
+        bossCast.events.push_back(e);
+        AnimEventRegistry_Register(bossCast);
     }
 
     // ★ 在这里加 Boss 攻击事件

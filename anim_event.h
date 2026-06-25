@@ -13,6 +13,8 @@
 enum class AnimEventType {
     SpawnHitBox,  
 
+    SpawnBossProjectile,
+
     SetHurtBoxEnabled,
 
     SetParryWindowEnabled,
@@ -39,6 +41,13 @@ struct AnimEvent_SpawnHitBox {
     HitLevel hitLevel = HitLevel::Light;
 
     float knockbackDistance = 0.0f; // ★ 新增：击退距离（米），0=不击退
+};
+
+struct AnimEvent_SpawnBossProjectile
+{
+    int patternId = 0;
+    DirectX::XMFLOAT3 localOffset{ 0.0f, 1.5f, 1.5f };
+    DirectX::XMFLOAT3 targetOffset{ 0.0f, 1.0f, 0.0f };
 };
 
 struct AnimEvent_SetHurtBoxEnabled
@@ -103,6 +112,7 @@ struct AnimEvent
     float timeNormalized = 0.0f;    // 0.0～1.0，归一化时间
     AnimEventType type = AnimEventType::SpawnHitBox;
     AnimEvent_SpawnHitBox spawnHitBox; // 目前只有这一种事件
+    AnimEvent_SpawnBossProjectile spawnBossProjectile;
     AnimEvent_SetHurtBoxEnabled setHurtBox;
     AnimEvent_SetParryWindowEnabled setParryWindow; // ★ 新增
 

@@ -42,6 +42,7 @@
 #include "hitbox_system.h"
 #include "boss.h"
 #include "BossAnimatorRegistry.h"
+#include "boss_projectile.h"
 
 #include "hud_hp.h"
 #include "shadow_map.h"
@@ -133,6 +134,7 @@ void Game_Initialize()
     Billboard_Initialize();
     VfxConfig_Initialize();
     ParticleSystem_Initialize();
+    BossProjectile_Initialize();
     //g_TestTexid = Texture_Load(L"resources/runningman001.png");
 
     //g_AnimPatternId = SpriteAnim_RegisterPattern(
@@ -210,6 +212,7 @@ void Game_Finalize()
     Billboard_Finalize();
     Camera_Finalize();
     ParticleSystem_Finalize();
+    BossProjectile_Finalize();
     VfxConfig_Finalize();
     //PlayerCameraTest_Finalize();
     ShadowMap_Finalize();
@@ -336,6 +339,7 @@ void Game_Update(double elapsed_time)
     BossUpdateContext bctx{};
     bctx.playerPos = Player_GetPosition();
     Boss_Update(elapsed_time, bctx);
+    BossProjectile_Update(static_cast<float>(elapsed_time));
 
     // 5) 让底层 Camera 模块更新 view/proj（原来就有）
     Camera_Update(elapsed_time);
@@ -465,10 +469,12 @@ void Game_Draw()
 
     AnimatorRegistry_Draw();
     BossAnimatorRegistry_Draw();
+    BossProjectile_Draw();
 
 #if defined(DEBUG) || defined(_DEBUG)
     //PlayerSM_DebugDraw();
     //GetCollisionWorld().DebugDraw3D();
+    BossProjectile_DebugDraw();
 #endif
     ParticleSystem_DrawWorld();
     SpriteEffect_Draw();   // ★特效在这里画
@@ -499,6 +505,5 @@ void Game_Draw()
 
     g_GameSceneDrawnOnce = true;
 }
-
 
 
