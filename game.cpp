@@ -301,9 +301,9 @@ void Game_Update(double elapsed_time)
 
 
     // Boss 更新
-    //BossUpdateContext bctx{};
-    //bctx.playerPos = Player_GetPosition();
-    //Boss_Update(elapsed_time, bctx);
+    BossUpdateContext bctx{};
+    bctx.playerPos = Player_GetPosition();
+    Boss_Update(elapsed_time, bctx);
 
     // 5) 让底层 Camera 模块更新 view/proj（原来就有）
     Camera_Update(elapsed_time);
@@ -364,7 +364,7 @@ void Game_Draw()
         // ★在这里插入 Sky 的 View/Proj + Sky_Draw
         Shader3d_Unlit_SetViewMatrix(DirectX::XMLoadFloat4x4(&Camera_GetMatrix()));
         Shader3d_Unlit_SetProjectionMatrix(DirectX::XMLoadFloat4x4(&Camera_GetPerspectiveMatrix()));
-        //Sky_Draw();
+        Sky_Draw();
     }
 
     //========================

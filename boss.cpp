@@ -1,5 +1,6 @@
 ﻿// boss.cpp
 #include "boss.h"
+#include "boss_ai.h"
 #include "BossAnimatorRegistry.h"
 #include "AnimatorRegistry.h"   // 为了 RootMotionDelta 等
 #include "collider_system.h"   // ★ 碰撞中台
@@ -74,14 +75,6 @@ static const float  kBossComboRange = 4.5f;     // 你可以调成 4.0f/5.0f
 static const double kAttackCooldownSec = 4.0;   // 攻击冷却时间
 static const double kComboCooldownSec = 8.0;     // ★ Combo 自己的 CD（比如 6 秒）
 
-// 工具函数：向量长度²
-static float LengthSqXZ(const XMFLOAT3& a, const XMFLOAT3& b)
-{
-    const float dx = b.x - a.x;
-    const float dz = b.z - a.z;
-    return dx * dx + dz * dz;
-}
-
 static inline DirectX::XMFLOAT3 RotateY(const DirectX::XMFLOAT3& v, float rad)
 {
     float c = std::cosf(rad);
@@ -97,6 +90,26 @@ static inline float RandomSign45Deg()
 static void Boss_OnDeathStub()
 {
     OutputDebugStringA("[Boss] DEAD (stub)\n");
+}
+
+static BossAIContext Boss_MakeAIContext(BossAIState aiState,
+    const BossUpdateContext& ctx,
+    bool stateFinished = false)
+{
+    BossAIContext ai{};
+    ai.state = aiState;
+    ai.bossPos = s_bossPos;
+    ai.playerPos = ctx.playerPos;
+    ai.stateFinished = stateFinished;
+    ai.introRoarTriggered = s_introRoarTriggered;
+    ai.introRoarTimer = s_introRoarTimer;
+    ai.introRoarDelay = s_introRoarDelay;
+    ai.attackCooldown = s_attackCooldown;
+    ai.comboCooldown = s_comboCooldown;
+    ai.chaseRange = kBossChaseRange;
+    ai.attackRange = kBossAttackRange;
+    ai.comboRange = kBossComboRange;
+    return ai;
 }
 
 // 工具：状态切换统一入口（方便以后加 debug）
@@ -126,6 +139,48 @@ static void Boss_ChangeState(BossState next, const wchar_t* clipName, bool useCr
         s_introRoarTimer = 0.0f; // ★进入Idle开始计时
     }
 
+}
+
+static void Boss_ApplyAICommand(BossAICommand cmd)
+{
+    switch (cmd)
+    {
+    case BossAICommand::Idle:
+        if (s_state != BossState::Idle)
+        {
+            Boss_ChangeState(BossState::Idle, L"Boss_Idle");
+        }
+        break;
+
+    case BossAICommand::Chase:
+        if (s_state != BossState::Chase)
+        {
+            Boss_ChangeState(BossState::Chase, L"Boss_Chase");
+        }
+        break;
+
+    case BossAICommand::Attack:
+        Boss_ChangeState(BossState::Attack, L"Boss_Attack");
+        break;
+
+    case BossAICommand::Combo:
+        Boss_ChangeState(BossState::Combo, L"Boss_Combo");
+        break;
+
+    case BossAICommand::Roar:
+        s_introRoarTriggered = true;
+        Boss_ChangeState(BossState::Roar, L"Boss_Roar", true);
+
+        if (!PlayerCamera_IsLockOnActive())
+        {
+            PlayerCamera_EnsureLockOn();
+        }
+        break;
+
+    case BossAICommand::None:
+    default:
+        break;
+    }
 }
 
 // Boss の「体」用 AABB コライダーを作成
@@ -288,12 +343,6 @@ void Boss_Update(double dt, const BossUpdateContext& ctx)
         if (s_comboCooldown < 0.0) s_comboCooldown = 0.0;
     }
 
-    // ---- 1) 根据状态 + 玩家距离决策，下一个状态 ----
-    const float distSq = LengthSqXZ(s_bossPos, ctx.playerPos);
-    const float chaseRangeSq = kBossChaseRange * kBossChaseRange;
-    const float attackRangeSq = kBossAttackRange * kBossAttackRange;
-    const float comboRangeSq = kBossComboRange * kBossComboRange; // ★
-
     switch (s_state)
     {
     case BossState::Idle:
@@ -302,38 +351,10 @@ void Boss_Update(double dt, const BossUpdateContext& ctx)
         if (!s_introRoarTriggered)
         {
             s_introRoarTimer += (float)dt; // dt如果是秒就直接加；如果你dt是毫秒就改成 dt*0.001f
-
-            if ( s_introRoarTimer >= s_introRoarDelay)
-            {
-                s_introRoarTriggered = true;
-
-                Boss_ChangeState(BossState::Roar, L"Boss_Roar", true);
-
-                // 进入 Roar 时，若相机没在锁定就切到锁定
-                if (!PlayerCamera_IsLockOnActive())
-                {
-                    PlayerCamera_EnsureLockOn();
-                }
-            }
-
-            // 延迟期间，你可以选择“仍然允许转向玩家”，或者直接 break 静止
-            // 我建议：延迟期间也允许面向玩家（更自然）
-            // （如果你不想动，就 break;）
-            break;
         }
 
-        // ★ 1) 优先 Combo
-        if (distSq <= comboRangeSq && s_comboCooldown <= 0.0) {
-            Boss_ChangeState(BossState::Combo, L"Boss_Combo");
-        }
-        // 2) Combo 不可用再普通 Attack
-        else if (distSq <= attackRangeSq && s_attackCooldown <= 0.0) {
-            Boss_ChangeState(BossState::Attack, L"Boss_Attack");
-        }
-        // 3) 追击
-        else if (distSq > attackRangeSq && distSq <= chaseRangeSq) {
-            Boss_ChangeState(BossState::Chase, L"Boss_Chase");
-        }
+        Boss_ApplyAICommand(BossAI_Decide(
+            Boss_MakeAIContext(BossAIState::Idle, ctx)));
         break;
     }
 
@@ -352,18 +373,8 @@ void Boss_Update(double dt, const BossUpdateContext& ctx)
 
     case BossState::Chase:
     {
-        // ★ 1) 优先 Combo
-        if (distSq <= comboRangeSq && s_comboCooldown <= 0.0) {
-            Boss_ChangeState(BossState::Combo, L"Boss_Combo");
-        }
-        // 2) Combo 不可用再普通 Attack
-        else if (distSq <= attackRangeSq && s_attackCooldown <= 0.0) {
-            Boss_ChangeState(BossState::Attack, L"Boss_Attack");
-        }
-        // 3) 玩家离开感知范围 → 回 Idle
-        else if (distSq > chaseRangeSq) {
-            Boss_ChangeState(BossState::Idle, L"Boss_Idle");
-        }
+        Boss_ApplyAICommand(BossAI_Decide(
+            Boss_MakeAIContext(BossAIState::Chase, ctx)));
         break;
     }
 
@@ -402,16 +413,8 @@ void Boss_Update(double dt, const BossUpdateContext& ctx)
         BossAnimatorRegistry_DebugGetCurrentNormalizedTime(&norm);
         if (norm >= 1.0f)
         {
-            if (distSq > chaseRangeSq) {
-                Boss_ChangeState(BossState::Idle, L"Boss_Idle");
-            }
-            else if (distSq > attackRangeSq) {
-                Boss_ChangeState(BossState::Chase, L"Boss_Chase");
-            }
-            else {
-                if (s_attackCooldown <= 0.0) Boss_ChangeState(BossState::Attack, L"Boss_Attack");
-                else                         Boss_ChangeState(BossState::Idle, L"Boss_Idle");
-            }
+            Boss_ApplyAICommand(BossAI_Decide(
+                Boss_MakeAIContext(BossAIState::Hit, ctx, true)));
         }
         break;
     }

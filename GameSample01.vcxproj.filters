@@ -184,6 +184,9 @@
     <ClCompile Include="boss.cpp">
       <Filter>ソース ファイル</Filter>
     </ClCompile>
+    <ClCompile Include="boss_ai.cpp">
+      <Filter>ソース ファイル</Filter>
+    </ClCompile>
     <ClCompile Include="collider_system.cpp">
       <Filter>ソース ファイル\collider</Filter>
     </ClCompile>
@@ -385,6 +388,9 @@
       <Filter>ヘッダー ファイル\animation</Filter>
     </ClInclude>
     <ClInclude Include="boss.h">
+      <Filter>ヘッダー ファイル</Filter>
+    </ClInclude>
+    <ClInclude Include="boss_ai.h">
       <Filter>ヘッダー ファイル</Filter>
     </ClInclude>
     <ClInclude Include="pad_logger.h">
