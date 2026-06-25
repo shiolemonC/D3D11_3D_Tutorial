@@ -71,8 +71,18 @@ static int g_AnimPlayId = -1;
 static int s_pauseOverlayTex = -1;   
 static bool s_pauseOverlayLoaded = false;
 static bool g_GamePaused = false;
+static bool g_GameplayStarted = false;
+static bool g_GameSceneDrawnOnce = false;
 
 bool Game_IsPaused() { return g_GamePaused; }
+
+static void Game_BeginGameplay()
+{
+    if (g_GameplayStarted) return;
+
+    g_GameplayStarted = true;
+    OutputDebugStringA("[Game] Gameplay started after first Game_Draw.\n");
+}
 
 // 玩家输入构建辅助：把键盘 + 鼠标状态 → PlayerUpdateInput
 static PlayerUpdateInput BuildPlayerInput(const Mouse_State& ms)
@@ -105,6 +115,9 @@ static PlayerUpdateInput BuildPlayerInput(const Mouse_State& ms)
 
 void Game_Initialize()
 {
+    g_GamePaused = false;
+    g_GameplayStarted = false;
+    g_GameSceneDrawnOnce = false;
 
     Camera_Initialize(
         {4.2f, 2.4f, -5.7f},
@@ -201,6 +214,9 @@ void Game_Finalize()
     //PlayerCameraTest_Finalize();
     ShadowMap_Finalize();
     input::xinput::StopVibration();
+
+    g_GameplayStarted = false;
+    g_GameSceneDrawnOnce = false;
 }
 
 void Game_Update(double elapsed_time)
@@ -226,6 +242,22 @@ void Game_Update(double elapsed_time)
     if (g_GamePaused)
     {
         return;
+    }
+
+    if (!g_GameplayStarted)
+    {
+        Camera_Update(elapsed_time);
+        Sky_SetPosition(Camera_GetPosition());
+        HudHP_Update(elapsed_time);
+
+        if (g_GameSceneDrawnOnce)
+        {
+            Game_BeginGameplay();
+        }
+        else
+        {
+            return;
+        }
     }
 
     HitboxSystem_Update(static_cast<float>(elapsed_time));
@@ -464,8 +496,9 @@ void Game_Draw()
         }
 
     }
-}
 
+    g_GameSceneDrawnOnce = true;
+}
 
 
 
