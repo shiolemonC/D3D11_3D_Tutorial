@@ -48,6 +48,7 @@
 
 #include "vfx_config.h"
 #include "particle_system.h"
+#include "sprite.h"
 
 
 using namespace DirectX;
@@ -65,6 +66,13 @@ static MODEL* g_pModelTreeTest = nullptr;
 static int g_TestTexid = -1;
 static int g_AnimPatternId = -1;
 static int g_AnimPlayId = -1;
+
+// ===== Pause overlay resources =====
+static int s_pauseOverlayTex = -1;   
+static bool s_pauseOverlayLoaded = false;
+static bool g_GamePaused = false;
+
+bool Game_IsPaused() { return g_GamePaused; }
 
 // 玩家输入构建辅助：把键盘 + 鼠标状态 → PlayerUpdateInput
 static PlayerUpdateInput BuildPlayerInput(const Mouse_State& ms)
@@ -177,7 +185,9 @@ void Game_Initialize()
     ShadowMap_Initialize(Direct3D_GetDevice(), Direct3D_GetContext(), 2048);
     ShadowMap_SetParams(0.0025f, 1.0f);
 
+    s_pauseOverlayTex = Texture_Load(L"resources/ui/controller_setting.png");
 
+    s_pauseOverlayLoaded = true;
 }
 
 void Game_Finalize()
@@ -195,15 +205,37 @@ void Game_Finalize()
 
 void Game_Update(double elapsed_time)
 {
+    // --- 1) 仍然允许读取输入（用于恢复）---
+    input::xinput::Update();
+    input::xinput::UpdateVibration(elapsed_time);
+
+    // ESC / START（Options）切换暂停
+    bool pausePressed =
+        KeyLogger_IsTrigger(KK_ESCAPE) ||
+        input::xinput::Press(input::xinput::Button::Start);
+
+    if (pausePressed)
+    {
+        g_GamePaused = !g_GamePaused;
+
+        // 可选：暂停瞬间立刻停震动，避免“暂停还在嗡嗡”
+        if (g_GamePaused) input::xinput::StopVibration();
+    }
+
+    // --- 2) 暂停：冻结游戏逻辑（不推进时间）---
+    if (g_GamePaused)
+    {
+        return;
+    }
 
     HitboxSystem_Update(static_cast<float>(elapsed_time));
 
     g_AccumulatedTime += elapsed_time;
     Cube_Update(elapsed_time);
 
-    // 手柄输入
-    input::xinput::Update();
-    input::xinput::UpdateVibration(elapsed_time);
+    //// 手柄输入
+    //input::xinput::Update();
+    //input::xinput::UpdateVibration(elapsed_time);
     const auto& gp = input::xinput::GetState();
 
     // 采集鼠标
@@ -269,9 +301,9 @@ void Game_Update(double elapsed_time)
 
 
     // Boss 更新
-    BossUpdateContext bctx{};
-    bctx.playerPos = Player_GetPosition();
-    Boss_Update(elapsed_time, bctx);
+    //BossUpdateContext bctx{};
+    //bctx.playerPos = Player_GetPosition();
+    //Boss_Update(elapsed_time, bctx);
 
     // 5) 让底层 Camera 模块更新 view/proj（原来就有）
     Camera_Update(elapsed_time);
@@ -285,7 +317,6 @@ void Game_Update(double elapsed_time)
 
 
     HudHP_Update(elapsed_time);
-
 }
 
 void Game_Draw()
@@ -294,7 +325,7 @@ void Game_Draw()
     // 0) Shadow Pass：先生成 shadow map
     //========================
     {
-        // 方向与 MeshField 那边保持一致（你现在 MeshField 用的是 {1,-0.6,0}）
+        // 方向与 MeshField 那边保持一致
         DirectX::XMFLOAT3 lightDir = { 1.0f, -0.6f, 0.0f };
 
         // MeshField 大致范围：x=[0..50], z=[0..25]，中心大概 (25,0,12.5)
@@ -333,7 +364,7 @@ void Game_Draw()
         // ★在这里插入 Sky 的 View/Proj + Sky_Draw
         Shader3d_Unlit_SetViewMatrix(DirectX::XMLoadFloat4x4(&Camera_GetMatrix()));
         Shader3d_Unlit_SetProjectionMatrix(DirectX::XMLoadFloat4x4(&Camera_GetPerspectiveMatrix()));
-        Sky_Draw();
+        //Sky_Draw();
     }
 
     //========================
@@ -405,12 +436,36 @@ void Game_Draw()
 
 #if defined(DEBUG) || defined(_DEBUG)
     //PlayerSM_DebugDraw();
-    GetCollisionWorld().DebugDraw3D();
+    //GetCollisionWorld().DebugDraw3D();
 #endif
     ParticleSystem_DrawWorld();
     SpriteEffect_Draw();   // ★特效在这里画
     HudHP_Draw();
+
+    if (Game_IsPaused())
+    {
+        const float sw = (float)Direct3D_GetBackBufferWidth();
+        const float sh = (float)Direct3D_GetBackBufferHeight();
+
+        // 1) 黑幕
+        //Sprite_DrawRect(0.0f, 0.0f, sw, sh, { 0.0f, 0.0f, 0.0f, 0.55f });
+
+        // 2) 在黑幕上画暂停图片（居中）
+        if (s_pauseOverlayTex != -1)
+        {
+            // 用“显式尺寸”的 Sprite_Draw 重载，避免 Texture_Width/Height=0 导致画不出来
+            const float w = sw * 0.60f;
+            const float h = sh * 0.20f;
+            const float x = (sw - w) * 0.5f;
+            const float y = (sh - h) * 0.35f;
+
+            Sprite_Draw(s_pauseOverlayTex, 0.0f, 0.0f, sw, sh, false, { 1,1,1,1 });
+
+        }
+
+    }
 }
+
 
 
 

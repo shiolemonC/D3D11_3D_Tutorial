@@ -16,8 +16,8 @@
 ----------------------------------------------------*/
 static constexpr char WINDOW_CLASS[] = "Game Window"; // メインウィンドウクラス名
 static constexpr char TITLE[] = "My Window"; // タイトルバーのテキスト、あとは課題名とかゲーム名とか
-constexpr int SCREEN_WIDTH = 1600;
-constexpr int SCREEN_HEIGHT = 900; // これは描ける範囲、メニューとバーが含まらない
+constexpr int SCREEN_WIDTH = 2560;
+constexpr int SCREEN_HEIGHT = 1440; // これは描ける範囲、メニューとバーが含まらない
 
 
 HWND GameWindow_Create(HINSTANCE hInstance)

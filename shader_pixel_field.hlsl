@@ -203,7 +203,7 @@ float4 main(PS_IN pi) : SV_TARGET
     }
 
     // ============================================================
-    // (E) Roughness/Gloss -> Spec 参数（可选但强烈建议）
+    // (E) Roughness/Gloss -> Spec 参数
     // ============================================================
     float rm = g_roughMap.Sample(samp, uv).r;
 
@@ -211,15 +211,15 @@ float4 main(PS_IN pi) : SV_TARGET
     if (matParams1.z > 0.5f)                      // roughnessIsGloss
         rm = 1.0f - rm;
 
-// ★粗糙度基础强度（你已有 matParams0.z）
+// 粗糙度基础强度（你已有 matParams0.z）
     float rough = rm * matParams0.z;
 
-// ★偏移：+ 更粗糙（更哑光），- 更光滑（更亮）
+// 偏移：+ 更粗糙（更哑光），- 更光滑（更亮）
     rough += matParams2.y; // ★ 推荐 -0.2 ~ +0.2
 
     rough = saturate(rough);
 
-// ★对比曲线：>1 更“分层明显”，<1 更平
+// 对比曲线：>1 更“分层明显”，<1 更平
     rough = pow(rough, max(matParams2.z, 0.001f)); // ★ 推荐 0.8 ~ 2.0
 
     // roughness 映射到高光“锐利度”

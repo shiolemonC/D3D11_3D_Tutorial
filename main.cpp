@@ -180,9 +180,12 @@ int APIENTRY WinMain(
 				KeyLogger_Update(); // キーの状態を更新
 				//Game_Update(elapsed_time);
 				Scene_Update(elapsed_time);
-				PostFx_Update(elapsed_time);
-				SpriteAnim_Update(elapsed_time);
-				Fade_Update(elapsed_time);
+				if (!Scene_IsPaused())
+				{
+					PostFx_Update(elapsed_time);
+					SpriteAnim_Update(elapsed_time);
+					Fade_Update(elapsed_time);
+				}
 				
 				// ゲームの描画
 				float clear_color[4] = { 0.1f, 0.2f, 0.6f, 1.0f };

@@ -26,4 +26,6 @@ enum Scene
 
 void Scene_Change(Scene scene);
 
+bool Scene_IsPaused();
+
 #endif // SCENE_H

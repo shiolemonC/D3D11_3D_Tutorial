@@ -1,6 +1,6 @@
-/*==============================================================================
+ï»¿/*==============================================================================
 
-@ ‰æ–Ê‘JˆÚ§Œä [scene.cpp]
+ã€€ ç”»é¢é·ç§»åˆ¶å¾¡ [scene.cpp]
                                                          Author : Youhei Sato
                                                          Date   : 2025/07/11
 --------------------------------------------------------------------------------
@@ -11,10 +11,20 @@
 #include "title.h"
 #include "result.h"
 #include "over.h"
+#include "direct3d.h"
+#include "sprite.h"
+#include "texture.h"
 
-//static Scene g_Scene = SCENE_TITLE; // ¡‚ÌƒV[ƒ“
-static Scene g_Scene = SCENE_GAME; // debug‚µ‚½‚¢‚ÌƒV[ƒ“
-static Scene g_SceneNext = g_Scene; // Ÿ‚ÌƒV[ƒ“
+static Scene g_Scene = SCENE_TITLE; // ä»Šã®ã‚·ãƒ¼ãƒ³
+//static Scene g_Scene = SCENE_GAME; // debugã—ãŸã„ã®ã‚·ãƒ¼ãƒ³
+static Scene g_SceneNext = g_Scene; // æ¬¡ã®ã‚·ãƒ¼ãƒ³
+
+
+bool Scene_IsPaused()
+{
+    if (g_Scene == SCENE_GAME) return Game_IsPaused();
+    return false;
+}
 
 void Scene_Initialize()
 {
@@ -25,6 +35,8 @@ void Scene_Initialize()
     case SCENE_RESULT: Result_Initialize(); break;
     case SCENE_OVER:   Over_Initialize();   break;
     }
+
+
 }
 
 void Scene_Finalize()
@@ -51,6 +63,7 @@ void Scene_Update(double elapsed_time)
 
 void Scene_Draw()
 {
+
     switch (g_Scene)
     {
     case SCENE_TITLE:  Title_Draw();  break;
@@ -58,18 +71,19 @@ void Scene_Draw()
     case SCENE_RESULT: Result_Draw(); break;
     case SCENE_OVER:   Over_Draw();   break;
     }
+
 }
 
-void Scene_Refresh() // ƒV[ƒ“XV‚ÌS‘Ÿ•”
+void Scene_Refresh() // ã‚·ãƒ¼ãƒ³æ›´æ–°ã®å¿ƒè‡“éƒ¨
 {
     if (g_Scene != g_SceneNext)
     {
-        // Œ»İ‚ÌƒV[ƒ“‚ÌŒã•Ğ•t‚¯
+        // ç¾åœ¨ã®ã‚·ãƒ¼ãƒ³ã®å¾Œç‰‡ä»˜ã‘
         Scene_Finalize();
 
         g_Scene = g_SceneNext;
 
-        // Ÿ‚ÌƒV[ƒ“‚Ì‰Šú‰»
+        // æ¬¡ã®ã‚·ãƒ¼ãƒ³ã®åˆæœŸåŒ–
         Scene_Initialize();
     }
 }
@@ -78,3 +92,5 @@ void Scene_Change(Scene scene)
 {
     g_SceneNext = scene;
 }
+
+

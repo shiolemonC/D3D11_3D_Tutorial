@@ -16,6 +16,6 @@ void Game_Finalize();
 // ゲーム作るのは絶対必要のアップデートとドロー(最低限)
 void Game_Update(double elapsed_time);
 void Game_Draw();
-
+bool Game_IsPaused();
 
 #endif // GAME_H

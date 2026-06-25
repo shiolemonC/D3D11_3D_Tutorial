@@ -82,12 +82,14 @@ namespace input::xinput
         s_state.pressX = JP(XINPUT_GAMEPAD_X);
         s_state.pressY = JP(XINPUT_GAMEPAD_Y);
         s_state.pressR3 = JP(XINPUT_GAMEPAD_RIGHT_THUMB);
+        s_state.pressStart = JP(XINPUT_GAMEPAD_START);
 
         s_state.holdA = HD(XINPUT_GAMEPAD_A);
         s_state.holdB = HD(XINPUT_GAMEPAD_B);
         s_state.holdX = HD(XINPUT_GAMEPAD_X);
         s_state.holdY = HD(XINPUT_GAMEPAD_Y);
         s_state.holdR3 = HD(XINPUT_GAMEPAD_RIGHT_THUMB);
+        s_state.holdStart = HD(XINPUT_GAMEPAD_START);
 
         s_prevButtons = now;
     }
@@ -104,6 +106,7 @@ namespace input::xinput
         case Button::X:  return s_state.holdX;
         case Button::Y:  return s_state.holdY;
         case Button::R3: return s_state.holdR3;
+        case Button::Start: return s_state.holdStart;   // Hold
         default:         return false;
         }
     }
@@ -117,6 +120,7 @@ namespace input::xinput
         case Button::X:  return s_state.pressX;
         case Button::Y:  return s_state.pressY;
         case Button::R3: return s_state.pressR3;
+        case Button::Start: return s_state.pressStart;  // Press
         default:         return false;
         }
     }

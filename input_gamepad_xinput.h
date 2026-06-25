@@ -16,6 +16,7 @@ namespace input::xinput
         X,
         Y,
         R3, // Right stick press
+        Start,
     };
 
     struct State
@@ -34,6 +35,7 @@ namespace input::xinput
         bool holdX = false;
         bool holdY = false;
         bool holdR3 = false;
+        bool holdStart = false; 
 
         // Just pressed (edge)
         bool pressA = false;
@@ -41,6 +43,8 @@ namespace input::xinput
         bool pressX = false;
         bool pressY = false;
         bool pressR3 = false;
+        bool pressStart = false; // ★新增
+
     };
 
     struct Vibration

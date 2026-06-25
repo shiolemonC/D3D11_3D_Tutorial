@@ -291,6 +291,18 @@
     },
 
     {
+      "from": "Roll",
+      "to": "Attack",
+      "trigger": "Attack",
+      "buffer": 0.15,
+      "window": [ [ 0.90, 1.00 ] ],
+      "duration": 0.1,
+      "curve": "linear",
+      "can_interrupt": true,
+      "priority": 60
+    },
+
+    {
       "from": "Idle",
       "to": "Parry",
       "trigger": "Parry",
