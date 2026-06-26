@@ -1,30 +1,18 @@
 #include "boss_projectile.h"
 
 #include "boss.h"
+#include "boss_projectile_visual.h"
 #include "collider_system.h"
 #include "cube.h"
-#include "direct3d.h"
 #include "hit_event.h"
 #include "player.h"
-#include "shader3d.h"
-#include "texture.h"
 
 #include <algorithm>
 #include <cmath>
-#include <cstdint>
 #include <vector>
 #include <Windows.h>
 
 using namespace DirectX;
-
-enum class BossProjectileVisualType
-{
-    Sphere,
-    Particle,
-    SpriteEffect,
-    Billboard,
-    Model,
-};
 
 struct BossProjectileLogicDesc
 {
@@ -35,14 +23,6 @@ struct BossProjectileLogicDesc
     HitLevel hitLevel = HitLevel::Light;
     float knockbackDistance = 0.0f;
     bool destroyOnHit = true;
-};
-
-struct BossProjectileVisualDesc
-{
-    BossProjectileVisualType type = BossProjectileVisualType::Sphere;
-    float visualRadius = 0.35f;
-    XMFLOAT4 color{ 0.55f, 0.85f, 1.0f, 1.0f };
-    int resourceId = -1;
 };
 
 struct BossProjectilePattern
@@ -68,39 +48,32 @@ struct BossProjectile
 
 static std::vector<BossProjectile> s_projectiles;
 
-struct ProjectileSphereVertex
-{
-    XMFLOAT3 position;
-    XMFLOAT3 normal;
-    XMFLOAT4 color;
-    XMFLOAT2 texcoord;
-};
-
-static ID3D11Buffer* s_sphereVertexBuffer = nullptr;
-static ID3D11Buffer* s_sphereIndexBuffer = nullptr;
-static int s_sphereIndexCount = 0;
-static int s_whiteTextureId = -1;
-
 static const BossProjectilePattern& GetPattern(BossProjectilePatternId id)
 {
-    static const BossProjectilePattern kStraightShot
+    static const BossProjectilePattern kStraightShot = []()
     {
-        {
-            12.0f,            // speed
-            0.45f,            // collisionRadius
-            4.0f,             // lifeSec
-            18,               // damage
-            HitLevel::Medium, // hitLevel
-            1.2f,             // knockbackDistance
-            true              // destroyOnHit
-        },
-        {
-            BossProjectileVisualType::Sphere,
-            0.45f,                            // visualRadius
-            { 0.55f, 0.85f, 1.0f, 1.0f },     // light blue
-            -1
-        }
-    };
+        BossProjectilePattern pattern{};
+        pattern.logic.speed = 12.0f;
+        pattern.logic.collisionRadius = 0.45f;
+        pattern.logic.lifeSec = 4.0f;
+        pattern.logic.damage = 18;
+        pattern.logic.hitLevel = HitLevel::Medium;
+        pattern.logic.knockbackDistance = 1.2f;
+        pattern.logic.destroyOnHit = true;
+
+        pattern.visual.type = BossProjectileVisualType::VelocityBillboard;
+        pattern.visual.visualRadius = 0.45f;
+        pattern.visual.color = { 0.45f, 0.85f, 1.0f, 1.0f };
+        pattern.visual.blend = VfxBlend::Add;
+        pattern.visual.texturePath = L"resources/fx/particle_spark_1.png";
+        pattern.visual.baseWidth = 0.55f;
+        pattern.visual.baseLength = 0.95f;
+        pattern.visual.streakMul = 0.10f;
+        pattern.visual.streakMax = 2.8f;
+        pattern.visual.rotationBias = 0.0f;
+
+        return pattern;
+    }();
 
     switch (id)
     {
@@ -108,116 +81,6 @@ static const BossProjectilePattern& GetPattern(BossProjectilePatternId id)
     default:
         return kStraightShot;
     }
-}
-
-static void CreateProjectileSphereMesh()
-{
-    if (s_sphereVertexBuffer && s_sphereIndexBuffer) return;
-
-    ID3D11Device* device = Direct3D_GetDevice();
-    if (!device) return;
-
-    constexpr int kSlices = 24;
-    constexpr int kStacks = 12;
-
-    std::vector<ProjectileSphereVertex> vertices;
-    std::vector<std::uint16_t> indices;
-    vertices.reserve((kSlices + 1) * (kStacks + 1));
-    indices.reserve(kSlices * kStacks * 6);
-
-    for (int stack = 0; stack <= kStacks; ++stack)
-    {
-        const float v = static_cast<float>(stack) / static_cast<float>(kStacks);
-        const float phi = XM_PI * v;
-        const float y = std::cos(phi);
-        const float r = std::sin(phi);
-
-        for (int slice = 0; slice <= kSlices; ++slice)
-        {
-            const float u = static_cast<float>(slice) / static_cast<float>(kSlices);
-            const float theta = XM_2PI * u;
-            const float x = r * std::cos(theta);
-            const float z = r * std::sin(theta);
-
-            ProjectileSphereVertex vertex{};
-            vertex.position = { x, y, z };
-            vertex.normal = { x, y, z };
-            vertex.color = { 1, 1, 1, 1 };
-            vertex.texcoord = { u, v };
-            vertices.push_back(vertex);
-        }
-    }
-
-    for (int stack = 0; stack < kStacks; ++stack)
-    {
-        for (int slice = 0; slice < kSlices; ++slice)
-        {
-            const int row0 = stack * (kSlices + 1);
-            const int row1 = (stack + 1) * (kSlices + 1);
-
-            const std::uint16_t i0 = static_cast<std::uint16_t>(row0 + slice);
-            const std::uint16_t i1 = static_cast<std::uint16_t>(row1 + slice);
-            const std::uint16_t i2 = static_cast<std::uint16_t>(row0 + slice + 1);
-            const std::uint16_t i3 = static_cast<std::uint16_t>(row1 + slice + 1);
-
-            indices.push_back(i0);
-            indices.push_back(i1);
-            indices.push_back(i2);
-
-            indices.push_back(i2);
-            indices.push_back(i1);
-            indices.push_back(i3);
-        }
-    }
-
-    D3D11_BUFFER_DESC bd{};
-    bd.Usage = D3D11_USAGE_DEFAULT;
-    bd.ByteWidth = static_cast<UINT>(sizeof(ProjectileSphereVertex) * vertices.size());
-    bd.BindFlags = D3D11_BIND_VERTEX_BUFFER;
-
-    D3D11_SUBRESOURCE_DATA sd{};
-    sd.pSysMem = vertices.data();
-    device->CreateBuffer(&bd, &sd, &s_sphereVertexBuffer);
-
-    bd.ByteWidth = static_cast<UINT>(sizeof(std::uint16_t) * indices.size());
-    bd.BindFlags = D3D11_BIND_INDEX_BUFFER;
-    sd.pSysMem = indices.data();
-    device->CreateBuffer(&bd, &sd, &s_sphereIndexBuffer);
-
-    s_sphereIndexCount = static_cast<int>(indices.size());
-}
-
-static void DrawProjectileSphere(const BossProjectile& p)
-{
-    if (!s_sphereVertexBuffer || !s_sphereIndexBuffer || s_sphereIndexCount <= 0)
-    {
-        return;
-    }
-
-    ID3D11DeviceContext* context = Direct3D_GetContext();
-    if (!context) return;
-
-    Shader3d_Begin();
-    Shader3d_SetColor(p.visual.color);
-
-    if (s_whiteTextureId >= 0)
-    {
-        Texture_SetTexture(s_whiteTextureId);
-    }
-
-    UINT stride = sizeof(ProjectileSphereVertex);
-    UINT offset = 0;
-    context->IASetVertexBuffers(0, 1, &s_sphereVertexBuffer, &stride, &offset);
-    context->IASetIndexBuffer(s_sphereIndexBuffer, DXGI_FORMAT_R16_UINT, 0);
-    context->IASetPrimitiveTopology(D3D11_PRIMITIVE_TOPOLOGY_TRIANGLELIST);
-
-    const float r = p.visual.visualRadius;
-    const XMMATRIX world =
-        XMMatrixScaling(r, r, r) *
-        XMMatrixTranslation(p.position.x, p.position.y, p.position.z);
-    Shader3d_SetWorldMatrix(world);
-
-    context->DrawIndexed(s_sphereIndexCount, 0, 0);
 }
 
 static XMFLOAT3 NormalizeOrFallback(const XMFLOAT3& v, const XMFLOAT3& fallback)
@@ -314,17 +177,13 @@ static void DispatchPlayerHit(BossProjectile& p)
 void BossProjectile_Initialize()
 {
     s_projectiles.clear();
-    CreateProjectileSphereMesh();
-    s_whiteTextureId = Texture_Load(L"resources/white.png");
+    BossProjectileVisual_Initialize();
 }
 
 void BossProjectile_Finalize()
 {
     s_projectiles.clear();
-    SAFE_RELEASE(s_sphereVertexBuffer);
-    SAFE_RELEASE(s_sphereIndexBuffer);
-    s_sphereIndexCount = 0;
-    s_whiteTextureId = -1;
+    BossProjectileVisual_Finalize();
 }
 
 void BossProjectile_Clear()
@@ -400,15 +259,7 @@ void BossProjectile_Draw()
 {
     for (const auto& p : s_projectiles)
     {
-        switch (p.visual.type)
-        {
-        case BossProjectileVisualType::Sphere:
-            DrawProjectileSphere(p);
-            break;
-        default:
-            DrawProjectileSphere(p);
-            break;
-        }
+        BossProjectileVisual_Draw(p.position, p.velocity, p.visual);
     }
 }
 
