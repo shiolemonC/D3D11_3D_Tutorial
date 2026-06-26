@@ -9,6 +9,7 @@
 
 #include <algorithm>
 #include <cmath>
+#include <cstdlib>
 #include <vector>
 #include <Windows.h>
 
@@ -31,19 +32,33 @@ struct BossProjectilePattern
     BossProjectileVisualDesc visual;
 };
 
+enum class BossProjectileMoveMode
+{
+    Straight,
+    FireworkScatterThenAim,
+};
+
 struct BossProjectile
 {
     BossProjectilePatternId patternId = BossProjectilePatternId::StraightShot;
+    BossProjectileMoveMode moveMode = BossProjectileMoveMode::Straight;
     XMFLOAT3 position{ 0,0,0 };
     XMFLOAT3 velocity{ 0,0,0 };
     float collisionRadius = 0.35f;
     float lifeRemain = 0.0f;
+    float age = 0.0f;
     int damage = 0;
     HitLevel hitLevel = HitLevel::Light;
     float knockbackDistance = 0.0f;
     bool destroyOnHit = true;
     void* ownerToken = nullptr;
     BossProjectileVisualDesc visual;
+
+    float phaseTimer = 0.0f;
+    float scatterDuration = 0.0f;
+    float homingSpeed = 0.0f;
+    bool hasLockedTarget = false;
+    XMFLOAT3 lockedTarget{ 0,0,0 };
 };
 
 static std::vector<BossProjectile> s_projectiles;
@@ -75,8 +90,35 @@ static const BossProjectilePattern& GetPattern(BossProjectilePatternId id)
         return pattern;
     }();
 
+    static const BossProjectilePattern kFireworkHomingBarrage = []()
+    {
+        BossProjectilePattern pattern{};
+        pattern.logic.speed = 5.5f;
+        pattern.logic.collisionRadius = 0.38f;
+        pattern.logic.lifeSec = 5.0f;
+        pattern.logic.damage = 12;
+        pattern.logic.hitLevel = HitLevel::Medium;
+        pattern.logic.knockbackDistance = 0.8f;
+        pattern.logic.destroyOnHit = true;
+
+        pattern.visual.type = BossProjectileVisualType::VelocityBillboard;
+        pattern.visual.visualRadius = 0.38f;
+        pattern.visual.color = { 0.50f, 0.90f, 1.0f, 1.0f };
+        pattern.visual.blend = VfxBlend::Add;
+        pattern.visual.texturePath = L"resources/fx/particle_spark_1.png";
+        pattern.visual.baseWidth = 0.42f;
+        pattern.visual.baseLength = 0.78f;
+        pattern.visual.streakMul = 0.10f;
+        pattern.visual.streakMax = 2.7f;
+        pattern.visual.rotationBias = 0.0f;
+
+        return pattern;
+    }();
+
     switch (id)
     {
+    case BossProjectilePatternId::FireworkHomingBarrage:
+        return kFireworkHomingBarrage;
     case BossProjectilePatternId::StraightShot:
     default:
         return kStraightShot;
@@ -114,6 +156,37 @@ static bool SphereOverlapsAABB(const XMFLOAT3& center, float radius, const BOXAA
     const float dy = center.y - cy;
     const float dz = center.z - cz;
     return (dx * dx + dy * dy + dz * dz) <= radius * radius;
+}
+
+static float RandomRange(float minValue, float maxValue)
+{
+    const float t = static_cast<float>(std::rand()) / static_cast<float>(RAND_MAX);
+    return minValue + (maxValue - minValue) * t;
+}
+
+static XMFLOAT3 Cross(const XMFLOAT3& a, const XMFLOAT3& b)
+{
+    return {
+        a.y * b.z - a.z * b.y,
+        a.z * b.x - a.x * b.z,
+        a.x * b.y - a.y * b.x
+    };
+}
+
+static XMFLOAT3 Add(const XMFLOAT3& a, const XMFLOAT3& b)
+{
+    return { a.x + b.x, a.y + b.y, a.z + b.z };
+}
+
+static XMFLOAT3 Mul(const XMFLOAT3& v, float s)
+{
+    return { v.x * s, v.y * s, v.z * s };
+}
+
+static XMFLOAT3 NormalizeXZOrFallback(const XMFLOAT3& v, const XMFLOAT3& fallback)
+{
+    XMFLOAT3 xz{ v.x, 0.0f, v.z };
+    return NormalizeOrFallback(xz, fallback);
 }
 
 static bool ProjectileHitsPlayer(const BossProjectile& p)
@@ -174,6 +247,130 @@ static void DispatchPlayerHit(BossProjectile& p)
     }
 }
 
+static void SetupProjectileFromPattern(
+    BossProjectile& p,
+    BossProjectilePatternId patternId,
+    const BossProjectilePattern& pattern,
+    const XMFLOAT3& spawnPos,
+    void* ownerToken)
+{
+    p.patternId = patternId;
+    p.position = spawnPos;
+    p.collisionRadius = pattern.logic.collisionRadius;
+    p.lifeRemain = pattern.logic.lifeSec;
+    p.age = 0.0f;
+    p.damage = pattern.logic.damage;
+    p.hitLevel = pattern.logic.hitLevel;
+    p.knockbackDistance = pattern.logic.knockbackDistance;
+    p.destroyOnHit = pattern.logic.destroyOnHit;
+    p.ownerToken = ownerToken;
+    p.visual = pattern.visual;
+}
+
+static void PushStraightShot(
+    BossProjectilePatternId patternId,
+    const BossProjectilePattern& pattern,
+    const XMFLOAT3& spawnPos,
+    const XMFLOAT3& targetPos,
+    void* ownerToken)
+{
+    XMFLOAT3 dir{
+        targetPos.x - spawnPos.x,
+        targetPos.y - spawnPos.y,
+        targetPos.z - spawnPos.z
+    };
+    dir = NormalizeOrFallback(dir, Boss_GetForward());
+
+    BossProjectile p{};
+    SetupProjectileFromPattern(p, patternId, pattern, spawnPos, ownerToken);
+    p.moveMode = BossProjectileMoveMode::Straight;
+    p.velocity = Mul(dir, pattern.logic.speed);
+
+    s_projectiles.push_back(p);
+}
+
+static void PushFireworkHomingBarrage(
+    BossProjectilePatternId patternId,
+    const BossProjectilePattern& pattern,
+    const XMFLOAT3& spawnPos,
+    const XMFLOAT3& targetPos,
+    void* ownerToken)
+{
+    constexpr int kCount = 7;
+    constexpr float kScatterDuration = 0.75f;
+    constexpr float kHomingSpeed = 13.0f;
+    constexpr float kSpreadDeg = 120.0f;
+    constexpr float kScatterUpSpeed = 7.5f;
+
+    const XMFLOAT3 baseForward = NormalizeXZOrFallback(
+        { targetPos.x - spawnPos.x, 0.0f, targetPos.z - spawnPos.z },
+        Boss_GetForward());
+    const XMFLOAT3 up{ 0.0f, 1.0f, 0.0f };
+    const XMFLOAT3 right = NormalizeOrFallback(Cross(up, baseForward), { 1.0f, 0.0f, 0.0f });
+
+    for (int i = 0; i < kCount; ++i)
+    {
+        const float center = (static_cast<float>(kCount) - 1.0f) * 0.5f;
+        const float normalizedIndex = (static_cast<float>(i) - center) / center;
+        const float sideAngle = XMConvertToRadians((kSpreadDeg * 0.5f) * normalizedIndex);
+        const float c = std::cos(sideAngle);
+        const float s = std::sin(sideAngle);
+
+        XMFLOAT3 scatterDir = Add(Mul(baseForward, c), Mul(right, s));
+        scatterDir.y = RandomRange(0.75f, 1.10f);
+        scatterDir = NormalizeOrFallback(scatterDir, up);
+
+        BossProjectile p{};
+        SetupProjectileFromPattern(p, patternId, pattern, spawnPos, ownerToken);
+        p.moveMode = BossProjectileMoveMode::FireworkScatterThenAim;
+        p.velocity = {
+            scatterDir.x * pattern.logic.speed,
+            scatterDir.y * kScatterUpSpeed,
+            scatterDir.z * pattern.logic.speed
+        };
+        p.scatterDuration = kScatterDuration + RandomRange(-0.08f, 0.08f);
+        p.homingSpeed = kHomingSpeed;
+
+        s_projectiles.push_back(p);
+    }
+}
+
+static void LockFireworkTarget(BossProjectile& p)
+{
+    XMFLOAT3 target = Player_GetPosition();
+    target.y += 1.0f;
+    p.lockedTarget = target;
+
+    XMFLOAT3 dir{
+        target.x - p.position.x,
+        target.y - p.position.y,
+        target.z - p.position.z
+    };
+    dir = NormalizeOrFallback(dir, { 0.0f, -0.2f, 1.0f });
+
+    p.velocity = Mul(dir, p.homingSpeed);
+    p.hasLockedTarget = true;
+}
+
+static void UpdateProjectileMovement(BossProjectile& p, float dt)
+{
+    p.age += dt;
+
+    if (p.moveMode == BossProjectileMoveMode::FireworkScatterThenAim)
+    {
+        p.phaseTimer += dt;
+
+        if (!p.hasLockedTarget && p.phaseTimer >= p.scatterDuration)
+        {
+            LockFireworkTarget(p);
+        }
+    }
+
+    p.position.x += p.velocity.x * dt;
+    p.position.y += p.velocity.y * dt;
+    p.position.z += p.velocity.z * dt;
+}
+
 void BossProjectile_Initialize()
 {
     s_projectiles.clear();
@@ -199,32 +396,18 @@ void BossProjectile_Fire(
 {
     const BossProjectilePattern& pattern = GetPattern(patternId);
 
-    XMFLOAT3 dir{
-        targetPos.x - spawnPos.x,
-        targetPos.y - spawnPos.y,
-        targetPos.z - spawnPos.z
-    };
-    dir = NormalizeOrFallback(dir, Boss_GetForward());
-
-    BossProjectile p{};
-    p.patternId = patternId;
-    p.position = spawnPos;
-    p.velocity = {
-        dir.x * pattern.logic.speed,
-        dir.y * pattern.logic.speed,
-        dir.z * pattern.logic.speed
-    };
-    p.collisionRadius = pattern.logic.collisionRadius;
-    p.lifeRemain = pattern.logic.lifeSec;
-    p.damage = pattern.logic.damage;
-    p.hitLevel = pattern.logic.hitLevel;
-    p.knockbackDistance = pattern.logic.knockbackDistance;
-    p.destroyOnHit = pattern.logic.destroyOnHit;
-    p.ownerToken = ownerToken;
-    p.visual = pattern.visual;
-
-    s_projectiles.push_back(p);
-    OutputDebugStringA("[BossProjectile] Fire StraightShot\n");
+    switch (patternId)
+    {
+    case BossProjectilePatternId::FireworkHomingBarrage:
+        PushFireworkHomingBarrage(patternId, pattern, spawnPos, targetPos, ownerToken);
+        OutputDebugStringA("[BossProjectile] Fire FireworkHomingBarrage\n");
+        break;
+    case BossProjectilePatternId::StraightShot:
+    default:
+        PushStraightShot(patternId, pattern, spawnPos, targetPos, ownerToken);
+        OutputDebugStringA("[BossProjectile] Fire StraightShot\n");
+        break;
+    }
 }
 
 void BossProjectile_Update(float dt)
@@ -235,9 +418,7 @@ void BossProjectile_Update(float dt)
     {
         if (p.lifeRemain <= 0.0f) continue;
 
-        p.position.x += p.velocity.x * dt;
-        p.position.y += p.velocity.y * dt;
-        p.position.z += p.velocity.z * dt;
+        UpdateProjectileMovement(p, dt);
         p.lifeRemain -= dt;
 
         if (p.lifeRemain > 0.0f && ProjectileHitsPlayer(p))

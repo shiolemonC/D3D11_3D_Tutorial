@@ -4,6 +4,7 @@
 enum class BossProjectilePatternId : int
 {
     StraightShot = 0,
+    FireworkHomingBarrage,
 };
 
 void BossProjectile_Initialize();

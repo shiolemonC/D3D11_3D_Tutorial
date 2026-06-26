@@ -162,7 +162,7 @@ void AnimEventRegister()
         AnimEvent e{};
         e.timeNormalized = 0.45f;
         e.type = AnimEventType::SpawnBossProjectile;
-        e.spawnBossProjectile.patternId = static_cast<int>(BossProjectilePatternId::StraightShot);
+        e.spawnBossProjectile.patternId = static_cast<int>(BossProjectilePatternId::FireworkHomingBarrage);
         e.spawnBossProjectile.localOffset = { 0.0f, 1.7f, 2.3f };
         e.spawnBossProjectile.targetOffset = { 0.0f, 1.0f, 0.0f };
 
