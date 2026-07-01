@@ -90,6 +90,19 @@ struct CameraTransition {
 static PlayerCameraMode s_mode = PlayerCameraMode::Free;
 static CameraTransition s_transition{};
 static LockOnTuning     s_lockTune{}; // 用默认值
+static float s_lockAimBiasWeight = 0.0f;
+
+static constexpr float kLockSafeLeft = 0.18f;
+static constexpr float kLockSafeRight = 0.82f;
+static constexpr float kLockSafeTop = 0.14f;
+static constexpr float kLockSafeBottom = 0.82f;
+static constexpr float kLockReleaseLeft = 0.24f;
+static constexpr float kLockReleaseRight = 0.76f;
+static constexpr float kLockReleaseTop = 0.20f;
+static constexpr float kLockReleaseBottom = 0.76f;
+static constexpr float kLockAimBiasPushSpeed = 2.5f;
+static constexpr float kLockAimBiasReturnSpeed = 0.45f;
+static constexpr float kLockAimBiasMax = 0.90f;
 
 // ------------------ 小工具 ------------------
 
@@ -196,6 +209,139 @@ static CameraRig ComputeLockOnRigImmediate(const LockOnTuning& tune)
     };
 
     return CameraRig{ eye, target };
+}
+
+static bool ProjectWorldToRigUV(const CameraRig& rig,
+    const XMFLOAT3& worldPos,
+    XMFLOAT2& outUV)
+{
+    XMVECTOR eye = XMLoadFloat3(&rig.eye);
+    XMVECTOR target = XMLoadFloat3(&rig.target);
+    XMVECTOR toTarget = target - eye;
+    if (XMVectorGetX(XMVector3LengthSq(toTarget)) <= 1e-6f) return false;
+
+    XMMATRIX view = XMMatrixLookAtLH(eye, target, XMVectorSet(0, 1, 0, 0));
+    XMMATRIX projection = XMLoadFloat4x4(&Camera_GetPerspectiveMatrix());
+    XMMATRIX viewProjection = XMMatrixMultiply(view, projection);
+
+    XMVECTOR world = XMVectorSet(worldPos.x, worldPos.y, worldPos.z, 1.0f);
+    XMVECTOR clip = XMVector4Transform(world, viewProjection);
+    float clipW = XMVectorGetW(clip);
+    if (clipW <= 1e-5f) return false;
+
+    float ndcX = XMVectorGetX(clip) / clipW;
+    float ndcY = XMVectorGetY(clip) / clipW;
+    outUV.x = ndcX * 0.5f + 0.5f;
+    outUV.y = -ndcY * 0.5f + 0.5f;
+    return true;
+}
+
+static void OffsetLockOnRigTowardPlayer(CameraRig& rig,
+    const XMFLOAT3& playerFocus,
+    float weight)
+{
+    XMFLOAT3 biasedTarget = LerpVec3(rig.target, playerFocus, weight);
+    XMFLOAT3 offset{
+        biasedTarget.x - rig.target.x,
+        biasedTarget.y - rig.target.y,
+        biasedTarget.z - rig.target.z
+    };
+
+    rig.eye.x += offset.x;
+    rig.eye.y += offset.y;
+    rig.eye.z += offset.z;
+    rig.target = biasedTarget;
+}
+
+static bool IsPlayerInsideLockSafeFrame(const CameraRig& rig,
+    const XMFLOAT3& playerFocus)
+{
+    XMFLOAT2 playerUV{};
+    if (!ProjectWorldToRigUV(rig, playerFocus, playerUV)) return false;
+
+    return playerUV.x >= kLockSafeLeft && playerUV.x <= kLockSafeRight &&
+        playerUV.y >= kLockSafeTop && playerUV.y <= kLockSafeBottom;
+}
+
+static float SolveLockOnAimBiasWeight(const CameraRig& baseRig,
+    const XMFLOAT3& playerFocus)
+{
+    if (IsPlayerInsideLockSafeFrame(baseRig, playerFocus)) return 0.0f;
+
+    CameraRig maxBiasedRig = baseRig;
+    OffsetLockOnRigTowardPlayer(maxBiasedRig, playerFocus, kLockAimBiasMax);
+    if (!IsPlayerInsideLockSafeFrame(maxBiasedRig, playerFocus))
+    {
+        return kLockAimBiasMax;
+    }
+
+    float low = 0.0f;
+    float high = kLockAimBiasMax;
+    for (int i = 0; i < 10; ++i)
+    {
+        float mid = (low + high) * 0.5f;
+        CameraRig candidate = baseRig;
+        OffsetLockOnRigTowardPlayer(candidate, playerFocus, mid);
+
+        if (IsPlayerInsideLockSafeFrame(candidate, playerFocus))
+            high = mid;
+        else
+            low = mid;
+    }
+
+    return high;
+}
+
+static CameraRig ComputeSafeLockOnTransitionRig(const LockOnTuning& tune,
+    float& outAimBiasWeight)
+{
+    CameraRig rig = ComputeLockOnRigImmediate(tune);
+    XMFLOAT3 playerFocus = Player_GetPosition();
+    playerFocus.y += 1.0f;
+
+    outAimBiasWeight = SolveLockOnAimBiasWeight(rig, playerFocus);
+    OffsetLockOnRigTowardPlayer(rig, playerFocus, outAimBiasWeight);
+    return rig;
+}
+
+static void ApplyLockOnScreenConstraint(CameraRig& rig, float dt)
+{
+    XMFLOAT3 playerFocus = Player_GetPosition();
+    playerFocus.y += 1.0f;
+
+    CameraRig currentRig = rig;
+    OffsetLockOnRigTowardPlayer(currentRig, playerFocus, s_lockAimBiasWeight);
+
+    XMFLOAT2 playerUV{};
+    bool projected = ProjectWorldToRigUV(currentRig, playerFocus, playerUV);
+
+    float overflow = projected ? 0.0f : 1.0f;
+    if (projected)
+    {
+        if (playerUV.x < kLockSafeLeft)
+            overflow = std::max(overflow, (kLockSafeLeft - playerUV.x) / kLockSafeLeft);
+        else if (playerUV.x > kLockSafeRight)
+            overflow = std::max(overflow, (playerUV.x - kLockSafeRight) / (1.0f - kLockSafeRight));
+
+        if (playerUV.y < kLockSafeTop)
+            overflow = std::max(overflow, (kLockSafeTop - playerUV.y) / kLockSafeTop);
+        else if (playerUV.y > kLockSafeBottom)
+            overflow = std::max(overflow, (playerUV.y - kLockSafeBottom) / (1.0f - kLockSafeBottom));
+    }
+
+    if (overflow > 0.0f)
+    {
+        const float push = std::max(0.10f, overflow);
+        s_lockAimBiasWeight += kLockAimBiasPushSpeed * push * dt;
+    }
+    else if (playerUV.x > kLockReleaseLeft && playerUV.x < kLockReleaseRight &&
+        playerUV.y > kLockReleaseTop && playerUV.y < kLockReleaseBottom)
+    {
+        s_lockAimBiasWeight -= kLockAimBiasReturnSpeed * dt;
+    }
+
+    s_lockAimBiasWeight = std::clamp(s_lockAimBiasWeight, 0.0f, kLockAimBiasMax);
+    OffsetLockOnRigTowardPlayer(rig, playerFocus, s_lockAimBiasWeight);
 }
 
 // 根据当前模式更新「给玩家用的移动基向量」
@@ -323,6 +469,7 @@ void PlayerCamera_Initialize(const PlayerCameraDesc& d)
 
     s_mode = PlayerCameraMode::Free;
     s_transition.active = false;
+    s_lockAimBiasWeight = 0.0f;
 
     // 初始化 eye/target 用 Free 模式的理想机位
     CameraRig rig = ComputeFreeRigImmediate();
@@ -390,9 +537,11 @@ void PlayerCamera_Update(double dt, const PlayerCameraInput& in)
             if (Boss_CanBeLockedOn())
             {
                 CameraRig from{ s_eye, s_target };
-                CameraRig to = ComputeLockOnRigImmediate(s_lockTune);
+                float aimBiasWeight = 0.0f;
+                CameraRig to = ComputeSafeLockOnTransitionRig(s_lockTune, aimBiasWeight);
                 StartTransition(from, to, PlayerCameraMode::Free, PlayerCameraMode::LockOn);
                 s_mode = PlayerCameraMode::LockOn;
+                s_lockAimBiasWeight = aimBiasWeight;
 
                 // ★ 切模式时清空演出
                 s_preset.active = false;
@@ -405,6 +554,7 @@ void PlayerCamera_Update(double dt, const PlayerCameraInput& in)
             CameraRig to = ComputeFreeRigImmediate(); // ← 这里替换成你真实的 Free 参数变量
             StartTransition(from, to, PlayerCameraMode::LockOn, PlayerCameraMode::Free);
             s_mode = PlayerCameraMode::Free;
+            s_lockAimBiasWeight = 0.0f;
 
             // ★ 切模式时清空演出
             s_preset.active = false;
@@ -455,6 +605,7 @@ void PlayerCamera_Update(double dt, const PlayerCameraInput& in)
             CameraRig toFree = ComputeFreeRigImmediate(); // ← 替换成你真实的 Free 参数变量
             StartTransition(from, toFree, s_mode, PlayerCameraMode::Free);
             s_mode = PlayerCameraMode::Free;
+            s_lockAimBiasWeight = 0.0f;
 
             // ★ 清空演出
             s_preset.active = false;
@@ -508,6 +659,11 @@ void PlayerCamera_Update(double dt, const PlayerCameraInput& in)
                     ideal.eye = LerpVec3(base.eye, fx.eye, presetWeight);
                     ideal.target = LerpVec3(base.target, fx.target, presetWeight);
                 }
+            }
+
+            if (!s_transition.active)
+            {
+                ApplyLockOnScreenConstraint(ideal, dtf);
             }
         }
     }
@@ -636,9 +792,11 @@ void PlayerCamera_EnsureLockOn()
 
     // Free -> LockOn（复用你 Update 里 toggle 的逻辑）
     CameraRig from{ s_eye, s_target };
-    CameraRig to = ComputeLockOnRigImmediate(s_lockTune);
+    float aimBiasWeight = 0.0f;
+    CameraRig to = ComputeSafeLockOnTransitionRig(s_lockTune, aimBiasWeight);
     StartTransition(from, to, PlayerCameraMode::Free, PlayerCameraMode::LockOn);
     s_mode = PlayerCameraMode::LockOn;
+    s_lockAimBiasWeight = aimBiasWeight;
 
     // ★ 切模式时清空演出
     s_preset.active = false;
