@@ -74,6 +74,9 @@ static bool s_pauseOverlayLoaded = false;
 static bool g_GamePaused = false;
 static bool g_GameplayStarted = false;
 static bool g_GameSceneDrawnOnce = false;
+static bool s_cameraMousePrimed = false;
+static int s_prevCameraMouseX = 0;
+static int s_prevCameraMouseY = 0;
 
 bool Game_IsPaused() { return g_GamePaused; }
 
@@ -119,6 +122,7 @@ void Game_Initialize()
     g_GamePaused = false;
     g_GameplayStarted = false;
     g_GameSceneDrawnOnce = false;
+    s_cameraMousePrimed = false;
 
     Camera_Initialize(
         {4.2f, 2.4f, -5.7f},
@@ -236,6 +240,7 @@ void Game_Update(double elapsed_time)
     if (pausePressed)
     {
         g_GamePaused = !g_GamePaused;
+        s_cameraMousePrimed = false;
 
         // 可选：暂停瞬间立刻停震动，避免“暂停还在嗡嗡”
         if (g_GamePaused) input::xinput::StopVibration();
@@ -277,13 +282,22 @@ void Game_Update(double elapsed_time)
     Mouse_State ms{};
     Mouse_GetState(&ms);
 
-    // 计算鼠标移动量（假设 Mouse_State 有 x/y，你根据自己结构改一下）
-    static int s_prevMouseX = 0;
-    static int s_prevMouseY = 0;
-    float deltaX = static_cast<float>(ms.x - s_prevMouseX);
-    float deltaY = static_cast<float>(ms.y - s_prevMouseY);
-    s_prevMouseX = ms.x;
-    s_prevMouseY = ms.y;
+    // 首次进入游戏或暂停恢复时只记录基准，避免绝对坐标产生镜头跳变。
+    float deltaX = 0.0f;
+    float deltaY = 0.0f;
+    if (!s_cameraMousePrimed)
+    {
+        s_prevCameraMouseX = ms.x;
+        s_prevCameraMouseY = ms.y;
+        s_cameraMousePrimed = true;
+    }
+    else
+    {
+        deltaX = static_cast<float>(ms.x - s_prevCameraMouseX);
+        deltaY = static_cast<float>(ms.y - s_prevCameraMouseY);
+        s_prevCameraMouseX = ms.x;
+        s_prevCameraMouseY = ms.y;
+    }
 
     // 简单的“刚按下”检测（边沿）
     static bool s_prevLB = false;
@@ -505,5 +519,4 @@ void Game_Draw()
 
     g_GameSceneDrawnOnce = true;
 }
-
 
