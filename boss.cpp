@@ -16,6 +16,7 @@
 #include "player_camera.h"
 #include "input_gamepad_xinput.h"
 #include "boss_projectile.h"
+#include "boss_fire_ring.h"
 
 using namespace DirectX;
 
@@ -57,6 +58,7 @@ enum class BossState {
     Attack,
     Combo,
     CastSpell,
+    CastFireRing,
     Hit,    
     Dead,   
 };
@@ -68,6 +70,7 @@ static double    s_timeInState = 0.0;
 static double s_attackCooldown = 0.0;
 static double s_comboCooldown = 0.0;
 static double s_spellCooldown = 0.0;
+static double s_fireRingCooldown = 0.0;
 
 // 常量参数（之后你可以抽到配置里）
 static const float kBossMoveSpeed = 3.0f;  // 追击速度
@@ -80,6 +83,8 @@ static const double kComboCooldownSec = 8.0;     // ★ Combo 自己的 CD（比
 static const double kSpellCooldownSec = 6.0;
 static const float  kBossSpellMinRange = 7.0f;
 static const float  kBossSpellMaxRange = 22.0f;
+static const double kFireRingCooldownSec = 12.0;
+static const float  kBossFireRingRange = 6.5f;
 
 static inline DirectX::XMFLOAT3 RotateY(const DirectX::XMFLOAT3& v, float rad)
 {
@@ -113,11 +118,13 @@ static BossAIContext Boss_MakeAIContext(BossAIState aiState,
     ai.attackCooldown = s_attackCooldown;
     ai.comboCooldown = s_comboCooldown;
     ai.spellCooldown = s_spellCooldown;
+    ai.fireRingCooldown = s_fireRingCooldown;
     ai.chaseRange = kBossChaseRange;
     ai.attackRange = kBossAttackRange;
     ai.comboRange = kBossComboRange;
     ai.spellMinRange = kBossSpellMinRange;
     ai.spellMaxRange = kBossSpellMaxRange;
+    ai.fireRingRange = kBossFireRingRange;
     return ai;
 }
 
@@ -178,6 +185,10 @@ static void Boss_ApplyAICommand(BossAICommand cmd)
 
     case BossAICommand::CastSpell:
         Boss_ChangeState(BossState::CastSpell, L"Boss_CastSpell");
+        break;
+
+    case BossAICommand::CastFireRing:
+        Boss_ChangeState(BossState::CastFireRing, L"Boss_FireRing");
         break;
 
     case BossAICommand::Roar:
@@ -292,6 +303,7 @@ void Boss_Initialize(const BossDesc& d)
     s_attackCooldown = 0.0;
     s_comboCooldown = 0.0;
     s_spellCooldown = 0.0;
+    s_fireRingCooldown = 0.0;
     s_dead = false;
 
     // 初始播放 Idle
@@ -360,6 +372,11 @@ void Boss_Update(double dt, const BossUpdateContext& ctx)
     if (s_spellCooldown > 0.0) {
         s_spellCooldown -= dt;
         if (s_spellCooldown < 0.0) s_spellCooldown = 0.0;
+    }
+
+    if (s_fireRingCooldown > 0.0) {
+        s_fireRingCooldown -= dt;
+        if (s_fireRingCooldown < 0.0) s_fireRingCooldown = 0.0;
     }
 
     switch (s_state)
@@ -432,6 +449,18 @@ void Boss_Update(double dt, const BossUpdateContext& ctx)
         if (BossAnimatorRegistry_DebugGetCurrentNormalizedTime(&norm)) {
             if (norm >= 1.0f) {
                 s_spellCooldown = kSpellCooldownSec;
+                Boss_ChangeState(BossState::Idle, L"Boss_Idle");
+            }
+        }
+        break;
+    }
+
+    case BossState::CastFireRing:
+    {
+        float norm = 0.0f;
+        if (BossAnimatorRegistry_DebugGetCurrentNormalizedTime(&norm)) {
+            if (norm >= 1.0f && !BossFireRing_IsActive()) {
+                s_fireRingCooldown = kFireRingCooldownSec;
                 Boss_ChangeState(BossState::Idle, L"Boss_Idle");
             }
         }

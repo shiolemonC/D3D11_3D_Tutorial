@@ -15,6 +15,8 @@ enum class AnimEventType {
 
     SpawnBossProjectile,
 
+    SpawnBossFireRing,
+
     SetHurtBoxEnabled,
 
     SetParryWindowEnabled,
@@ -48,6 +50,11 @@ struct AnimEvent_SpawnBossProjectile
     int patternId = 0;
     DirectX::XMFLOAT3 localOffset{ 0.0f, 1.5f, 1.5f };
     DirectX::XMFLOAT3 targetOffset{ 0.0f, 1.0f, 0.0f };
+};
+
+struct AnimEvent_SpawnBossFireRing
+{
+    DirectX::XMFLOAT3 localOffset{ 0.0f, 0.0f, 0.0f };
 };
 
 struct AnimEvent_SetHurtBoxEnabled
@@ -113,6 +120,7 @@ struct AnimEvent
     AnimEventType type = AnimEventType::SpawnHitBox;
     AnimEvent_SpawnHitBox spawnHitBox; // 目前只有这一种事件
     AnimEvent_SpawnBossProjectile spawnBossProjectile;
+    AnimEvent_SpawnBossFireRing spawnBossFireRing;
     AnimEvent_SetHurtBoxEnabled setHurtBox;
     AnimEvent_SetParryWindowEnabled setParryWindow; // ★ 新增
 

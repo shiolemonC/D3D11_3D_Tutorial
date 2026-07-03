@@ -43,6 +43,7 @@
 #include "boss.h"
 #include "BossAnimatorRegistry.h"
 #include "boss_projectile.h"
+#include "boss_fire_ring.h"
 
 #include "hud_hp.h"
 #include "shadow_map.h"
@@ -140,6 +141,7 @@ void Game_Initialize()
     VfxConfig_Initialize();
     ParticleSystem_Initialize();
     BossProjectile_Initialize();
+    BossFireRing_Initialize();
     //g_TestTexid = Texture_Load(L"resources/runningman001.png");
 
     //g_AnimPatternId = SpriteAnim_RegisterPattern(
@@ -216,6 +218,7 @@ void Game_Finalize()
     Sky_Finalize();
     Billboard_Finalize();
     Camera_Finalize();
+    BossFireRing_Finalize();
     ParticleSystem_Finalize();
     BossProjectile_Finalize();
     VfxConfig_Finalize();
@@ -356,6 +359,7 @@ void Game_Update(double elapsed_time)
     bctx.playerPos = Player_GetPosition();
     Boss_Update(elapsed_time, bctx);
     BossProjectile_Update(static_cast<float>(elapsed_time));
+    BossFireRing_Update(static_cast<float>(elapsed_time));
 
     // 5) 让底层 Camera 模块更新 view/proj（原来就有）
     Camera_Update(elapsed_time);

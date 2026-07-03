@@ -16,6 +16,7 @@ enum class HitSourceType : uint8_t
 {
     Melee = 0,
     Projectile = 1,
+    AreaSpell = 2,
 };
 
 

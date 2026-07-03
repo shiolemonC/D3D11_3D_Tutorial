@@ -755,7 +755,7 @@ PlayerHitResponse Player_OnIncomingHit(const HitParams& hit)
     }
 
     // 2) GuardHold 中继续防御。子弹刷新保持时间，近战仍开放原有反击。
-    if (Player_IsGuardHoldActive())
+    if (Player_IsGuardHoldActive() && hit.sourceType != HitSourceType::AreaSpell)
     {
         if (hit.sourceType == HitSourceType::Projectile)
         {
@@ -778,7 +778,7 @@ PlayerHitResponse Player_OnIncomingHit(const HitParams& hit)
     }
 
     // 3) 精准格挡窗口：近战进入反击准备，子弹进入 GuardHold。
-    if (s_parryWindowEnabled)
+    if (s_parryWindowEnabled && hit.sourceType != HitSourceType::AreaSpell)
     {
         Player_PlayGuardSuccessFeedback(hit, true);
 

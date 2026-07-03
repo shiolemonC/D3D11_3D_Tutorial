@@ -15,10 +15,14 @@ BossAICommand BossAI_Decide(const BossAIContext& ctx)
     const float comboRangeSq = ctx.comboRange * ctx.comboRange;
     const float spellMinRangeSq = ctx.spellMinRange * ctx.spellMinRange;
     const float spellMaxRangeSq = ctx.spellMaxRange * ctx.spellMaxRange;
+    const float fireRingRangeSq = ctx.fireRingRange * ctx.fireRingRange;
     const bool canCastSpell =
         ctx.spellCooldown <= 0.0 &&
         distSq >= spellMinRangeSq &&
         distSq <= spellMaxRangeSq;
+    const bool canCastFireRing =
+        ctx.fireRingCooldown <= 0.0 &&
+        distSq <= fireRingRangeSq;
 
     switch (ctx.state)
     {
@@ -32,6 +36,10 @@ BossAICommand BossAI_Decide(const BossAIContext& ctx)
             return BossAICommand::None;
         }
 
+        if (canCastFireRing)
+        {
+            return BossAICommand::CastFireRing;
+        }
         if (distSq <= comboRangeSq && ctx.comboCooldown <= 0.0)
         {
             return BossAICommand::Combo;
@@ -51,6 +59,10 @@ BossAICommand BossAI_Decide(const BossAIContext& ctx)
         return BossAICommand::None;
 
     case BossAIState::Chase:
+        if (canCastFireRing)
+        {
+            return BossAICommand::CastFireRing;
+        }
         if (distSq <= comboRangeSq && ctx.comboCooldown <= 0.0)
         {
             return BossAICommand::Combo;
@@ -81,6 +93,10 @@ BossAICommand BossAI_Decide(const BossAIContext& ctx)
         if (distSq > attackRangeSq)
         {
             return BossAICommand::Chase;
+        }
+        if (canCastFireRing)
+        {
+            return BossAICommand::CastFireRing;
         }
         if (ctx.attackCooldown <= 0.0)
         {

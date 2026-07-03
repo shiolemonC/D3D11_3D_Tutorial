@@ -170,6 +170,20 @@ void AnimEventRegister()
         AnimEventRegistry_Register(bossCast);
     }
 
+    // Boss_FireRing: reuse Boss_Attack animation with an independent spell event.
+    {
+        AnimEventTrack fireRing{};
+        fireRing.clipName = L"Boss_FireRing";
+
+        AnimEvent e{};
+        e.timeNormalized = 0.45f;
+        e.type = AnimEventType::SpawnBossFireRing;
+        e.spawnBossFireRing.localOffset = { 0.0f, 0.0f, 0.0f };
+
+        fireRing.events.push_back(e);
+        AnimEventRegistry_Register(fireRing);
+    }
+
     // ★ 在这里加 Boss 攻击事件
     {
         AnimEventTrack bossRoar{};

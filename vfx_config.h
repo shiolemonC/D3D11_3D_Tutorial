@@ -11,6 +11,9 @@ enum class VfxId : int
 {
     SparkParry = 0,
     BloodSlash,
+    FireRingGreen,
+    FireRingGreenHighlight,
+    FireRingRedBurst,
     Count
 };
 

@@ -394,6 +394,24 @@ void BossAnimRegister()
         BossAnimatorRegistry_Register(c);
     }
 
+    // Fire ring cast: reuse the single attack asset with a separate event track.
+    {
+        AnimClipDesc c{};
+        c.name = L"Boss_FireRing";
+        c.meshPath = L"resources/player_anim/cooked/mutant_swipe.mesh";
+        c.skelPath = L"resources/player_anim/cooked/mutant_swipe.skel";
+        c.animPath = L"resources/player_anim/cooked/mutant_swipe.anim";
+        c.matPath = L"resources/player_anim/cooked/mutant_swipe.mat";
+        c.baseColorOverride = L"resources/player_anim/cooked/Textures/Mutant_diffuse.png";
+        c.normalOverride = L"resources/player_anim/cooked/Textures/Mutant_normal.png";
+        c.loop = false;
+        c.playbackRate = 1.0f;
+        c.rmType = RootMotionType::None;
+        c.motionRootNameUTF8 = "root";
+
+        BossAnimatorRegistry_Register(c);
+    }
+
     // 强力Attack
     {
         AnimClipDesc c{};

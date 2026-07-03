@@ -8,6 +8,7 @@
 #include "postfx.h"
 #include "input_gamepad_xinput.h"
 #include "boss_projectile.h"
+#include "boss_fire_ring.h"
 #include <DirectXMath.h>
 
 static void ApplyHurtBoxEnabledToOwner(void* owner, bool enabled)
@@ -115,6 +116,22 @@ static void FireAnimEvent(const AnimEvent& ev, void* owner)
             spawnPos,
             targetPos,
             owner);
+        break;
+    }
+
+    case AnimEventType::SpawnBossFireRing:
+    {
+        if (owner != Boss_GetHitboxOwnerToken())
+        {
+            break;
+        }
+
+        DirectX::XMFLOAT3 ownerPos, forward, right, up;
+        QueryOwnerBasis(owner, ownerPos, forward, right, up);
+        const DirectX::XMFLOAT3 center = LocalOffsetToWorld(
+            ownerPos, right, up, forward, ev.spawnBossFireRing.localOffset);
+
+        BossFireRing_Start(center, owner);
         break;
     }
 
