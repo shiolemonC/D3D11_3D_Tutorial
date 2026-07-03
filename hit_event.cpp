@@ -71,6 +71,7 @@ bool HitEvent_Dispatch(const HitContact& c)
         hp.victimOwner = c.victimOwner;
         hp.damage = c.damage;
         hp.level = ChooseHitLevelFromDamage(c.damage);
+        hp.sourceType = c.sourceType;
         hp.hitPos = c.hitPos;
         hp.level = c.level;     // ★ 来自 SpawnHitBox
 
@@ -101,7 +102,10 @@ bool HitEvent_Dispatch(const HitContact& c)
         hp.victimOwner = c.victimOwner;
         hp.damage = c.damage;
         hp.level = ChooseHitLevelFromDamage(c.damage);
+        hp.sourceType = c.sourceType;
         hp.hitPos = c.hitPos;
+
+        // TODO: Boss -> Player 也应将 c.level 复制到 hp.level，保留攻击配置的受击等级。
 
         hp.knockbackDistance = c.knockbackDistance;
         hp.attackerPos = c.attackerPos;

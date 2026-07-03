@@ -251,6 +251,7 @@ void HitboxSystem_Update(float dt)
         c.attackerOwner = hb.owner;
         c.victimOwner = hurtCol->userPtr;
         c.damage = hb.damage;
+        c.sourceType = HitSourceType::Melee;
         c.knockbackDistance = hb.knockbackDistance;
         c.hitPos = vicPos;
         c.attackerPos = atkPos;

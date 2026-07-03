@@ -166,6 +166,24 @@ void AnimRegister()
         AnimatorRegistry_Register(c);
     }
 
+    // GuardHold reuses the successful block animation with a slower playback rate.
+    {
+        AnimClipDesc c{};
+        c.name = L"GuardHold";
+        c.meshPath = L"resources/player_anim/cooked/sword_parry.mesh";
+        c.skelPath = L"resources/player_anim/cooked/sword_parry.skel";
+        c.animPath = L"resources/player_anim/cooked/sword_parry.anim";
+        c.matPath = L"resources/player_anim/cooked/sword_parry.mat";
+        c.baseColorOverride = L"resources/player_anim/cooked/Textures/Paladin_diffuse.png";
+        c.normalOverride = L"resources/player_anim/textures/Paladin_normal.png";
+        c.loop = false;
+        c.playbackRate = 0.65f;
+        c.rmType = RootMotionType::None;
+        c.motionRootNameUTF8 = "root";
+
+        AnimatorRegistry_Register(c);
+    }
+
     {
         AnimClipDesc c{};
         c.name = L"Block_Attack";

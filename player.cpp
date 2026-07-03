@@ -12,6 +12,8 @@
 #include "scene.h"
 #include "particle_system.h"
 #include <cstdlib>
+#include <algorithm>
+#include <cstring>
 #include "input_gamepad_xinput.h"
 using namespace DirectX;
 
@@ -44,6 +46,14 @@ static XMFLOAT3 s_hurtHalfSize{ 0.5f, 1.2f, 0.5f };  // 先和 body 差不多，
 static bool     s_hurtEnabled = true;              // 是否可被打（无敌帧时会关）
 
 static bool     s_parryWindowEnabled = false;   // ★ 成功格挡窗口开关
+static float    s_guardHoldRemaining = 0.0f;
+static float    s_guardFeedbackCooldown = 0.0f;
+static bool     s_guardInputHeld = false;
+static bool     s_guardHoldPending = false;
+
+static constexpr float kGuardHoldRefreshSec = 0.45f;
+static constexpr float kGuardReleaseGraceSec = 0.12f;
+static constexpr float kGuardFeedbackIntervalSec = 0.05f;
 
 // 已有：body 的 ignore flag（如果你前面加过）
 static bool     s_ignoreBodyBlock = false;
@@ -331,6 +341,11 @@ void Player_Initialize(const PlayerDesc& d)
 
     //s_hpMax = 300;   // TODO: 以后你想做配置就从 d 里读
     s_hp = s_hpMax;
+    s_parryWindowEnabled = false;
+    s_guardHoldRemaining = 0.0f;
+    s_guardFeedbackCooldown = 0.0f;
+    s_guardInputHeld = false;
+    s_guardHoldPending = false;
 
     // ★ 帧事件播放器绑定到这个“玩家”
 // 目前你没有 Player 实例，就先传 nullptr，将来有 Player* 再改
@@ -413,6 +428,31 @@ static void Player_ApplyRootMotionDelta(const RootMotionDelta& rm)
 // ------------------ 对外：一帧更新 ------------------
 void Player_Update(double dt, const PlayerUpdateInput& in)
 {
+    const float dtf = static_cast<float>(dt);
+    s_guardInputHeld = in.guardHeld;
+    s_guardFeedbackCooldown = std::max(0.0f, s_guardFeedbackCooldown - dtf);
+
+    const bool inGuardHold = std::strcmp(PlayerSM_GetCurrentStateName(), "GuardHold") == 0;
+    if (s_guardInputHeld && (inGuardHold || s_guardHoldPending))
+    {
+        s_guardHoldRemaining = std::max(s_guardHoldRemaining, kGuardHoldRefreshSec);
+    }
+    else
+    {
+        s_guardHoldRemaining = std::max(0.0f, s_guardHoldRemaining - dtf);
+    }
+
+    if (!s_guardInputHeld)
+    {
+        s_guardHoldRemaining = std::min(s_guardHoldRemaining, kGuardReleaseGraceSec);
+    }
+
+    if (inGuardHold || s_guardHoldRemaining <= 0.0f)
+    {
+        s_guardHoldPending = false;
+    }
+    PlayerSM_SetBool("guard.hold_active", inGuardHold && s_guardHoldRemaining > 0.0f);
+
     // 0) 处理 Hit 触发（来自 HitEvent_Dispatch）
 //    每帧先清掉 hit.trigger，防止旧值残留
     PlayerSM_SetBool("hit.trigger", false);
@@ -672,6 +712,39 @@ static void Player_OnParrySuccess_Log(const HitParams& hit)
     OutputDebugStringA(buf);
 }
 
+static bool Player_IsGuardHoldActive()
+{
+    return s_guardHoldRemaining > 0.0f &&
+        (s_guardHoldPending ||
+            std::strcmp(PlayerSM_GetCurrentStateName(), "GuardHold") == 0);
+}
+
+static void Player_RefreshGuardHold()
+{
+    s_guardHoldRemaining = kGuardHoldRefreshSec;
+}
+
+static void Player_PlayGuardSuccessFeedback(const HitParams& hit, bool strongFeedback)
+{
+    Player_OnParrySuccess_Log(hit);
+
+    if (hit.knockbackDistance > 0.0f)
+    {
+        Player_StartKnockback(hit.knockbackDistance * 0.20f,
+            hit.attackerPos,
+            hit.victimPos);
+    }
+
+    XMFLOAT3 p = Player_GetPosition();
+    p.y += 1.0f;
+    ParticleSystem_Spawn(VfxId::SparkParry, p, Player_GetForward());
+
+    if (strongFeedback)
+        input::xinput::PlayImpulse(4.3f, 5.5f, 0.15f);
+    else
+        input::xinput::AddImpulse(1.5f, 2.0f, 0.05f);
+}
+
 // ★ 统一入口：Boss->Player 命中时只走这里
 PlayerHitResponse Player_OnIncomingHit(const HitParams& hit)
 {
@@ -681,29 +754,52 @@ PlayerHitResponse Player_OnIncomingHit(const HitParams& hit)
         return PlayerHitResponse::Ignored;
     }
 
-    // 2) 成功格挡窗口内：触发成功格挡事件（暂时只打 log），不进入 hit
-    if (s_parryWindowEnabled)
+    // 2) GuardHold 中继续防御。子弹刷新保持时间，近战仍开放原有反击。
+    if (Player_IsGuardHoldActive())
     {
-        Player_OnParrySuccess_Log(hit);
-
-        if (hit.knockbackDistance > 0.0f) {
-            Player_StartKnockback(hit.knockbackDistance * 0.20f, hit.attackerPos, hit.victimPos);
+        if (hit.sourceType == HitSourceType::Projectile)
+        {
+            Player_RefreshGuardHold();
+            if (s_guardFeedbackCooldown <= 0.0f)
+            {
+                Player_PlayGuardSuccessFeedback(hit, false);
+                s_guardFeedbackCooldown = kGuardFeedbackIntervalSec;
+            }
+        }
+        else
+        {
+            s_guardHoldRemaining = 0.0f;
+            s_guardHoldPending = false;
+            Player_PlayGuardSuccessFeedback(hit, true);
+            PlayerSM_FireTrigger("ParrySuccess");
         }
 
-        XMFLOAT3 p = Player_GetPosition();
-        p.y += 1.0f;
-        ParticleSystem_Spawn(VfxId::SparkParry, p, Player_GetForward());
-       // SpriteEffect_SpawnParry(p, { 2.6f, 2.6f });
-
-        input::xinput::PlayImpulse(4.3f, 5.5f, 0.15f);
-        // ★ 关键：触发 FSM 的成功格挡分支
-        PlayerSM_FireTrigger("ParrySuccess");
-
         return PlayerHitResponse::Parried;
-
     }
 
-    // 3) 正常受击：缓存受击信息，等待 Player_Update 写入 FSM 条件
+    // 3) 精准格挡窗口：近战进入反击准备，子弹进入 GuardHold。
+    if (s_parryWindowEnabled)
+    {
+        Player_PlayGuardSuccessFeedback(hit, true);
+
+        if (hit.sourceType == HitSourceType::Projectile)
+        {
+            Player_RefreshGuardHold();
+            s_guardHoldPending = true;
+            s_guardFeedbackCooldown = kGuardFeedbackIntervalSec;
+            PlayerSM_FireTrigger("ProjectileGuardSuccess");
+        }
+        else
+        {
+            PlayerSM_FireTrigger("ParrySuccess");
+        }
+
+        return PlayerHitResponse::Parried;
+    }
+
+    // 4) 正常受击：缓存受击信息，等待 Player_Update 写入 FSM 条件
+    s_guardHoldRemaining = 0.0f;
+    s_guardHoldPending = false;
     Player_ApplyDamage(hit.damage);
     s_hitRequested = true;
     s_pendingHit = hit;

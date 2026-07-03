@@ -235,6 +235,7 @@ static void DispatchPlayerHit(BossProjectile& p)
     c.victimOwner = Player_GetHurtboxOwnerToken();
     c.damage = p.damage;
     c.level = p.hitLevel;
+    c.sourceType = HitSourceType::Projectile;
     c.hitPos = p.position;
     c.knockbackDistance = p.knockbackDistance;
     c.attackerPos = p.position;

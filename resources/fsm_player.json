@@ -71,6 +71,14 @@
       "uninterruptible": [ [ 0.0, 0.3 ] ]
     },
     {
+      "name": "GuardHold",
+      "clip": "GuardHold",
+      "loop": false,
+      "root_motion": "none",
+      "length_sec": 0.0,
+      "locomotion": false
+    },
+    {
       "name": "Block_Attack",
       "clip": "Block_Attack",
       "loop": false,
@@ -415,6 +423,28 @@
       "curve": "ease_out",
       "can_interrupt": true,
       "priority": 5
+    },
+
+    {
+      "from": "Any",
+      "to": "GuardHold",
+      "trigger": "ProjectileGuardSuccess",
+      "buffer": 0.15,
+      "window": [ [ 0.00, 1.00 ] ],
+      "duration": 0.05,
+      "curve": "linear",
+      "can_interrupt": true,
+      "priority": 210
+    },
+    {
+      "from": "GuardHold",
+      "to": "Idle",
+      "conditions": [ "!guard.hold_active" ],
+      "window": [ [ 0.00, 1.00 ] ],
+      "duration": 0.10,
+      "curve": "ease_out",
+      "can_interrupt": true,
+      "priority": 50
     },
 
     {

@@ -29,6 +29,7 @@ struct PlayerUpdateInput {
     bool attack = false; // 本帧是否触发攻击（鼠标左键刚按下）
     bool roll = false; // ★ 本帧是否触发翻滚（Shift 等）
     bool parry = false; // ★ 本帧是否触发格挡/弹反（鼠标右键刚按下）
+    bool guardHeld = false; // 格挡键是否持续按住
 
 
     // 摄像机在 XZ 平面上的前/右向量（由 PlayerCamera 提供）

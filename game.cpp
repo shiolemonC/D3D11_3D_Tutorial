@@ -110,6 +110,7 @@ static PlayerUpdateInput BuildPlayerInput(const Mouse_State& ms)
     bool justPressedRB = (ms.rightButton && !s_prevRB);
     s_prevRB = ms.rightButton;
     pin.parry = justPressedRB;
+    pin.guardHeld = ms.rightButton;
 
     // 翻滚：左 Shift “刚按下”
     pin.roll = KeyLogger_IsTrigger(KK_LEFTSHIFT);
@@ -336,6 +337,7 @@ void Game_Update(double elapsed_time)
         // 映射按键：X=攻击, Y=格挡, B=翻滚
         pin.attack = pin.attack || input::xinput::Press(input::xinput::Button::X);
         pin.parry = pin.parry || input::xinput::Press(input::xinput::Button::Y);
+        pin.guardHeld = pin.guardHeld || input::xinput::Hold(input::xinput::Button::Y);
         pin.roll = pin.roll || input::xinput::Press(input::xinput::Button::B);
 
         // （如果你有 pin.confirm / UI 交互，可用 A）
@@ -519,4 +521,3 @@ void Game_Draw()
 
     g_GameSceneDrawnOnce = true;
 }
-
