@@ -518,6 +518,12 @@
     <FxCompile Include="shader_pixel_3d_unlit.hlsl">
       <Filter>シェーダー ファイル</Filter>
     </FxCompile>
+    <FxCompile Include="postfx_bloom_blur_ps.hlsl">
+      <Filter>シェーダー ファイル</Filter>
+    </FxCompile>
+    <FxCompile Include="postfx_bloom_extract_ps.hlsl">
+      <Filter>シェーダー ファイル</Filter>
+    </FxCompile>
     <FxCompile Include="postfx_fullscreen_vs.hlsl">
       <Filter>シェーダー ファイル</Filter>
     </FxCompile>

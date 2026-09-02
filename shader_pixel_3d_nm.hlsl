@@ -153,11 +153,11 @@ float4 main(PS_IN pi) : SV_TARGET
     float3 ambient = baseColor * lerp(ambientGround, ambientSky, hemi);
 
     float3 color = ambient;
+    float3 mainLightDirI = normalize(direction_world_vector.xyz); // 光源 -> 表面
 
     // ---- directional light (toon diffuse + toon spec) ----
     {
-        float3 dirI = normalize(direction_world_vector.xyz); // 入射方向（光->物体）
-        float nl = saturate(dot(-dirI, normalW)); // N·L
+        float nl = saturate(dot(-mainLightDirI, normalW)); // N·L
 
         float toonDl = ToonDiffuse3(nl);
 
@@ -167,17 +167,23 @@ float4 main(PS_IN pi) : SV_TARGET
         color += toonBase * direction_world_color.rgb * toonDl;
 
         // 连续高光，避免肩膀和头部出现大块硬边。
-        float3 r = reflect(dirI, normalW);
+        float3 r = reflect(mainLightDirI, normalW);
         float s = pow(max(dot(r, toEye), 0.0f), specular_power);
         color += specular_color.rgb * s * 0.75f;
     }
 
-    // ---- soft rim ----
+    // ---- soft rim + directional HDR rim emission ----
     {
         // 使用几何法线而不是 normal map 法线，让模型外轮廓稳定、柔和。
         float rim = pow(1.0f - saturate(dot(nW, toEye)), 3.0f);
         float3 rimColor = float3(0.28f, 0.36f, 0.55f);
-        color += rimColor * rim * 0.12f;
+        color += rimColor * rim * 0.10f;
+
+        // 只有轮廓中朝向主光的一侧输出 HDR亮度，供 Bloom提取。
+        float mainLightFacing = saturate(dot(-mainLightDirI, nW));
+        float directionalMask = smoothstep(0.05f, 0.65f, mainLightFacing);
+        float directionalRim = rim * directionalMask;
+        color += direction_world_color.rgb * directionalRim * 0.80f;
     }
 
     // ---- point lights (toon diffuse + toon spec) ----
@@ -201,5 +207,6 @@ float4 main(PS_IN pi) : SV_TARGET
         color += point_light[i].color.rgb * ps * distFactor * 0.35f;
     }
 
-    return float4(color, alpha);
+    // Character exposure stays separate from ambient so the light contrast remains visible.
+    return float4(color * 1.08f, alpha);
 }

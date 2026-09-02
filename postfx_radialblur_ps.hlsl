@@ -5,6 +5,7 @@ struct VSOut
 };
 
 Texture2D gScene : register(t0);
+Texture2D gBloom : register(t1);
 SamplerState gSamp : register(s0);
 
 cbuffer PostFxCB : register(b0)
@@ -77,28 +78,33 @@ float4 PS_RadialBlur(VSOut i) : SV_TARGET
 {
     float2 uv = i.uv;
     float4 baseCol = SampleFxaa(uv);
+    float4 finalCol = baseCol;
 
-    if (gEnable < 0.5 || gStrength <= 0.0001)
-        return baseCol;
-
-    const int MAX_SAMPLES = 32;
-    int N = (int) gSampleCount;
-    N = clamp(N, 2, MAX_SAMPLES);
-
-    float2 dir = uv - gCenterUV;
-    float4 acc = 0;
-
-    [loop]
-    for (int s = 0; s < MAX_SAMPLES; ++s)
+    if (gEnable >= 0.5f && gStrength > 0.0001f)
     {
-        if (s >= N)
-            break;
+        const int MAX_SAMPLES = 32;
+        int N = (int) gSampleCount;
+        N = clamp(N, 2, MAX_SAMPLES);
 
-        float t = (float) s / (float) (N - 1);
-        float2 suv = uv - dir * (t * gRadius);
-        acc += gScene.Sample(gSamp, suv);
+        float2 dir = uv - gCenterUV;
+        float4 acc = 0;
+
+        [loop]
+        for (int s = 0; s < MAX_SAMPLES; ++s)
+        {
+            if (s >= N)
+                break;
+
+            float t = (float) s / (float) (N - 1);
+            float2 suv = uv - dir * (t * gRadius);
+            acc += gScene.Sample(gSamp, suv);
+        }
+
+        float4 blurCol = acc / (float) N;
+        finalCol = lerp(baseCol, blurCol, gStrength);
     }
 
-    float4 blurCol = acc / (float) N;
-    return lerp(baseCol, blurCol, gStrength);
+    const float bloomIntensity = 0.40f;
+    finalCol.rgb += gBloom.Sample(gSamp, uv).rgb * bloomIntensity;
+    return float4(saturate(finalCol.rgb), finalCol.a);
 }

@@ -462,12 +462,12 @@ void Game_Draw()
     //========================
     // 2) 后续你的原逻辑：画玩家/Boss 等
     //========================
-    Light_SetAmbient({ 0.42f, 0.43f, 0.46f });
+    Light_SetAmbient({ 0.46f, 0.47f, 0.50f });
     Light_SetDirectionWorld({ 0.857f, -0.514f, 0.0f, 0.0f },
-        { 0.60f, 0.70f, 1.00f, 1.0f }); // 保留冷色主光，同时抬高角色中间调
+        { 0.72f, 0.82f, 1.08f, 1.0f }); // 加强冷色主光，让受光面更清楚
 
     // 柔和且集中的高光，避免低指数产生大面积硬亮斑。
-    Light_SetSpecularWorld(Camera_GetPosition(), 24.0f, { 0.16f, 0.18f, 0.24f, 1.0f });
+    Light_SetSpecularWorld(Camera_GetPosition(), 24.0f, { 0.22f, 0.25f, 0.34f, 1.0f });
 
     // ---- 关键：点光源数量改成 3（最多 4）----
     Light_SetPointCount(2);
@@ -479,13 +479,13 @@ void Game_Draw()
     Light_SetPointWorld(0,
         { boss.x - 2.2f, boss.y + 3.2f, boss.z + 2.0f },
         7.0f,
-        { 0.10f, 0.14f, 0.22f });
+        { 0.13f, 0.18f, 0.28f });
 
     // Player 补光：与 Boss 使用同一冷色方向，避免互相染出红色硬边。
     Light_SetPointWorld(1,
         { player.x - 1.2f, player.y + 1.6f, player.z + 1.0f },
         7.0f,
-        { 0.12f, 0.16f, 0.24f });
+        { 0.15f, 0.20f, 0.30f });
 
     Sampler_SetFillterLinear();
     Sampler_SetFillterAnisotropic();
