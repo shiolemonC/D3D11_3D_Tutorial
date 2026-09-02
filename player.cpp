@@ -745,6 +745,12 @@ static void Player_PlayGuardSuccessFeedback(const HitParams& hit, bool strongFee
         input::xinput::AddImpulse(1.5f, 2.0f, 0.05f);
 }
 
+static bool Player_UsesGuardHoldForHit(const HitParams& hit)
+{
+    return hit.sourceType == HitSourceType::Projectile ||
+        hit.sourceType == HitSourceType::AreaSpell;
+}
+
 // ★ 统一入口：Boss->Player 命中时只走这里
 PlayerHitResponse Player_OnIncomingHit(const HitParams& hit)
 {
@@ -754,10 +760,10 @@ PlayerHitResponse Player_OnIncomingHit(const HitParams& hit)
         return PlayerHitResponse::Ignored;
     }
 
-    // 2) GuardHold 中继续防御。子弹刷新保持时间，近战仍开放原有反击。
-    if (Player_IsGuardHoldActive() && hit.sourceType != HitSourceType::AreaSpell)
+    // 2) GuardHold 中继续防御。远程/范围攻击刷新保持时间，近战仍开放原有反击。
+    if (Player_IsGuardHoldActive())
     {
-        if (hit.sourceType == HitSourceType::Projectile)
+        if (Player_UsesGuardHoldForHit(hit))
         {
             Player_RefreshGuardHold();
             if (s_guardFeedbackCooldown <= 0.0f)
@@ -777,12 +783,12 @@ PlayerHitResponse Player_OnIncomingHit(const HitParams& hit)
         return PlayerHitResponse::Parried;
     }
 
-    // 3) 精准格挡窗口：近战进入反击准备，子弹进入 GuardHold。
-    if (s_parryWindowEnabled && hit.sourceType != HitSourceType::AreaSpell)
+    // 3) 精准格挡窗口：近战进入反击准备，远程/范围攻击进入 GuardHold。
+    if (s_parryWindowEnabled)
     {
         Player_PlayGuardSuccessFeedback(hit, true);
 
-        if (hit.sourceType == HitSourceType::Projectile)
+        if (Player_UsesGuardHoldForHit(hit))
         {
             Player_RefreshGuardHold();
             s_guardHoldPending = true;

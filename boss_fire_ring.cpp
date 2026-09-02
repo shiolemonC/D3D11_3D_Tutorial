@@ -38,9 +38,9 @@ namespace
     constexpr float kStartRadius = 0.8f;
     constexpr float kMaxRadius = 6.0f;
     constexpr float kTelegraphDuration = 1.55f;
-    constexpr float kHighlightDuration = 0.24f;
+    constexpr float kHighlightDuration = 0.40f;
     constexpr float kExplosionDuration = 0.38f;
-    constexpr float kTelegraphEmitInterval = 0.065f;
+    constexpr float kTelegraphEmitInterval = 0.040f;
     constexpr float kHighlightEmitInterval = 0.040f;
     constexpr float kExplosionEmitInterval = 0.055f;
     constexpr float kParticleSpacing = 0.48f;
@@ -166,7 +166,7 @@ void BossFireRing_Update(float dt)
     case FireRingPhase::Telegraph:
     {
         const float t = std::clamp(g_ring.phaseTime / kTelegraphDuration, 0.0f, 1.0f);
-        const float eased = t * t * (3.0f - 2.0f * t);
+        const float eased = t * t * t * (t * (t * 6.0f - 15.0f) + 10.0f);
         g_ring.radius = kStartRadius + (kMaxRadius - kStartRadius) * eased;
 
         while (g_ring.emitTimer >= kTelegraphEmitInterval)
@@ -228,4 +228,3 @@ float BossFireRing_GetCurrentRadius()
 {
     return g_ring.radius;
 }
-
