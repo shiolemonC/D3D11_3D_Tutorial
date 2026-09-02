@@ -62,7 +62,7 @@ SamplerState samp : register(s0); // PS 采样器槽 s0
 // Toon helpers
 // -------------------------
 
-// 三段 toon：暗 / 中 / 亮。用 fwidth 做小过渡带，减少条带闪烁
+// 三段 toon：保留卡通层次，同时混入连续光照，避免大面积硬切。
 float ToonDiffuse3(float x)
 {
     x = saturate(x);
@@ -71,35 +71,21 @@ float ToonDiffuse3(float x)
     const float t1 = 0.35f;
     const float t2 = 0.70f;
 
-    // 每段强度（可调：想更“卡通”就拉开差距）
-    const float b0 = 0.20f;
-    const float b1 = 0.60f;
+    // 每段强度
+    const float b0 = 0.24f;
+    const float b1 = 0.62f;
     const float b2 = 1.00f;
 
-    // 过渡带宽度（可调：越大越不闪，但阶梯感更软）
-    float w = fwidth(x) * 1.5f;
+    // 大三角形上的 fwidth 可能很小，因此保留一个固定的最小软化宽度。
+    float w = max(fwidth(x) * 1.5f, 0.045f);
 
     float s1 = smoothstep(t1 - w, t1 + w, x);
     float s2 = smoothstep(t2 - w, t2 + w, x);
 
-    // 0->1 段插值：b0->b1->b2
-    float v01 = lerp(b0, b1, s1);
-    float v12 = lerp(b1, b2, s2);
-    float v = (x < t2) ? v01 : v12;
-
-    return v;
-}
-
-// toon 高光：阈值化（硬高光）
-float ToonSpec(float s)
-{
-    s = saturate(s);
-
-    // 高光阈值（越大高光越少、越硬）
-    const float sth = 0.55f;
-
-    float w = fwidth(s) * 2.0f;
-    return smoothstep(sth - w, sth + w, s);
+    // 两个阶梯直接累加，确保跨过 t2 时不会发生亮度跳变。
+    float stepped = b0 + (b1 - b0) * s1 + (b2 - b1) * s2;
+    float smoothDiffuse = lerp(b0, b2, x);
+    return lerp(smoothDiffuse, stepped, 0.60f);
 }
 
 float4 main(PS_IN pi) : SV_TARGET
@@ -133,7 +119,7 @@ float4 main(PS_IN pi) : SV_TARGET
         float2 duv2 = ddy(pi.uv);
 
         float3 t = dp1 * duv2.y - dp2 * duv1.y;
-        tW = normalize(t - nW * dot(nW, tW));
+        tW = normalize(t - nW * dot(nW, t));
         bW = normalize(cross(nW, tW));
     }
 
@@ -142,6 +128,10 @@ float4 main(PS_IN pi) : SV_TARGET
         nTex = float3(0.5f, 0.5f, 1.0f);
 
     float3 nTS = nTex * 2.0f - 1.0f;
+
+    // 角色法线贴图稍微收敛，避免细小法线变化频繁跨过 toon 阈值。
+    nTS.xy *= 0.70f;
+    nTS = normalize(nTS);
 
     // 绿通道反了就开这一行（你的工程里之前就遇到过）
     // nTS.y = -nTS.y;
@@ -154,10 +144,13 @@ float4 main(PS_IN pi) : SV_TARGET
     float3 toEye = normalize(eye_posW - pi.posW.xyz);
 
     // 你想更“卡通”的阴影色，可以调这个
-    float3 shadowTint = float3(0.15f, 0.15f, 0.20f);
+    float3 shadowTint = float3(0.24f, 0.25f, 0.30f);
 
-    // ambient（建议在 C++ 里把 ambient 调低，否则 toon 阶梯不明显）
-    float3 ambient = baseColor * ambient_color.rgb;
+    // 简单半球环境光：上方略冷、下方略暗，给轮廓提供连续的体积变化。
+    float hemi = saturate(nW.y * 0.5f + 0.5f);
+    float3 ambientGround = ambient_color.rgb * float3(0.62f, 0.60f, 0.58f);
+    float3 ambientSky = ambient_color.rgb * float3(0.95f, 1.00f, 1.10f);
+    float3 ambient = baseColor * lerp(ambientGround, ambientSky, hemi);
 
     float3 color = ambient;
 
@@ -169,28 +162,22 @@ float4 main(PS_IN pi) : SV_TARGET
         float toonDl = ToonDiffuse3(nl);
 
         // 阴影更“脏”：把 baseColor 在暗处往 shadowTint 拉
-        float3 toonBase = baseColor * lerp(shadowTint, float3(1, 1, 1), toonDl);
+        float3 toonBase = baseColor * lerp(shadowTint, float3(1, 1, 1), nl);
 
         color += toonBase * direction_world_color.rgb * toonDl;
 
-        // spec（硬高光）
+        // 连续高光，避免肩膀和头部出现大块硬边。
         float3 r = reflect(dirI, normalW);
         float s = pow(max(dot(r, toEye), 0.0f), specular_power);
-        float specToon = ToonSpec(s);
-        color += specular_color.rgb * specToon;
+        color += specular_color.rgb * s * 0.75f;
     }
 
-    // ---- rim（也做一点 toon 化，边缘更动画感） ----
+    // ---- soft rim ----
     {
-        float rim = 1.0f - saturate(dot(normalW, toEye));
-        rim = pow(rim, 2.5f);
-
-        // 量化/阈值化 rim
-        float rw = fwidth(rim) * 2.0f;
-        float rimToon = smoothstep(0.55f - rw, 0.55f + rw, rim);
-
-        float3 rimColor = float3(0.05f, 0.05f, 0.05f);
-        color += rimColor * rimToon;
+        // 使用几何法线而不是 normal map 法线，让模型外轮廓稳定、柔和。
+        float rim = pow(1.0f - saturate(dot(nW, toEye)), 3.0f);
+        float3 rimColor = float3(0.28f, 0.36f, 0.55f);
+        color += rimColor * rim * 0.12f;
     }
 
     // ---- point lights (toon diffuse + toon spec) ----
@@ -205,14 +192,13 @@ float4 main(PS_IN pi) : SV_TARGET
         float nl = saturate(dot(-I, normalW)); // N·L
         float toonPl = ToonDiffuse3(nl);
 
-        float3 toonBase = baseColor * lerp(shadowTint, float3(1, 1, 1), toonPl);
+        float3 toonBase = baseColor * lerp(shadowTint, float3(1, 1, 1), nl);
         color += toonBase * point_light[i].color.rgb * distFactor * toonPl;
 
-        // spec（硬高光）
+        // 点光同样使用连续高光。
         float3 pr = reflect(I, normalW);
         float ps = pow(max(dot(pr, toEye), 0.0f), specular_power);
-        float psToon = ToonSpec(ps);
-        color += point_light[i].color.rgb * psToon * distFactor * 0.5f;
+        color += point_light[i].color.rgb * ps * distFactor * 0.35f;
     }
 
     return float4(color, alpha);
