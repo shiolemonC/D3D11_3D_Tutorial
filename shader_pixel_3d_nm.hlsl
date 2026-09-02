@@ -141,7 +141,9 @@ float4 main(PS_IN pi) : SV_TARGET
     // -------------------------
     // 2) Toon Lighting
     // -------------------------
-    float3 toEye = normalize(eye_posW - pi.posW.xyz);
+    float3 eyeDelta = eye_posW - pi.posW.xyz;
+    float cameraDistance = length(eyeDelta);
+    float3 toEye = eyeDelta / max(cameraDistance, 1e-4f);
 
     // 你想更“卡通”的阴影色，可以调这个
     float3 shadowTint = float3(0.24f, 0.25f, 0.30f);
@@ -183,7 +185,15 @@ float4 main(PS_IN pi) : SV_TARGET
         float mainLightFacing = saturate(dot(-mainLightDirI, nW));
         float directionalMask = smoothstep(0.05f, 0.65f, mainLightFacing);
         float directionalRim = rim * directionalMask;
-        color += direction_world_color.rgb * directionalRim * 0.80f;
+
+        // 保留主光的冷色基调，但减少过白的边缘。
+        const float3 hdrRimTint = float3(0.62f, 0.88f, 1.10f);
+
+        // Bloom 半径是屏幕空间的固定像素宽度，远处模型需要适当减少发光源强度。
+        float rimDistanceFade = lerp(1.0f, 0.40f,
+            smoothstep(8.0f, 15.0f, cameraDistance));
+        color += direction_world_color.rgb * hdrRimTint
+            * directionalRim * 0.80f * rimDistanceFade;
     }
 
     // ---- point lights (toon diffuse + toon spec) ----
