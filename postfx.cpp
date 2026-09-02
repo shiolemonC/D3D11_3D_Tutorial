@@ -25,7 +25,7 @@ static ID3D11PixelShader* gPS = nullptr;
 
 struct PostFxCB
 {
-    XMFLOAT2 invTexSize; // 8
+    XMFLOAT2 invTexSize; // 8, FXAA texel size
     float    strength;   // 12
     float    radius;     // 16
     XMFLOAT2 centerUV;   // 24
